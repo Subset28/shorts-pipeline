@@ -47,7 +47,9 @@ def build_report(events_path: Path, metrics_path: Path) -> dict[str, Any]:
                 }
                 variants_by_source[source_url].add(variant)
 
-    aggregates: dict[tuple[str, str, str, int], dict[str, float]] = defaultdict(lambda: {"videos": 0.0, "views": 0.0, "likes": 0.0, "comments": 0.0, "shares": 0.0})
+    aggregates: dict[tuple[str, str, str, int], dict[str, float]] = defaultdict(
+        lambda: {"videos": 0.0, "views": 0.0, "likes": 0.0, "comments": 0.0, "shares": 0.0}
+    )
     unmatched = 0
     with metrics_path.open(newline="", encoding="utf-8-sig") as handle:
         for row in csv.DictReader(handle):
@@ -74,16 +76,20 @@ def build_report(events_path: Path, metrics_path: Path) -> dict[str, Any]:
     rows = []
     for (category, format_name, platform, variant), values in sorted(aggregates.items()):
         views = values["views"]
-        rows.append({
-            "category": category,
-            "format_name": format_name,
-            "platform": platform,
-            "variant": variant,
-            "videos": int(values["videos"]),
-            "views": int(views),
-            "avg_views": round(views / values["videos"], 2) if values["videos"] else 0,
-            "engagement_rate": round((values["likes"] + values["comments"] + values["shares"]) / views, 4) if views else 0,
-        })
+        rows.append(
+            {
+                "category": category,
+                "format_name": format_name,
+                "platform": platform,
+                "variant": variant,
+                "videos": int(values["videos"]),
+                "views": int(views),
+                "avg_views": round(views / values["videos"], 2) if values["videos"] else 0,
+                "engagement_rate": round((values["likes"] + values["comments"] + values["shares"]) / views, 4)
+                if views
+                else 0,
+            }
+        )
     report = {"rows": rows, "matched_rows": sum(row["videos"] for row in rows), "unmatched_rows": unmatched}
     report["recommendations"] = tuning_recommendations(report)
     return report
@@ -101,7 +107,9 @@ def tuning_recommendations(report: dict[str, Any], min_videos: int = 2) -> list[
         f"Study the hook and pacing of {by_engagement['category']} / {by_engagement['format_name']}; it leads repeated lanes by engagement rate.",
     ]
     if by_views["category"] != by_engagement["category"] or by_views["format_name"] != by_engagement["format_name"]:
-        recommendations.append("Views and engagement favor different lanes; keep both in rotation instead of optimizing for one metric.")
+        recommendations.append(
+            "Views and engagement favor different lanes; keep both in rotation instead of optimizing for one metric."
+        )
     return recommendations
 
 

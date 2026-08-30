@@ -37,8 +37,7 @@ def main() -> None:
             "made a second person approve destructive commands."
         ),
         description=(
-            "Reddit attribution: u/demo_story in r/TalesFromTechSupport\n"
-            "Local layout demo only; not for publishing."
+            "Reddit attribution: u/demo_story in r/TalesFromTechSupport\nLocal layout demo only; not for publishing."
         ),
         sources=["https://www.reddit.com/r/TalesFromTechSupport/comments/demo/"],
         format_name="reddit_story",
@@ -47,9 +46,7 @@ def main() -> None:
     audio = synthesize(package.narration, settings, output / "narration.mp3")
     if not audio or not audio.exists() or audio.stat().st_size == 0:
         raise RuntimeError("Demo TTS produced no audio")
-    captions = create_captions(
-        package.narration, audio, output / "captions.srt", settings.caption_model
-    )
+    captions = create_captions(package.narration, audio, output / "captions.srt", settings.caption_model)
     backgrounds = select_backgrounds(settings.reddit_background_dir, package.title, limit=1)
     background = backgrounds[0] if backgrounds else None
     video = render_video(package, output, audio, captions, background)

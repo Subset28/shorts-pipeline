@@ -23,6 +23,23 @@ shorts-pipeline = "shorts_pipeline.cli:main"
 
 [project.optional-dependencies]
 captions = ["faster-whisper>=1.1,<2"]
+dev = [
+  "pytest>=8,<9",
+  "ruff>=0.9,<1",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["output", "data", "cliptool"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
 
 [tool.setuptools.packages.find]
 include = ["shorts_pipeline*"]

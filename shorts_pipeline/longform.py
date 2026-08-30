@@ -28,9 +28,14 @@ def create_longform_package(topic: Topic) -> ScriptPackage:
     )
     description = f"{narration}\n\nSource: {source.url}\nReddit attribution: u/{source.author} in r/{source.community}"
     return ScriptPackage(
-        source.title[:100], narration, source.title[:100], description,
-        [topic.category, "technology", "explainer", "long form"], [source.url],
-        "longform_explainer", topic.category,
+        source.title[:100],
+        narration,
+        source.title[:100],
+        description,
+        [topic.category, "technology", "explainer", "long form"],
+        [source.url],
+        "longform_explainer",
+        topic.category,
     )
 
 
@@ -44,7 +49,9 @@ def _title_card(package: ScriptPackage, path: Path) -> None:
     image.save(path)
 
 
-def render_longform_video(package: ScriptPackage, output_dir: Path, audio: Path, captions: Path | None, background: Path | None) -> Path:
+def render_longform_video(
+    package: ScriptPackage, output_dir: Path, audio: Path, captions: Path | None, background: Path | None
+) -> Path:
     if not shutil.which("ffmpeg"):
         raise RuntimeError("ffmpeg is required")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -69,6 +76,29 @@ def render_longform_video(package: ScriptPackage, output_dir: Path, audio: Path,
     if captions and captions.exists():
         filters.append(f"{video_label}{_caption_filter(captions, margin_v=70)}[captioned]")
         video_label = "[captioned]"
-    command += ["-filter_complex", ";".join(filters), "-map", video_label, "-map", "2:a", "-t", str(duration), "-r", "30", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(output)]
+    command += [
+        "-filter_complex",
+        ";".join(filters),
+        "-map",
+        video_label,
+        "-map",
+        "2:a",
+        "-t",
+        str(duration),
+        "-r",
+        "30",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "medium",
+        "-crf",
+        "18",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-shortest",
+        str(output),
+    ]
     subprocess.run(command, check=True, capture_output=True, text=True)
     return output
