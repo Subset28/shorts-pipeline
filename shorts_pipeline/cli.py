@@ -52,6 +52,8 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
     state_key = _publish_state_key(source_url, package.variant)
     published = load_publish_state(publish_path).get(state_key, {})
     audio = synthesize(package.narration, settings, output_dir / "narration.mp3")
+    if not audio or not audio.exists() or audio.stat().st_size == 0:
+        raise RuntimeError("TTS produced no audio; refusing to create a silent short")
     captions = create_captions(package.narration, audio, output_dir / "captions.srt", settings.caption_model) if settings.captions_enabled else None
     fallback_background = ensure_background_video(settings.background_video_url, settings.background_video)
     background_sources = select_backgrounds(settings.background_dir, source_url)

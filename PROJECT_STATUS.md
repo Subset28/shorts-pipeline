@@ -12,6 +12,8 @@
   viewer promise.
 - The latest four-variant dry-run completed with valid H.264/AAC MP4 outputs in
   `output/batch-13`.
+- A render now requires a non-empty narration audio file; TTS failure stops the
+  run instead of creating a silent short.
 - `pytest -q`: 27 passed. `git diff --check`: passed.
 
 ## Remaining work

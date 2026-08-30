@@ -14,5 +14,5 @@ the known narration text. The resulting SRT is burned into the final MP4 by
 FFmpeg, so platform uploads do not depend on sidecar-caption support.
 
 The free path uses RSS, deterministic fallback copy, local Pillow rendering,
-FFmpeg, and silent audio. Optional LLM and TTS adapters improve quality without
+FFmpeg, and a required narration track. Optional LLM and TTS adapters improve quality without
 changing the pipeline contract.
