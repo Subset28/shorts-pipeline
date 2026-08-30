@@ -12,7 +12,7 @@ from shorts_pipeline.asset_library import sync_backgrounds
 from shorts_pipeline.publish import save_manifest
 from pathlib import Path
 from shorts_pipeline.sources import _clean_summary, is_relevant, is_usable_source
-from shorts_pipeline.reddit import discover_reddit_topics, load_approved_reddit_topics
+from shorts_pipeline.reddit import _is_niche_relevant, discover_reddit_topics, load_approved_reddit_topics
 from shorts_pipeline.config import load_settings
 from shorts_pipeline.render import _reddit_post_card
 from PIL import Image
@@ -136,7 +136,10 @@ def test_reddit_story_lane_requires_explicit_rights_and_attribution():
     source = Source(
         "A developer's production incident",
         "https://www.reddit.com/r/programming/comments/example/story/",
-        "A developer describes an incident and the lesson learned.",
+        "A developer describes an overnight production incident and the lesson learned. "
+        "The cleanup script matched the live hostname, the service went down, and the "
+        "team restored a backup before adding a second-person approval step to every "
+        "deployment. The author says the new safeguard has prevented a repeat.",
         author="example_user",
         community="programming",
         reuse_permission=True,
@@ -164,7 +167,7 @@ def test_reddit_discovery_candidates_are_not_automatically_cleared(monkeypatch):
         def json(self):
             return {"access_token": "token"} if self.token else {"data": {"children": [{"data": {
                 "title": "A production incident",
-                "selftext": "A detailed account " + "with useful context " * 14,
+                "selftext": "A detailed account " + "with useful context " * 30,
                 "author": "story_author",
                 "permalink": "/r/programming/comments/abc/story/",
                 "subreddit": "programming",
@@ -195,6 +198,12 @@ def test_reddit_discovery_candidates_are_not_automatically_cleared(monkeypatch):
     source = topics[0].sources[0]
     assert source.author == "story_author"
     assert source.reuse_permission is False
+
+
+def test_generic_reddit_prompts_must_match_a_channel_topic():
+    assert _is_niche_relevant("AskReddit", "What is your favorite meal?", "I love pasta.") is False
+    assert _is_niche_relevant("AskReddit", "What was your worst server outage?", "The database failed overnight.") is True
+    assert _is_niche_relevant("TalesFromTechSupport", "My strangest ticket", "The printer became sentient.") is True
 
 
 def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):

@@ -85,7 +85,12 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         # engagement counts. The title is safer and more intelligible than
         # narrating feed boilerplate or inventing missing context.
         summary = source.title
-    if len(summary) > 560:
+    if format_name == "reddit_story":
+        # Preserve enough of the source to reach its outcome without inventing
+        # a resolution. Trim only at a complete sentence boundary.
+        if len(summary) > 900:
+            summary = summary[:900].rsplit(".", 1)[0].rstrip() + "."
+    elif len(summary) > 560:
         summary = summary[:560].rsplit(" ", 1)[0] + "..."
     if format_name == "technical_joke":
         narration = f"POV: you ask {topic.category} one simple question and get a twelve-page answer. The useful part is this: {summary} So the practical takeaway is to separate the demo from what actually works."

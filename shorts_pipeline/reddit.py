@@ -17,6 +17,37 @@ RANKED_STORY_SUBREDDITS = (
     "netsec", "hacking", "OSINT", "techsupport", "ShittySysAdmin",
 )
 
+MIN_STORY_WORDS = 80
+GENERIC_COMMUNITIES = {"askreddit"}
+NICHE_SIGNALS = re.compile(
+    r"\b(ai|artificial intelligence|machine learning|software|program(?:mer|ming)|"
+    r"coding|computer|database|server|production|devops|sysadmin|cyber|security|"
+    r"hacker|malware|pilot|airline|aviation|aircraft|rocket|spacecraft|aerospace|"
+    r"engineer|engineering|finance|trading|market|stock)\b",
+    re.IGNORECASE,
+)
+
+
+def _story_category(community: str) -> str:
+    """Map narrative communities back to the channel's topical lanes."""
+    name = community.lower()
+    if name in {"aerospaceengineering", "rocketry", "spacex", "aviation", "flying", "aircraft"}:
+        return "Aerospace"
+    if name in {"cybersecurity", "netsec", "hacking", "osint"}:
+        return "Cyber"
+    if name in {"machinelearning", "artificialintelligence", "deeplearning"}:
+        return "AI/ML"
+    if name in {"talesfromtechsupport", "sysadmin", "shittysysadmin", "experienceddevs", "programmerhumor", "cscareerquestions", "techsupport"}:
+        return "CS"
+    return "Technology"
+
+
+def _is_niche_relevant(community: str, title: str, body: str) -> bool:
+    """Reject generic prompt answers that do not fit the channel promise."""
+    if community.lower() not in GENERIC_COMMUNITIES:
+        return True
+    return bool(NICHE_SIGNALS.search(f"{title} {body}"))
+
 
 def _clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
@@ -94,11 +125,13 @@ def discover_reddit_topics(
                     continue
                 community = str(post.get("subreddit", subreddit)).strip()
                 title = _clean_text(str(post.get("title", "")))
-                if title and len(body.split()) >= 40:
+                if not _is_niche_relevant(community, title, body):
+                    continue
+                if title and len(body.split()) >= MIN_STORY_WORDS:
                     source_url = f"https://www.reddit.com{permalink}"
                     if source_url not in seen_urls:
                         source = Source(title, source_url, body[:4000], str(post.get("created_utc", "")), author, community, False)
-                        topics.append(Topic(source.title, "Reddit Stories", (source,), float(post.get("score", 0))))
+                        topics.append(Topic(source.title, _story_category(community), (source,), float(post.get("score", 0))))
                         seen_urls.add(source_url)
                 # Prompt threads often contain the best first-person stories in
                 # comments rather than in the post body itself.
@@ -121,7 +154,7 @@ def discover_reddit_topics(
                     comment_body = _clean_text(str(comment.get("body", "")))
                     comment_author = str(comment.get("author", "")).strip()
                     comment_permalink = str(comment.get("permalink", "")).strip()
-                    if comment.get("stickied") or comment_author in {"", "[deleted]"} or len(comment_body.split()) < 40 or not comment_permalink:
+                    if comment.get("stickied") or comment_author in {"", "[deleted]"} or len(comment_body.split()) < MIN_STORY_WORDS or not comment_permalink:
                         continue
                     comment_url = f"https://www.reddit.com{comment_permalink}"
                     if comment_url in seen_urls:
@@ -135,7 +168,7 @@ def discover_reddit_topics(
                         community,
                         False,
                     )
-                    topics.append(Topic(comment_source.title, "Reddit Stories", (comment_source,), float(comment.get("score", 0))))
+                    topics.append(Topic(comment_source.title, _story_category(community), (comment_source,), float(comment.get("score", 0))))
                     seen_urls.add(comment_url)
         return sorted(topics, key=lambda item: item.score, reverse=True)[: max(1, limit)]
 

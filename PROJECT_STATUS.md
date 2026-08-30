@@ -36,6 +36,12 @@
 - Reddit narration now explicitly reads the post title first and the source body
   second. Caption sizing was increased for mobile readability. The final demo
   script uses a CS/TalesFromTechSupport-style production incident.
+- Reddit discovery now rejects short bodies and off-topic generic AskReddit
+  answers, maps dedicated communities into CS, AI/ML, Aerospace, or Cyber
+  categories, and preserves source text through a complete-sentence boundary.
+  A live API refresh produced niche candidates from sysadmin, programming,
+  aerospace, aviation, and career communities; all remain uncleared until
+  explicit reuse permission is documented.
 - Replaced the local Aerospire and Supkin background masters with fresh
   yt-dlp downloads: Aerospire is 1280x720/24fps (the source maximum), and
   Supkin is 1920x1080/60fps.
