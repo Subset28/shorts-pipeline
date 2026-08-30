@@ -24,6 +24,15 @@ def _clean_summary(value: str) -> str:
     value = re.sub(r"https?://\S+", " ", value)
     value = re.sub(r"\b(?:article|comments?)\s+url\s*:\s*", " ", value, flags=re.IGNORECASE)
     value = re.sub(r"(?:\bpoints|#\s*comments?)\s*:\s*\d+", " ", value, flags=re.IGNORECASE)
+    # Technology Review's newsletter feed prepends a reusable newsletter
+    # description to the actual item. It is not source-specific context and
+    # sounds like an advertisement when sent to narration.
+    value = re.sub(
+        r"^this is today[’']s edition of the download,.*?world of technology\.\s*",
+        "",
+        value,
+        flags=re.IGNORECASE,
+    )
     return re.sub(r"\s+", " ", value).strip(" .-")
 
 

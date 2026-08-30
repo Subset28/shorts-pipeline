@@ -147,6 +147,13 @@ def test_feed_summary_removes_markup_urls_and_link_aggregator_boilerplate():
     assert cleaned == ""
 
 
+def test_feed_summary_removes_newsletter_boilerplate_but_keeps_story():
+    cleaned = _clean_summary(
+        "This is today’s edition of The Download, our weekday newsletter that provides a daily dose of what’s going on in the world of technology. A startup claims it found a new model."
+    )
+    assert cleaned == "A startup claims it found a new model"
+
+
 def test_fallback_narration_uses_title_when_summary_is_feed_boilerplate():
     source = Source("A useful machine-learning discovery", "https://example.test/source", "27")
     package = fallback_package(Topic("A useful machine-learning discovery", "ML", (source,)))
