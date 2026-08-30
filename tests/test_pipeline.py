@@ -509,7 +509,7 @@ def test_standard_captions_use_large_animated_three_word_beats(tmp_path):
 
 
 def test_ass_caption_text_escapes_formatting_control_characters():
-    assert _escape_ass_text(r"Try {this}\\path") == r"Try \\{this\\}\\\\path"
+    assert _escape_ass_text(r"Try {this}\\path") == r"Try \{this\}\\\\path"
 
 
 def test_create_captions_uses_opt_in_speaker_path(tmp_path, monkeypatch):
