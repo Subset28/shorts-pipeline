@@ -22,6 +22,36 @@ _TECHNICAL_JOKE_SIGNAL = re.compile(
     re.IGNORECASE,
 )
 
+_SOURCE_STOPWORDS = {
+    "about",
+    "after",
+    "because",
+    "from",
+    "here",
+    "into",
+    "more",
+    "that",
+    "their",
+    "this",
+    "what",
+    "when",
+    "with",
+}
+
+
+def _content_terms(value: str) -> set[str]:
+    return {term for term in re.findall(r"[a-z0-9]+", value.lower()) if len(term) > 3 and term not in _SOURCE_STOPWORDS}
+
+
+def _has_source_fidelity(source_title: str, source_summary: str, narration: str) -> bool:
+    """Require model drafts to retain concrete source anchors."""
+    narration_terms = _content_terms(narration)
+    title_terms = _content_terms(source_title)
+    summary_terms = _content_terms(source_summary)
+    title_overlap = len(title_terms & narration_terms)
+    summary_overlap = len(summary_terms & narration_terms)
+    return title_overlap >= 2 or (title_overlap >= 1 and summary_overlap >= 2)
+
 
 def eligible_formats(topic: Topic) -> tuple[str, ...]:
     """Return lanes whose promise can be supported by this source."""
@@ -254,6 +284,14 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
         # then the original body. The fallback adds the narrative transitions.
         body = " ".join(source.summary.split())
         narration = f"{source.title}. {body}"[:900].rsplit(" ", 1)[0]
+    else:
+        if not _has_source_fidelity(source.title, source.summary, narration):
+            raise ValueError("model narration lacks concrete source anchors")
+    else:
+        if not _has_source_fidelity(source.title, source.summary, narration):
+            raise ValueError("model narration lacks concrete source anchors")
+        if not narration.casefold().startswith(source.title.casefold()):
+            narration = _clip_narration(f"{source.title}. {narration}")
     tags = data.get("tags", [])
     if not isinstance(tags, list):
         raise ValueError("model tags must be a list")

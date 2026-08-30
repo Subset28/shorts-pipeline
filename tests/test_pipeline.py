@@ -141,7 +141,7 @@ def test_model_output_is_normalized_and_rejects_unsupported_formats():
         topic,
         {
             "hook": "A strong hook",
-            "narration": "This is a sufficiently long narration that explains the source-backed idea in plain language. "
+            "narration": "This breakthrough explains the useful finding in plain language with source-backed context. "
             * 8,
             "title": "A title",
             "description": "An original explanation.",
@@ -167,7 +167,7 @@ def test_model_narration_clips_at_a_complete_sentence():
     )
     topic = Topic(source.title, "AI", (source,))
     long_narration = (
-        "First, the source reports a measured change. "
+        "First, the model safety source reports a measured change. "
         + ("This sentence adds source-backed context. " * 30)
         + "The takeaway is to check the evidence."
     )
@@ -200,6 +200,48 @@ def test_nonreddit_model_narration_rejects_thin_script():
                 "format_name": "news_breakdown",
             },
         )
+
+
+def test_model_narration_is_rejected_when_it_lacks_source_anchors():
+    source = Source(
+        "A new compiler improves code speed",
+        "https://example.test/compiler",
+        "The compiler reduced build time in a measured benchmark.",
+    )
+    data = {
+        "hook": "A strong hook",
+        "narration": "This is a sufficiently long generic explanation with no concrete subject or measured detail included.",
+        "title": "A title",
+        "description": "An original explanation.",
+        "tags": ["CS"],
+        "format_name": "news_breakdown",
+    }
+    try:
+        normalize_package(Topic(source.title, "CS", (source,)), data)
+    except ValueError as exc:
+        assert "source anchors" in str(exc)
+    else:
+        raise AssertionError("generic model narration was accepted")
+
+
+def test_model_narration_opens_with_exact_source_headline():
+    source = Source(
+        "A new compiler improves code speed",
+        "https://example.test/compiler",
+        "The compiler reduced build time in a measured benchmark.",
+    )
+    package = normalize_package(
+        Topic(source.title, "CS", (source,)),
+        {
+            "hook": "A strong hook",
+            "narration": "The compiler improved code speed in a measured benchmark for developers, reducing build time in the reported test.",
+            "title": "A title",
+            "description": "An original explanation.",
+            "tags": ["CS"],
+            "format_name": "news_breakdown",
+        },
+    )
+    assert package.narration.startswith(source.title + ".")
 
 
 def test_metadata_is_platform_neutral():

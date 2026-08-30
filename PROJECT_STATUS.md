@@ -180,5 +180,7 @@
 - Restricted the technical-joke lane to sources with explicit humor or
   technical-culture signals, preventing serious AI and CS announcements from
   receiving mismatched generic POV scripts.
+- Added a model source-fidelity gate that rejects generic non-Reddit drafts and
+  anchors accepted narration to the exact source headline before TTS.
 - Finish platform OAuth/configuration and perform a deliberate final-release
   review before deploying to the NAS.
