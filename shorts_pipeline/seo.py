@@ -219,6 +219,14 @@ def _clip_narration(text: str, limit: int = 900) -> str:
     return bounded.rsplit(" ", 1)[0].rstrip(" ,;:-")
 
 
+def _ensure_source_opening(source_title: str, narration: str) -> str:
+    """Keep model narration anchored to the same headline shown on screen."""
+    title = " ".join(source_title.split()).strip(" .")
+    if narration.casefold().startswith(title.casefold()):
+        return narration
+    return _clip_narration(f"{title}. {narration}")
+
+
 def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     """Validate model output before it reaches TTS, rendering, or publishing."""
     source = topic.sources[0]
@@ -231,6 +239,8 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     format_name = data.get("format_name", "news_breakdown")
     if format_name not in eligible_formats(topic):
         raise ValueError(f"unsupported format: {format_name!r}")
+    if format_name != "reddit_story":
+        narration = _ensure_source_opening(source.title, narration)
     if format_name == "reddit_story":
         # Keep model-generated Reddit treatments source-faithful: exact title,
         # then the original body. The fallback adds the narrative transitions.
