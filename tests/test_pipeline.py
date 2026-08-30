@@ -3,7 +3,7 @@ from shorts_pipeline.history import load_publish_state, save_publish_state
 from shorts_pipeline.captions import create_captions
 from shorts_pipeline.telemetry import record_event
 import json
-from shorts_pipeline.publish import metadata
+from shorts_pipeline.publish import fetch_tiktok_status, metadata
 from shorts_pipeline.seo import fallback_package, normalize_package
 from shorts_pipeline.media import select_background, select_backgrounds
 from shorts_pipeline.analytics import build_report
@@ -71,6 +71,28 @@ def test_publish_state_resumes_each_platform_without_overwriting(tmp_path):
     save_publish_state(path, "https://example.test/source", youtube_id="yt123")
     save_publish_state(path, "https://example.test/source", tiktok_id="tt456")
     assert load_publish_state(path)["https://example.test/source"] == {"tiktok_id": "tt456", "youtube_id": "yt123"}
+
+
+def test_tiktok_status_fetch_reads_completion(monkeypatch):
+    class Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"error": {"code": "ok"}, "data": {"status": "PUBLISH_COMPLETE"}}
+
+    class Client:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def post(self, *args, **kwargs):
+            return Response()
+
+    monkeypatch.setattr("shorts_pipeline.publish.httpx.Client", lambda **kwargs: Client())
+    assert fetch_tiktok_status("token", "publish-id") == "PUBLISH_COMPLETE"
 
 
 def test_captions_fallback_writes_srt_without_whisper(tmp_path, monkeypatch):

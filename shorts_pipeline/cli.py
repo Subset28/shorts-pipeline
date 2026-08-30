@@ -12,7 +12,7 @@ from .asset_library import sync_backgrounds
 from .history import load_publish_state, load_seen, mark_seen, save_publish_state
 from .llm import create_package
 from .media import build_background_reel, ensure_background_video, select_backgrounds, split_authorized_clip
-from .publish import save_manifest, upload_tiktok, upload_youtube
+from .publish import fetch_tiktok_status, save_manifest, upload_tiktok, upload_youtube
 from .render import render_video
 from .sources import discover_topics
 from .tts import synthesize
@@ -63,9 +63,23 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
     youtube_id = published.get("youtube_id") or upload_youtube(video, package, settings.youtube_client_secrets, settings.youtube_token_file, settings.youtube_privacy_status)
     save_publish_state(publish_path, source_url, youtube_id=youtube_id)
     record_event(events_path, "youtube_published", source_url=source_url, category=package.category, format_name=package.format_name, platform_id=youtube_id)
-    tiktok_id = published.get("tiktok_id") or upload_tiktok(video, package, settings.tiktok_access_token, settings.tiktok_privacy_level)
-    save_publish_state(publish_path, source_url, tiktok_id=tiktok_id)
-    record_event(events_path, "tiktok_published", source_url=source_url, category=package.category, format_name=package.format_name, platform_id=tiktok_id)
+    tiktok_id = published.get("tiktok_id")
+    if not tiktok_id:
+        tiktok_id = upload_tiktok(video, package, settings.tiktok_access_token, settings.tiktok_privacy_level)
+        save_publish_state(publish_path, source_url, tiktok_id=tiktok_id, tiktok_status="PROCESSING_UPLOAD")
+        record_event(events_path, "tiktok_upload_started", source_url=source_url, category=package.category, format_name=package.format_name, variant=package.variant, platform_id=tiktok_id)
+        print(f"Uploaded to TikTok; processing status pending: {tiktok_id}")
+        return 0
+    tiktok_status = fetch_tiktok_status(settings.tiktok_access_token, tiktok_id)
+    if tiktok_status == "FAILED":
+        raise RuntimeError(f"TikTok rejected publish {tiktok_id}")
+    if tiktok_status != "PUBLISH_COMPLETE":
+        save_publish_state(publish_path, source_url, tiktok_status=tiktok_status)
+        record_event(events_path, "tiktok_processing", source_url=source_url, category=package.category, format_name=package.format_name, variant=package.variant, platform_id=tiktok_id, status=tiktok_status)
+        print(f"TikTok still processing ({tiktok_status}); will check again next run")
+        return 0
+    save_publish_state(publish_path, source_url, tiktok_status=tiktok_status)
+    record_event(events_path, "tiktok_published", source_url=source_url, category=package.category, format_name=package.format_name, variant=package.variant, platform_id=tiktok_id)
     mark_seen(seen_path, source_url)
     print(f"Published YouTube={youtube_id} TikTok={tiktok_id}")
     return 0

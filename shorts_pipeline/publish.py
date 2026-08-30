@@ -74,3 +74,24 @@ def upload_tiktok(video: Path, package: ScriptPackage, access_token: str, privac
         response = client.put(payload["upload_url"], content=data, headers={"Content-Range": f"bytes 0-{len(data)-1}/{len(data)}", "Content-Type": "video/mp4"})
         response.raise_for_status()
         return payload["publish_id"]
+
+
+def fetch_tiktok_status(access_token: str, publish_id: str) -> str:
+    """Fetch the asynchronous TikTok post state for a previously uploaded ID."""
+    if not access_token:
+        raise RuntimeError("TIKTOK_ACCESS_TOKEN is not configured")
+    with httpx.Client(timeout=30) as client:
+        response = client.post(
+            "https://open.tiktokapis.com/v2/post/publish/status/fetch/",
+            headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
+            json={"publish_id": publish_id},
+        )
+        response.raise_for_status()
+        payload = response.json()
+    error = payload.get("error", {})
+    if error.get("code") not in (None, "ok"):
+        raise RuntimeError(f"TikTok status check failed: {error.get('code')}: {error.get('message', '')}".strip())
+    status = payload.get("data", {}).get("status")
+    if not status:
+        raise RuntimeError("TikTok status response did not include a status")
+    return str(status)

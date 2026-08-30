@@ -22,6 +22,12 @@ the `video.publish` scope; unaudited clients are private-only. Use the
 platform-specific privacy values returned by TikTok creator-info rather than
 assuming public access.
 
+TikTok processing is asynchronous. The pipeline persists the returned
+`publish_id`, records the upload as processing, and checks the official status
+endpoint on the next run. It marks the source seen only after
+`PUBLISH_COMPLETE`; a reported failure stops the run instead of claiming a
+successful post.
+
 For an always-on host, run `docker compose up -d --build`. The container
 restarts after process failures and keeps `data/` and `output/` on the host.
 Use `DRY_RUN=true` for the first deployment; switch it only after both platform
