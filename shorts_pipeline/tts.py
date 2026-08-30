@@ -17,7 +17,18 @@ def synthesize(text: str, settings: Settings, output: Path) -> Path | None:
     if settings.elevenlabs_voice_id and settings.elevenlabs_rotator_path.exists():
         # Use the interpreter running the pipeline so Windows installs do not
         # depend on a separate `python` command being on PATH.
-        command = [sys.executable, str(settings.elevenlabs_rotator_path), "--text", text, "--voice-id", settings.elevenlabs_voice_id, "--model-id", settings.elevenlabs_model_id, "--out", str(output)]
+        command = [
+            sys.executable,
+            str(settings.elevenlabs_rotator_path),
+            "--text",
+            text,
+            "--voice-id",
+            settings.elevenlabs_voice_id,
+            "--model-id",
+            settings.elevenlabs_model_id,
+            "--out",
+            str(output),
+        ]
         try:
             subprocess.run(command, check=True, capture_output=True, text=True, timeout=120)
         except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
@@ -25,7 +36,23 @@ def synthesize(text: str, settings: Settings, output: Path) -> Path | None:
     if output.exists() and output.stat().st_size:
         return output
     try:
-        subprocess.run([sys.executable, "-m", "edge_tts", "--voice", settings.edge_tts_voice, "--text", text, "--write-media", str(output)], check=True, capture_output=True, text=True, timeout=120)
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "edge_tts",
+                "--voice",
+                settings.edge_tts_voice,
+                "--text",
+                text,
+                "--write-media",
+                str(output),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         print(f"TTS unavailable; continuing with silent draft: {exc}")
     return output if output.exists() and output.stat().st_size else None

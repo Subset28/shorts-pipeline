@@ -19,11 +19,11 @@ Usage:
     python elevenlabs_tts_rotator.py --text "Hello world" --voice-id EXAVITQu4vr4xnSDxMaL --out out.mp3
     python elevenlabs_tts_rotator.py --status   # show key cooldown state
 """
+
 import argparse
 import json
 import os
 import sys
-import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
