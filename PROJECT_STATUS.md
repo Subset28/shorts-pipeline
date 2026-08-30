@@ -4,6 +4,9 @@
 
 - The local pipeline is the working source of truth; NAS deployment is reserved
   for an explicitly approved finished release.
+- The Synology NAS deployment was fully decommissioned on 2026-08-30. The
+  Shorts Pipeline container, image, Compose network, and project directory were
+  removed; the Mac mini is now the intended always-on runtime.
 - Current work adds source-gated content lanes: news breakdown, fact explainer,
   myth bust, technical joke/POV, question/answer, and conditional surprising
   fact, timeline, and prediction watch.
