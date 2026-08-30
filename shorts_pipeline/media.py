@@ -73,7 +73,7 @@ def select_backgrounds(
 def build_background_reel(
     sources: list[Path],
     output: Path,
-    seconds_per_clip: float = 4.0,
+    seconds_per_clip: float = 3.0,
     variation_key: str = "",
     duration: float = 60.0,
 ) -> Path | None:

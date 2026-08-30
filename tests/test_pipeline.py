@@ -528,8 +528,8 @@ def test_background_reel_builds_long_sequence_instead_of_short_loop(tmp_path, mo
     result = build_background_reel(sources, tmp_path / "reel.mp4", duration=60, variation_key="demo")
     assert result == tmp_path / "reel.mp4"
     command = captured["command"]
-    assert command.count("-i") == 15
-    assert "concat=n=15:v=1:a=0[v]" in command[command.index("-filter_complex") + 1]
+    assert command.count("-i") == 20
+    assert "concat=n=20:v=1:a=0[v]" in command[command.index("-filter_complex") + 1]
 
 
 def test_background_selection_maps_editorial_aliases_to_asset_categories(tmp_path):
