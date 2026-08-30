@@ -20,6 +20,7 @@ def test_fallback_package_preserves_source_url():
     package = fallback_package(Topic("A breakthrough", "AI", (source,)))
     assert source.url in package.description
     assert package.sources == [source.url]
+    assert "one-minute version" not in package.narration
 
 
 def test_fallback_package_uses_only_supported_content_lanes():

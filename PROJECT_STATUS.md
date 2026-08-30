@@ -23,6 +23,8 @@
 - Discovery now filters each feed by lane-specific relevance and rejects generic
   navigation titles or entries too thin to explain. Live discovery returned
   substantive AI, CS, aerospace, and finance topics after the filter.
+- Added `docs/RESEARCH.md`, mapping hook, retention, format, and caption choices
+  to current official YouTube guidance without claiming a guaranteed view count.
 - `pytest -q`: 27 passed. `git diff --check`: passed.
 
 ## Remaining work

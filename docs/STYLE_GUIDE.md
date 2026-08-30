@@ -22,6 +22,7 @@ These are production heuristics, not a promise of virality. Every downloaded
 clip must be public-domain, licensed, user-authorized, or otherwise cleared for
 the intended upload; yt-dlp is a downloader, not a rights grant.
 
-References used for the defaults: [CapCut caption style guidance](https://www.capcut.com/resource/caption-style),
-[CapCut subtitle guidance](https://www.capcut.com/resource/add-subtitles-to-video),
-and the [NASA SVS media policy](https://svs.gsfc.nasa.gov/help/).
+The evidence and implementation mapping are recorded in `docs/RESEARCH.md`.
+The style choices are production heuristics, not platform ranking rules or a
+promise of virality. Also see the [NASA SVS media policy](https://svs.gsfc.nasa.gov/help/)
+for source-footage handling.

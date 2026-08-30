@@ -70,21 +70,21 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     if len(summary) > 560:
         summary = summary[:560].rsplit(" ", 1)[0] + "..."
     if format_name == "technical_joke":
-        narration = f"POV: you ask {topic.category} to explain itself and it sends you a twelve-page PDF. The useful version is this: {summary} The takeaway is to check the original source before trusting a headline."
+        narration = f"POV: you ask {topic.category} one simple question and get a twelve-page answer. The useful part is this: {summary} So the practical takeaway is to separate the demo from what actually works."
     elif format_name == "fact_explainer":
-        narration = f"Here is the one-minute version of the idea: {summary} In plain English, that means the result matters because it changes how we understand {topic.category.lower()}. The important caveat is to read the original source before turning a finding into a fact."
+        narration = f"Here's the simple version: {summary} In plain English, that means it changes how we understand {topic.category.lower()}. The part to remember is what the evidence shows—not the biggest version of the headline."
     elif format_name == "surprising_fact":
-        narration = f"The detail most people will miss is this: {summary} That is surprising because it changes the usual way we think about {topic.category.lower()}. Check the original source for the full context before repeating the claim."
+        narration = f"The detail most people will miss is this: {summary} That matters because it changes the usual way we think about {topic.category.lower()}. The context is the difference between a real result and hype."
     elif format_name == "timeline":
-        narration = f"Here is the short version of how this story develops: {summary} The important point is what changed, not just the headline. For the dates, methods, and full context, use the original source."
+        narration = f"Here's the short version of how this story developed: {summary} The important point is what changed, not just the headline. That sequence explains why this matters now."
     elif format_name == "question_answer":
-        narration = f"The question is simple: what does this actually mean? The source says: {summary} The answer is more nuanced than the headline, so treat this as a source-backed explanation—not a guarantee—and check the original report."
+        narration = f"The question is simple: what does this actually mean? The answer starts here: {summary} The headline is shorter than the reality, so keep the useful distinction between evidence and interpretation."
     elif format_name == "prediction_watch":
-        narration = f"This is a claim worth watching, not a promise: {summary} The next thing to look for is evidence that the result holds outside the original context. Until then, separate a measured result from a prediction."
+        narration = f"This is a claim worth watching, not a promise: {summary} The next thing to look for is evidence that it holds outside the original context. Until then, separate a measured result from a prediction."
     elif format_name == "myth_bust":
-        narration = f"This sounds like a bigger claim than it is. Here is what the source actually says: {summary} So the honest takeaway is to separate the result from the hype and verify the original source."
+        narration = f"This sounds like a bigger claim than it is. Here's what the evidence says: {summary} The honest takeaway is to separate the result from the hype."
     else:
-        narration = f"Here is the signal behind the headline: {summary} Why does it matter? It changes how we think about {topic.category.lower()}, but the original source is still the thing to check before repeating the claim."
+        narration = f"Here's what changed: {summary} Why does it matter? It shifts how we think about {topic.category.lower()}. The key is to follow the evidence, not just the headline."
     disclaimer = "This is educational technology commentary, not professional advice."
     if topic.category == "Finance":
         disclaimer = "This is educational market commentary, not financial advice or an investment recommendation."
