@@ -7,7 +7,7 @@ from PIL import Image
 import shorts_pipeline.cli as cli
 from shorts_pipeline.analytics import archive_report, build_report, build_youtube_report, tuning_recommendations
 from shorts_pipeline.asset_library import load_asset_manifest, sync_backgrounds
-from shorts_pipeline.captions import _write_ass, create_captions, write_speaker_ass
+from shorts_pipeline.captions import _escape_ass_text, _write_ass, create_captions, write_speaker_ass
 from shorts_pipeline.config import load_settings
 from shorts_pipeline.history import load_publish_state, save_publish_state
 from shorts_pipeline.longform import create_longform_package, render_longform_video
@@ -506,6 +506,10 @@ def test_standard_captions_use_large_animated_three_word_beats(tmp_path):
     assert r"{\fad(70,45)\blur1" in content
     assert "Style: Default,Arial,68,&H00FFFFFF" in content
     assert "ONE TWO THREE\\NFOUR" in content
+
+
+def test_ass_caption_text_escapes_formatting_control_characters():
+    assert _escape_ass_text(r"Try {this}\\path") == r"Try \\{this\\}\\\\path"
 
 
 def test_create_captions_uses_opt_in_speaker_path(tmp_path, monkeypatch):
