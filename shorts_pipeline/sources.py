@@ -120,7 +120,11 @@ def discover_topics(limit: int = 10) -> list[Topic]:
                 continue
             # Do not turn RSS truncation markers into spoken cliffhangers.
             summary_words = source.summary.split()
-            if len(summary_words) < 20 or raw_summary.rstrip().endswith(("...", "…")):
+            if (
+                len(summary_words) < 20
+                or raw_summary.rstrip().endswith(("...", "…"))
+                or "\ufffd" in raw_summary
+            ):
                 continue
             # Prefer current, well-described entries. The exact popularity
             # signal comes later from channel analytics, not fake view counts.
