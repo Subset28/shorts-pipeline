@@ -614,7 +614,10 @@ def test_tuning_recommendations_call_out_insufficient_sample_size():
 
 def test_archive_report_keeps_only_aggregate_tuning_data(tmp_path):
     output = archive_report(
-        {"rows": [{"category": "AI", "videos": 2}], "recommendations": ["Keep testing AI."]},
+        {
+            "rows": [{"category": "AI", "videos": 2, "source_url": "https://private.example"}],
+            "recommendations": ["Keep testing AI."],
+        },
         tmp_path / "weekly.json",
         "2026-08-30",
     )

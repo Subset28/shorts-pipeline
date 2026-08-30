@@ -6,6 +6,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+ARCHIVE_FIELDS = ("category", "format_name", "platform", "variant", "videos", "views", "avg_views", "engagement_rate")
+
 
 def _number(row: dict[str, str], name: str) -> float:
     value = (row.get(name) or "0").strip().replace(",", "")
@@ -121,10 +123,15 @@ def write_report(report: dict[str, Any], output: Path) -> Path:
 
 def archive_report(report: dict[str, Any], output: Path, week_of: str) -> Path:
     """Write a repository-safe weekly snapshot with no source event payloads."""
+    rows = [
+        {field: row[field] for field in ARCHIVE_FIELDS if field in row}
+        for row in report.get("rows", [])
+        if isinstance(row, dict)
+    ]
     payload = {
         "week_of": week_of,
-        "rows": report.get("rows", []),
-        "recommendations": report.get("recommendations", []),
+        "rows": rows,
+        "recommendations": [str(item) for item in report.get("recommendations", []) if str(item).strip()],
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
