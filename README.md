@@ -1,0 +1,24 @@
+# Shorts Pipeline
+
+Source-backed, unattended short-form publishing for YouTube Shorts and TikTok.
+The pipeline discovers a topic, writes original cited metadata, renders a 9:16
+MP4 with FFmpeg, adds ElevenLabs narration through the local rotating-key helper,
+and publishes through official APIs.
+
+It defaults to `DRY_RUN=true` and private uploads. No scraped clips or
+copyrighted music are used. See `docs/ARCHITECTURE.md` and `docs/OPERATIONS.md`.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\pip install -r requirements.txt
+Copy-Item .env.example .env
+python -m shorts_pipeline run --dry-run
+```
+
+Required tools: `ffmpeg` and `ffprobe`. Real publishing requires OAuth
+credentials for YouTube and TikTok plus approved posting scopes.
+
+For unattended operation, use `python -m shorts_pipeline run --daemon` with a
+process supervisor. The default free mode uses RSS, fallback copy, Pillow, and
+FFmpeg. An OpenAI API key and ElevenLabs rotator are optional quality upgrades;
+a ChatGPT Plus subscription is not an API credential.
