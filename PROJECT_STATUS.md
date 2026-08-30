@@ -185,6 +185,8 @@
 - Extended source anchoring to repair generic model hooks and platform titles
   from the source instead of allowing ungrounded metadata into publishing.
 - Added a caption-density quality gate that rejects caption files which reach
-   the end of the audio but contain too few words to represent the narration.
+  the end of the audio but contain too few words to represent the narration.
+- Wired source and variant identity into background reel construction so
+  repeated non-Reddit renders change their crop and pan sequence.
 - Finish platform OAuth/configuration and perform a deliberate final-release
   review before deploying to the NAS.
