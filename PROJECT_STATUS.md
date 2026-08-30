@@ -11,6 +11,10 @@
   Python 3.13, FFmpeg-full, dependencies, Reddit assets, and Minecraft
   backgrounds. A dry-run render passed there; automatic publishing remains off
   until platform OAuth and permission-cleared Reddit records are configured.
+- Mac YouTube OAuth was completed and a private AI News test upload succeeded;
+  the returned YouTube ID is persisted on the Mac. TikTok remains disabled until
+  its Direct Post access token is configured, and the persistent Mac `.env`
+  remains `DRY_RUN=true`.
 - Current work adds source-gated content lanes: news breakdown, fact explainer,
   myth bust, technical joke/POV, question/answer, and conditional surprising
   fact, timeline, and prediction watch.
