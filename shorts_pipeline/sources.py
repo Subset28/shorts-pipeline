@@ -109,17 +109,18 @@ def discover_topics(limit: int = 10) -> list[Topic]:
             link = str(entry.get("link", "")).strip()
             if not link:
                 continue
+            raw_summary = str(entry.get("summary", entry.get("description", "")))
             source = Source(
                 title=_clean_title(str(entry.get("title", "Untitled"))),
                 url=link,
-                summary=_clean_summary(str(entry.get("summary", entry.get("description", "")))),
+                summary=_clean_summary(raw_summary),
                 published=published,
             )
             if not is_relevant(category, source) or not is_usable_source(source):
                 continue
             # Do not turn RSS truncation markers into spoken cliffhangers.
             summary_words = source.summary.split()
-            if len(summary_words) < 20 or source.summary.endswith(("...", "…")):
+            if len(summary_words) < 20 or raw_summary.rstrip().endswith(("...", "…")):
                 continue
             # Prefer current, well-described entries. The exact popularity
             # signal comes later from channel analytics, not fake view counts.
