@@ -32,6 +32,10 @@ def _background_category(category: str) -> str:
     return {
         "AI News": "AI",
         "Cyber": "Cybersecurity",
+        # The catalog deliberately has neutral motion footage for market
+        # explainers; avoid visually claiming that a finance story is AI or
+        # aerospace news when no finance-specific reel is available.
+        "Finance": "General",
     }.get(category, category)
 
 
