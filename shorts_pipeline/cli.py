@@ -14,6 +14,7 @@ from .publish import save_manifest, upload_tiktok, upload_youtube
 from .render import render_video
 from .sources import discover_topics
 from .tts import synthesize
+from .telemetry import record_event
 
 
 def run(force_dry_run: bool = False) -> int:
@@ -24,6 +25,7 @@ def run(force_dry_run: bool = False) -> int:
         raise RuntimeError("No source-backed topics were discovered")
     seen_path = settings.data_dir / "seen_sources.json"
     publish_path = settings.data_dir / "publish_state.json"
+    events_path = settings.data_dir / "events.jsonl"
     seen = load_seen(seen_path)
     topic = next((item for item in topics if item.sources[0].url not in seen), topics[0])
     source_url = topic.sources[0].url
@@ -34,14 +36,17 @@ def run(force_dry_run: bool = False) -> int:
     background = ensure_background_video(settings.background_video_url, settings.background_video)
     video = render_video(package, settings.output_dir, audio, captions, background)
     manifest = save_manifest(package, video, settings.output_dir)
+    record_event(events_path, "draft_created", source_url=source_url, format_name=package.format_name, title=package.title, video=str(video), dry_run=dry_run)
     print(f"Created {manifest}")
     if dry_run:
         print("Dry run: YouTube and TikTok uploads skipped")
         return 0
     youtube_id = published.get("youtube_id") or upload_youtube(video, package, settings.youtube_client_secrets, settings.youtube_token_file, settings.youtube_privacy_status)
     save_publish_state(publish_path, source_url, youtube_id=youtube_id)
+    record_event(events_path, "youtube_published", source_url=source_url, format_name=package.format_name, platform_id=youtube_id)
     tiktok_id = published.get("tiktok_id") or upload_tiktok(video, package, settings.tiktok_access_token, settings.tiktok_privacy_level)
     save_publish_state(publish_path, source_url, tiktok_id=tiktok_id)
+    record_event(events_path, "tiktok_published", source_url=source_url, format_name=package.format_name, platform_id=tiktok_id)
     mark_seen(seen_path, source_url)
     print(f"Published YouTube={youtube_id} TikTok={tiktok_id}")
     return 0

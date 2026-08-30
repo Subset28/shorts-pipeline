@@ -1,6 +1,8 @@
 from shorts_pipeline.models import Source, Topic
 from shorts_pipeline.history import load_publish_state, save_publish_state
 from shorts_pipeline.captions import create_captions
+from shorts_pipeline.telemetry import record_event
+import json
 from shorts_pipeline.publish import metadata
 from shorts_pipeline.seo import fallback_package
 
@@ -30,3 +32,12 @@ def test_captions_fallback_writes_srt_without_whisper(tmp_path, monkeypatch):
     output = create_captions("One two three four five six seven eight.", None, tmp_path / "captions.srt")
     assert output and output.exists()
     assert "00:00:00,000 -->" in output.read_text(encoding="utf-8-sig")
+
+
+def test_telemetry_is_append_only_and_secret_free(tmp_path):
+    path = tmp_path / "events.jsonl"
+    record_event(path, "draft_created", format_name="news_breakdown", source_url="https://example.test")
+    record_event(path, "youtube_published", platform_id="abc")
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    assert [row["event"] for row in rows] == ["draft_created", "youtube_published"]
+    assert "api_key" not in rows[0]
