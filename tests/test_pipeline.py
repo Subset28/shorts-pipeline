@@ -865,6 +865,24 @@ def test_quality_report_flags_background_and_caption_failures(tmp_path, monkeypa
     )
 
 
+def test_quality_report_rejects_detectable_low_quality_video_profile(tmp_path, monkeypatch):
+    video = tmp_path / "short.mp4"
+    audio = tmp_path / "narration.mp3"
+    video.write_bytes(b"video")
+    audio.write_bytes(b"audio")
+    monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda path: 10.0)
+    monkeypatch.setattr(
+        "shorts_pipeline.quality.probe_video_stream",
+        lambda _path: {"width": 720, "height": 1280, "fps": 20.0},
+    )
+    report = assess_render(video, audio, None, None)
+    assert report["passed"] is False
+    assert {"video_resolution_unexpected", "video_frame_rate_too_low"}.issubset(report["issues"])
+    assert report["video_width"] == 720
+    assert report["video_height"] == 1280
+    assert report["video_fps"] == 20.0
+
+
 def test_background_reel_selection_rotates_stably(tmp_path):
     for name in ("a.mp4", "b.mp4", "c.mp4"):
         (tmp_path / name).write_bytes(name.encode())
