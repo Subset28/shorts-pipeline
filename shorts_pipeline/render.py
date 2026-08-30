@@ -3,6 +3,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import textwrap
+import re
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -49,13 +50,35 @@ def _card(package: ScriptPackage, path: Path, transparent: bool = False, show_ho
 def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     image = Image.new("RGBA", (1080, 1920), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    title_font = _font(42)
-    small = _font(28)
-    draw.rounded_rectangle((74, 310, 1006, 780), radius=28, fill=(250, 250, 250, 250))
-    draw.text((112, 350), "Reddit story", fill=(65, 65, 65), font=small)
-    lines = textwrap.wrap(package.title, width=30)[:4]
-    draw.multiline_text((112, 410), "\n".join(lines), fill=(20, 20, 20), font=title_font, spacing=12)
-    draw.text((112, 710), "story shared for commentary", fill=(115, 115, 115), font=small)
+    body_font = _font(34)
+    username_font = _font(27)
+    small = _font(24)
+    attribution = re.search(r"Reddit attribution: u/([^ ]+) in r/([^\n]+)", package.description)
+    username = attribution.group(1) if attribution else "story_author"
+    community = attribution.group(2).strip() if attribution else "redditstories"
+    top = 300
+    bottom = 850
+    draw.rounded_rectangle((58, top, 1022, bottom), radius=24, fill=(250, 250, 250, 252), outline=(215, 215, 215, 255), width=3)
+
+    # Compact Reddit-style header with a recognizable orange avatar and metadata.
+    draw.ellipse((94, top + 38, 158, top + 102), fill=(255, 69, 0, 255))
+    draw.ellipse((111, top + 58, 117, top + 64), fill=(255, 255, 255, 255))
+    draw.ellipse((133, top + 58, 139, top + 64), fill=(255, 255, 255, 255))
+    draw.arc((112, top + 54, 137, top + 80), 15, 165, fill=(255, 255, 255, 255), width=3)
+    draw.text((180, top + 37), f"u/{username}", fill=(35, 35, 35), font=username_font)
+    draw.ellipse((180 + int(draw.textlength(f"u/{username}", font=username_font)) + 14, top + 43, 180 + int(draw.textlength(f"u/{username}", font=username_font)) + 34, top + 63), fill=(38, 132, 255, 255))
+    draw.text((180, top + 73), f"r/{community}  ·  6h", fill=(120, 120, 120), font=small)
+    draw.text((940, top + 48), "···", fill=(100, 100, 100), font=username_font)
+
+    story_match = re.search(r"described this experience:\s*(.*?)(?:\s+The useful part|\Z)", package.description, re.S)
+    story = story_match.group(1).strip() if story_match else package.title
+    story = re.sub(r"^\[FICTIONAL REVIEW DEMO\]\s*", "", story)
+    lines = textwrap.wrap(story, width=44)[:5]
+    draw.multiline_text((94, top + 150), "\n".join(lines), fill=(20, 20, 20), font=body_font, spacing=10)
+    draw.line((94, bottom - 90, 986, bottom - 90), fill=(225, 225, 225), width=2)
+    draw.text((112, bottom - 66), "♡  Like", fill=(100, 100, 100), font=small)
+    draw.text((330, bottom - 66), "◯  Comment", fill=(100, 100, 100), font=small)
+    draw.text((800, bottom - 66), "Share", fill=(100, 100, 100), font=small)
     image.save(path)
 
 
