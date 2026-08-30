@@ -3,6 +3,7 @@
 data/
 output/
 credentials*.json
+client_secrets.json
 token*.json
 keys.json
 key_state.json
