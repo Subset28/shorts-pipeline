@@ -34,6 +34,22 @@ any forecast of a particular view count.
 
 ## Reddit-style stories
 
+### Channel quality direction (2026-08-30)
+
+The channel should be organized around technical case studies in CS, AI/ML,
+and cybersecurity. Reddit selection now rewards concrete technical signals,
+multi-step incidents, outcomes, and specific titles; generic discussion prompts
+and thin anecdotes score lower even when their raw Reddit score is high. This
+is an editorial inference from the portfolio goal and should be tuned against
+retention data.
+
+YouTube's current retention guidance says to move compelling moments earlier,
+compare videos against similar-length videos, and use dips and spikes to choose
+what to make next. See the [audience retention report](https://support.google.com/youtube/answer/9314415).
+The channel will therefore use Shorts for discovery and long-form explainers
+for depth, with each Short pointing back to a specific case study rather than
+repeating the same script.
+
 Reddit posts can provide authentic industry anecdotes, but they are not
 automatically free to republish. Reddit's terms say user content is owned by
 the users who created it, require compliance with each rightsholder's

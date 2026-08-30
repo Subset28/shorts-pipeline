@@ -12,9 +12,10 @@ from shorts_pipeline.asset_library import sync_backgrounds
 from shorts_pipeline.publish import save_manifest
 from pathlib import Path
 from shorts_pipeline.sources import _clean_summary, is_relevant, is_usable_source
-from shorts_pipeline.reddit import _is_niche_relevant, discover_reddit_topics, load_approved_reddit_topics
+from shorts_pipeline.reddit import _is_niche_relevant, _reddit_quality_score, discover_reddit_topics, load_approved_reddit_topics
 from shorts_pipeline.config import load_settings
 from shorts_pipeline.render import _reddit_post_card
+from shorts_pipeline.longform import create_longform_package
 from PIL import Image
 import shorts_pipeline.cli as cli
 
@@ -223,6 +224,30 @@ def test_generic_reddit_prompts_must_match_a_channel_topic():
     assert _is_niche_relevant("TalesFromTechSupport", "My strangest ticket", "The printer became sentient.") is True
 
 
+def test_reddit_quality_prefers_specific_story_arcs_over_generic_high_scores():
+    strong = Source(
+        "Our deploy deleted production data",
+        "https://www.reddit.com/r/sysadmin/comments/strong/story/",
+        "The deployment failed after a permission change. We restored the backup, traced the error, and added a second-person approval step.",
+        author="author", community="sysadmin", reuse_permission=True,
+    )
+    weak = Source(
+        "Does anyone else feel burned out?",
+        "https://www.reddit.com/r/sysadmin/comments/weak/story/",
+        "Work has been stressful lately and I am tired.",
+        author="author", community="sysadmin", reuse_permission=True,
+    )
+    assert _reddit_quality_score(Topic(strong.title, "CS", (strong,), 100)) > _reddit_quality_score(Topic(weak.title, "CS", (weak,), 1000))
+
+
+def test_longform_package_has_argument_structure_and_source_link():
+    source = Source("A production incident", "https://www.reddit.com/r/sysadmin/comments/example/story/", "The deployment failed. The team restored a backup and added a safeguard.", author="author", community="sysadmin", reuse_permission=True)
+    package = create_longform_package(Topic(source.title, "CS", (source,)))
+    assert package.format_name == "longform_explainer"
+    assert all(section in package.narration for section in ("Context:", "What happened:", "Why it matters:", "Takeaway:"))
+    assert source.url in package.description
+
+
 def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
     path = tmp_path / "reddit.json"
     source = {
@@ -237,6 +262,7 @@ def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
     topics = load_approved_reddit_topics(path)
     assert len(topics) == 1
     assert topics[0].sources[0].reuse_permission is True
+    assert topics[0].category == "CS"
 
 
 def test_variant_publish_state_keys_are_isolated_but_legacy_default_survives():

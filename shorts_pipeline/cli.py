@@ -20,6 +20,7 @@ from .sources import discover_topics
 from .tts import synthesize
 from .telemetry import record_event
 from .reddit import discover_reddit_topics, load_approved_reddit_topics
+from .longform import create_longform_package, render_longform_video
 
 YOUTUBE_QUOTA_RETRY_HOURS = 24.0
 
@@ -216,6 +217,24 @@ def run_schedule(schedule_path: Path, force_dry_run: bool = False) -> int:
     return 0
 
 
+def run_longform(source_url: str | None, output_dir: Path) -> int:
+    settings = load_settings()
+    topics = load_approved_reddit_topics(settings.reddit_approved_file)
+    topic = next((item for item in topics if not source_url or item.sources[0].url == source_url), None)
+    if not topic:
+        raise ValueError("No approved source matched the requested long-form topic")
+    package = create_longform_package(topic)
+    audio = synthesize(package.narration, settings, output_dir / "narration.mp3")
+    if not audio or not audio.exists() or audio.stat().st_size == 0:
+        raise RuntimeError("TTS produced no audio for long-form video")
+    captions = create_captions(package.narration, audio, output_dir / "captions.srt", settings.caption_model) if settings.captions_enabled else None
+    background = select_backgrounds(settings.background_dir, topic.sources[0].url, limit=1)
+    video = render_longform_video(package, output_dir, audio, captions, background[0] if background else None)
+    save_manifest(package, video, output_dir, background[0] if background else None, background)
+    print(f"Created {video}")
+    return 0
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
@@ -242,6 +261,9 @@ def main() -> None:
     schedule_parser = sub.add_parser("schedule")
     schedule_parser.add_argument("--file", required=True)
     schedule_parser.add_argument("--dry-run", action="store_true")
+    longform_parser = sub.add_parser("longform")
+    longform_parser.add_argument("--source-url")
+    longform_parser.add_argument("--out", default="output/longform")
     assets_parser = sub.add_parser("backgrounds")
     assets_parser.add_argument("--manifest", default="assets/backgrounds.json")
     assets_parser.add_argument("--out", default="data/backgrounds")
@@ -262,6 +284,8 @@ def main() -> None:
         return
     if args.command == "schedule":
         raise SystemExit(run_schedule(Path(args.file), force_dry_run=args.dry_run))
+    if args.command == "longform":
+        raise SystemExit(run_longform(args.source_url, Path(args.out)))
     if args.command == "backgrounds":
         for path in sync_backgrounds(Path(args.manifest), Path(args.out)):
             print(path)
