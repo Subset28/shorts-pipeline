@@ -51,7 +51,7 @@ The initial source ranking is narrative-first: `TalesFromTechSupport`,
 `AskReddit`, `aviation`, `flying`, `sysadmin`, `AskEngineers`,
 `cscareerquestions`, `AerospaceEngineering`, `cybersecurity`, and
 `MachineLearning`, followed by `ExperiencedDevs`, `ProgrammerHumor`,
-`rocketry`, `SpaceX`, `aircraft`, `netsec`, `hacking`, `OSINT`, `techsupport`,
+`rocketry`, `SpaceX`, `netsec`, `hacking`, `OSINT`, `techsupport`,
 and `ShittySysAdmin`. This is a starting hypothesis based on narrative
 potential, not a claim that any subreddit guarantees views; telemetry should
 eventually reorder it by usable-story rate and retention.

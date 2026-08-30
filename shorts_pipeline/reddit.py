@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from pathlib import Path
 from urllib.parse import quote
 
@@ -13,12 +14,34 @@ RANKED_STORY_SUBREDDITS = (
     "TalesFromTechSupport", "AskReddit", "aviation", "flying", "sysadmin",
     "AskEngineers", "cscareerquestions", "AerospaceEngineering", "cybersecurity",
     "MachineLearning", "ExperiencedDevs", "ProgrammerHumor", "rocketry", "SpaceX",
-    "aircraft", "netsec", "hacking", "OSINT", "techsupport", "ShittySysAdmin",
+    "netsec", "hacking", "OSINT", "techsupport", "ShittySysAdmin",
 )
 
 
 def _clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
+
+
+def _get_with_retries(client, url: str, params: dict) -> object | None:
+    """Fetch a Reddit listing while tolerating stale communities and throttling."""
+    for attempt in range(3):
+        response = client.get(url, params=params)
+        status = getattr(response, "status_code", None)
+        if status in {403, 404}:
+            return None
+        if status == 429 or isinstance(status, int) and status >= 500:
+            if attempt == 2:
+                return None
+            headers = getattr(response, "headers", {}) or {}
+            try:
+                delay = float(headers.get("retry-after", "1"))
+            except (TypeError, ValueError):
+                delay = 1.0
+            time.sleep(min(max(delay, 1.0), 8.0))
+            continue
+        response.raise_for_status()
+        return response
+    return None
 
 
 def discover_reddit_topics(
@@ -50,14 +73,15 @@ def discover_reddit_topics(
             raise RuntimeError("Reddit OAuth response did not contain an access token")
         client.headers.update({"Authorization": f"bearer {token}"})
         topics: list[Topic] = []
+        seen_urls: set[str] = set()
         for subreddit in subreddits:
-            response = client.get(
+            response = _get_with_retries(
+                client,
                 f"https://oauth.reddit.com/r/{quote(subreddit.strip(), safe='')}/top",
-                params={"t": "week", "limit": min(max(limit, 1), 100), "raw_json": 1},
+                {"t": "week", "limit": min(max(limit, 5), 25), "raw_json": 1},
             )
-            if getattr(response, "status_code", None) == 404:
+            if response is None:
                 continue
-            response.raise_for_status()
             children = response.json().get("data", {}).get("children", [])
             for child in children:
                 post = child.get("data", {})
@@ -71,18 +95,24 @@ def discover_reddit_topics(
                 community = str(post.get("subreddit", subreddit)).strip()
                 title = _clean_text(str(post.get("title", "")))
                 if title and len(body.split()) >= 40:
-                    source = Source(title, f"https://www.reddit.com{permalink}", body, str(post.get("created_utc", "")), author, community, False)
-                    topics.append(Topic(source.title, "Reddit Stories", (source,), float(post.get("score", 0))))
+                    source_url = f"https://www.reddit.com{permalink}"
+                    if source_url not in seen_urls:
+                        source = Source(title, source_url, body[:4000], str(post.get("created_utc", "")), author, community, False)
+                        topics.append(Topic(source.title, "Reddit Stories", (source,), float(post.get("score", 0))))
+                        seen_urls.add(source_url)
                 # Prompt threads often contain the best first-person stories in
                 # comments rather than in the post body itself.
                 prompt_thread = "?" in title or "story" in title.lower() or community.lower() in {"askreddit", "aviation", "flying", "askengineers"}
                 post_id = str(post.get("id", "")).strip()
                 if not prompt_thread or not post_id:
                     continue
-                comments = client.get(f"https://oauth.reddit.com/comments/{quote(post_id, safe='')}", params={"limit": 20, "raw_json": 1})
-                if getattr(comments, "status_code", None) == 404:
+                comments = _get_with_retries(
+                    client,
+                    f"https://oauth.reddit.com/comments/{quote(post_id, safe='')}",
+                    {"limit": 20, "raw_json": 1},
+                )
+                if comments is None:
                     continue
-                comments.raise_for_status()
                 listings = comments.json()
                 if not isinstance(listings, list) or len(listings) < 2:
                     continue
@@ -93,16 +123,20 @@ def discover_reddit_topics(
                     comment_permalink = str(comment.get("permalink", "")).strip()
                     if comment.get("stickied") or comment_author in {"", "[deleted]"} or len(comment_body.split()) < 40 or not comment_permalink:
                         continue
+                    comment_url = f"https://www.reddit.com{comment_permalink}"
+                    if comment_url in seen_urls:
+                        continue
                     comment_source = Source(
                         f"{title} — story from u/{comment_author}",
-                        f"https://www.reddit.com{comment_permalink}",
-                        comment_body,
+                        comment_url,
+                        comment_body[:4000],
                         str(comment.get("created_utc", "")),
                         comment_author,
                         community,
                         False,
                     )
                     topics.append(Topic(comment_source.title, "Reddit Stories", (comment_source,), float(comment.get("score", 0))))
+                    seen_urls.add(comment_url)
         return sorted(topics, key=lambda item: item.score, reverse=True)[: max(1, limit)]
 
 
