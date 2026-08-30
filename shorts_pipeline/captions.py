@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import os
 from pathlib import Path
 
 
@@ -89,7 +90,7 @@ def write_speaker_ass(segments: list[dict], output: Path) -> Path | None:
     speakers = {speaker: index % 4 for index, speaker in enumerate(dict.fromkeys(item[3] for item in usable))}
     colors = ["&H0000D7FF", "&H0000FF80", "&H00FFFF00", "&H00FF80FF"]
     styles = "\n".join(
-        f"Style: Speaker{index},Arial,54,{colors[index]},&H00FFFFFF,&H00101010,&H99000000,-1,0,0,0,100,100,0,0,1,4,2,2,80,80,430,1"
+        f"Style: Speaker{index},Arial,68,{colors[index]},&H00FFFFFF,&H00101010,&H99000000,-1,0,0,0,100,100,0,0,1,5,2,2,65,65,430,1"
         for index in range(4)
     )
     header = f"""[Script Info]
@@ -112,6 +113,32 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
     return output
+
+
+def _whisperx_speaker_segments(audio: Path, model_name: str) -> list[dict]:
+    """Transcribe and diarize audio when the optional WhisperX path is enabled."""
+    import whisperx
+
+    device = os.getenv("WHISPERX_DEVICE", "cpu")
+    compute_type = os.getenv("WHISPERX_COMPUTE_TYPE", "int8")
+    token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_TOKEN")
+    if not token:
+        raise RuntimeError("WHISPERX_DIARIZATION requires HF_TOKEN")
+    model = whisperx.load_model(model_name, device=device, compute_type=compute_type)
+    result = model.transcribe(str(audio))
+    diarize_model = whisperx.DiarizationPipeline(token, device=device)
+    diarize_segments = diarize_model(str(audio))
+    result = whisperx.assign_word_speakers(diarize_segments, result)
+    return [
+        {
+            "start": float(segment["start"]),
+            "end": float(segment["end"]),
+            "text": str(segment.get("text", "")),
+            "speaker": str(segment.get("speaker", "SPEAKER_00")),
+        }
+        for segment in result.get("segments", [])
+        if _clean(str(segment.get("text", "")))
+    ]
 
 
 def _audio_duration(audio: Path | None) -> float:
@@ -141,6 +168,15 @@ def _write_caption_files(segments: list[tuple[float, float, str]], output: Path)
 def create_captions(text: str, audio: Path | None, output: Path, model_name: str = "base") -> Path | None:
     """Create SRT with local faster-whisper when available, otherwise time text."""
     if audio and audio.exists():
+        if os.getenv("WHISPERX_DIARIZATION", "").lower() in {"1", "true", "yes", "on"}:
+            try:
+                speaker_segments = _whisperx_speaker_segments(audio, model_name)
+                timed = [(item["start"], item["end"], item["text"]) for item in speaker_segments]
+                result = _write_srt(timed, output)
+                if result and write_speaker_ass(speaker_segments, output.with_suffix(".ass")):
+                    return result
+            except (ImportError, OSError, RuntimeError, TypeError, ValueError, KeyError) as exc:
+                print(f"WhisperX diarization unavailable; using regular captions: {exc}")
         try:
             from faster_whisper import WhisperModel
 

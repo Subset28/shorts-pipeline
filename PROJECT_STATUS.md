@@ -71,6 +71,11 @@
 - Extended substantive non-Reddit news/explainer fallback context to support
   the intended longer runtime while retaining sentence-boundary clipping and
   refusing to pad thin sources.
+- Applied the same sentence-boundary narration clipping to model-generated
+  packages, preventing long non-Reddit scripts from ending mid-thought.
+- Added an opt-in WhisperX diarization path (`WHISPERX_DIARIZATION=true` plus
+  `HF_TOKEN`) that burns speaker-specific caption colors while preserving the
+  existing aligned Whisper fallback when diarization is unavailable.
 - Added `user_orbital_capsule_earth.mp4` (Aerospace) and
   `user_computer_typing.mp4` (CS) at 1080p; source URLs and rights notes are
   recorded in the asset manifest.
