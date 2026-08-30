@@ -57,6 +57,8 @@
   clipping to end at a complete sentence rather than speaking an ellipsis.
 - Reject malformed replacement-character tails in RSS summaries so encoding
   corruption cannot become spoken narration.
+- Expanded truncation detection to catch RSS markers wrapped as `[…]` or
+  otherwise placed just before a closing bracket.
 - Added `user_orbital_capsule_earth.mp4` (Aerospace) and
   `user_computer_typing.mp4` (CS) at 1080p; source URLs and rights notes are
   recorded in the asset manifest.

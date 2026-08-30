@@ -99,6 +99,10 @@ def _source_score(source: Source, published: str, now: datetime) -> float:
     return score
 
 
+def _has_truncation_marker(value: str) -> bool:
+    return bool(re.search(r"(?:\.\.\.|…|\[\s*(?:\.\.\.|…)\s*\])", value[-100:]))
+
+
 def discover_topics(limit: int = 10) -> list[Topic]:
     by_category: dict[str, list[Topic]] = {category: [] for category in FEEDS}
     now = datetime.now(timezone.utc)
@@ -122,7 +126,7 @@ def discover_topics(limit: int = 10) -> list[Topic]:
             summary_words = source.summary.split()
             if (
                 len(summary_words) < 20
-                or raw_summary.rstrip().endswith(("...", "…"))
+                or _has_truncation_marker(raw_summary)
                 or "\ufffd" in raw_summary
             ):
                 continue
