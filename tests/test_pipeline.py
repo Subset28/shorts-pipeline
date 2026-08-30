@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from PIL import Image
 
@@ -32,6 +33,7 @@ from shorts_pipeline.sources import (
     is_usable_source,
 )
 from shorts_pipeline.telemetry import record_event
+from shorts_pipeline.tts import synthesize
 
 
 def test_fallback_package_preserves_source_url():
@@ -753,6 +755,23 @@ def test_quality_gate_accepts_passing_render(tmp_path):
     manifest = tmp_path / "manifest.json"
     manifest.write_text(json.dumps({"quality": {"passed": True, "issues": []}}), encoding="utf-8")
     assert quality_gate(manifest)["passed"] is True
+
+
+def test_tts_does_not_reuse_stale_audio_after_provider_failure(tmp_path, monkeypatch):
+    output = tmp_path / "narration.mp3"
+    output.write_bytes(b"old narration")
+    settings = SimpleNamespace(
+        elevenlabs_voice_id="",
+        elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
+        edge_tts_voice="en-US-GuyNeural",
+    )
+
+    def fail(*_args, **_kwargs):
+        raise OSError("provider unavailable")
+
+    monkeypatch.setattr("shorts_pipeline.tts.subprocess.run", fail)
+    assert synthesize("new narration", settings, output) is None
+    assert not output.exists()
 
 
 def test_quality_report_records_sync_and_caption_coverage(tmp_path, monkeypatch):

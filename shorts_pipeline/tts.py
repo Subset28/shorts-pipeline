@@ -14,6 +14,7 @@ def synthesize(text: str, settings: Settings, output: Path) -> Path | None:
     stage will produce a silent draft rather than failing the whole run.
     """
     output.parent.mkdir(parents=True, exist_ok=True)
+    output.unlink(missing_ok=True)
     if settings.elevenlabs_voice_id and settings.elevenlabs_rotator_path.exists():
         # Use the interpreter running the pipeline so Windows installs do not
         # depend on a separate `python` command being on PATH.
@@ -33,8 +34,6 @@ def synthesize(text: str, settings: Settings, output: Path) -> Path | None:
             subprocess.run(command, check=True, capture_output=True, text=True, timeout=120)
         except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
             print(f"ElevenLabs unavailable; trying free edge-tts fallback: {exc}")
-    if output.exists() and output.stat().st_size:
-        return output
     try:
         subprocess.run(
             [
