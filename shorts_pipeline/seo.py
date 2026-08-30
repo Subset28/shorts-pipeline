@@ -106,8 +106,19 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         # a resolution. Trim only at a complete sentence boundary.
         if len(summary) > 900:
             summary = summary[:900].rsplit(".", 1)[0].rstrip() + "."
-    elif len(summary) > 560:
-        bounded = summary[:560]
+    elif len(summary) > (760 if format_name in {
+        "news_breakdown",
+        "fact_explainer",
+        "myth_bust",
+        "surprising_fact",
+        "timeline",
+        "question_answer",
+        "prediction_watch",
+    } else 560):
+        # News and explainers need enough source context to earn their longer
+        # runtime; quick entertainment formats stay compact. Both paths still
+        # stop at a complete sentence, so a thin source is never padded.
+        bounded = summary[:760 if format_name != "technical_joke" else 560]
         sentences = re.split(r"(?<=[.!?])\s+", bounded)
         summary = " ".join(sentences[:-1]).strip() if len(sentences) > 1 else bounded.rsplit(" ", 1)[0]
     hook = _native_hook(headline, summary, topic.category, format_name)
