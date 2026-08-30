@@ -4,6 +4,9 @@ Start with `python -m shorts_pipeline run --dry-run`. Keep `DRY_RUN=true` until
 the output and source citations are acceptable. Store OAuth tokens, client
 secrets, and ElevenLabs `keys.json` outside Git.
 
+TTS prefers the local ElevenLabs rotator when configured, then falls back to
+the keyless `edge-tts` command using `EDGE_TTS_VOICE`.
+
 Captions are enabled by default. Install `pip install -e .[captions]` to use
 local `faster-whisper` audio alignment; without it, the free fallback creates
 timed captions from the generated narration. The first Whisper run may

@@ -23,7 +23,7 @@ def create_package(topic: Topic, api_key: str, model: str) -> ScriptPackage:
         "source_title": source.title,
         "source_summary": source.summary,
         "source_url": source.url,
-        "requirements": "Return JSON with hook, narration, title, description, tags. Be accurate, original, educational, and do not give financial or cyber instructions.",
+        "requirements": "Return JSON with hook, narration, title, description, tags, and format_name. Use one format_name from news_breakdown, myth_bust, technical_joke. Be accurate, original, entertaining, educational, and do not give financial or cyber instructions.",
     }
     try:
         response = httpx.post(
@@ -34,7 +34,7 @@ def create_package(topic: Topic, api_key: str, model: str) -> ScriptPackage:
         )
         response.raise_for_status()
         data = json.loads(response.json()["choices"][0]["message"]["content"])
-        return ScriptPackage(data["hook"], data["narration"], data["title"][:100], data["description"], data.get("tags", []), [source.url])
+        return ScriptPackage(data["hook"], data["narration"], data["title"][:100], data["description"], data.get("tags", []), [source.url], data.get("format_name", "news_breakdown"))
     except (httpx.HTTPError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         print(f"LLM unavailable; using source-backed fallback: {exc}")
         return fallback_package(topic)

@@ -21,8 +21,8 @@ the pipeline uses free text-timed captions. Real publishing requires OAuth
 credentials for YouTube and TikTok plus approved posting scopes.
 
 For unattended operation, use `python -m shorts_pipeline run --daemon` with a
-process supervisor. The default free mode uses RSS, fallback copy, Pillow, and
-FFmpeg. An OpenAI API key and ElevenLabs rotator are optional quality upgrades;
+process supervisor. The default free mode uses RSS, fallback copy, Pillow,
+FFmpeg, and free edge-tts narration. An OpenAI API key and ElevenLabs rotator are optional quality upgrades;
 a ChatGPT Plus subscription is not an API credential.
 
 The included `Dockerfile` and `docker-compose.yml` provide a restart-on-failure

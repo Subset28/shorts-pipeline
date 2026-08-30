@@ -15,7 +15,7 @@ def test_fallback_package_preserves_source_url():
 def test_metadata_is_platform_neutral():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     data = metadata(fallback_package(Topic("A breakthrough", "AI", (source,))))
-    assert set(data) == {"title", "description", "tags", "sources"}
+    assert set(data) == {"title", "description", "tags", "sources", "format_name"}
 
 
 def test_publish_state_resumes_each_platform_without_overwriting(tmp_path):
