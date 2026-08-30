@@ -124,7 +124,11 @@ def write_report(report: dict[str, Any], output: Path) -> Path:
 
 def archive_report(report: dict[str, Any], output: Path, week_of: str) -> Path:
     """Write a repository-safe weekly snapshot with no source event payloads."""
-    rows = [{field: row[field] for field in ARCHIVE_FIELDS if field in row} for row in report.get("rows", []) if isinstance(row, dict)]
+    rows = [
+        {field: row[field] for field in ARCHIVE_FIELDS if field in row}
+        for row in report.get("rows", [])
+        if isinstance(row, dict)
+    ]
     payload = {
         "week_of": week_of,
         "rows": rows,
