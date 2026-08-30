@@ -54,6 +54,29 @@ def eligible_formats(topic: Topic) -> tuple[str, ...]:
     return tuple(formats)
 
 
+def _native_hook(headline: str, source_text: str, category: str, format_name: str) -> str:
+    """Create a short, concrete overlay hook from source signals."""
+    text = f"{headline} {source_text}".lower()
+    if "hack" in text and "hugging face" in text:
+        return "AI AGENTS HACKED HUGGING FACE"
+    if "goes online" in text or "go online" in text:
+        return "NASA'S NEW SPACE ANTENNA IS ONLINE"
+    if "launch" in text and "telescope" in text:
+        return "NASA JUST LAUNCHED A DARK-UNIVERSE TELESCOPE"
+    if "lunarecycle" in text or ("moon" in text and "recycl" in text):
+        return "NASA JUST AWARDED $775K FOR MOON RECYCLING"
+    compact = re.sub(r"\s+", " ", headline).strip(" .:-")
+    words = compact.split()
+    compact = " ".join(words[:7])
+    if format_name == "question_answer":
+        return f"SO WHAT IS {compact}?"
+    if format_name == "myth_bust":
+        return f"THE TRUTH ABOUT {compact}"
+    if format_name == "technical_joke":
+        return f"POV: {compact} HIT PRODUCTION"
+    return f"WHY {compact} MATTERS" if format_name == "fact_explainer" else compact.upper()
+
+
 def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     source = topic.sources[0]
     title = topic.title[:85]
@@ -72,18 +95,6 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     # The source title remains in narration/metadata; the on-screen hook needs
     # to stay scannable on a phone instead of becoming a tiny headline block.
     headline = headline[:42].rsplit(" ", 1)[0] if len(headline) > 42 else headline
-    hook_templates = {
-        "news_breakdown": "What '{headline}' actually means",
-        "fact_explainer": "The simple explanation of '{headline}'",
-        "myth_bust": "What '{headline}' gets wrong",
-        "technical_joke": "POV: '{headline}' reaches production",
-        "surprising_fact": "The detail in '{headline}' that changes the story",
-        "question_answer": "What does '{headline}' actually mean?",
-        "timeline": "How '{headline}' got here",
-        "prediction_watch": "Will '{headline}' actually happen?",
-        "reddit_story": "The config change that took down an office",
-    }
-    hook = hook_templates[format_name].format(headline=headline)
     summary = " ".join(source.summary.split())
     if len(summary.split()) < 8:
         # Some RSS feeds, especially link aggregators, provide only URLs and
@@ -99,6 +110,7 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         bounded = summary[:560]
         sentences = re.split(r"(?<=[.!?])\s+", bounded)
         summary = " ".join(sentences[:-1]).strip() if len(sentences) > 1 else bounded.rsplit(" ", 1)[0]
+    hook = _native_hook(headline, summary, topic.category, format_name)
     category_label = {"AI News": "AI", "ML": "machine learning", "CS": "software", "Cyber": "cybersecurity"}.get(topic.category, topic.category.lower())
     if format_name == "technical_joke":
         narration = f"POV: you ask {topic.category} one simple question and get a twelve-page answer. The useful part is this: {summary} So the practical takeaway is to separate the demo from what actually works."
