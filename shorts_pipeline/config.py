@@ -21,6 +21,8 @@ class Settings:
     elevenlabs_model_id: str
     captions_enabled: bool
     caption_model: str
+    background_video: Path
+    background_video_url: str
     topic_limit: int
     output_dir: Path
     data_dir: Path
@@ -43,6 +45,8 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
         elevenlabs_model_id=os.getenv("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2"),
         captions_enabled=os.getenv("CAPTIONS_ENABLED", "true").lower() in {"1", "true", "yes"},
         caption_model=os.getenv("CAPTION_MODEL", "base"),
+        background_video=Path(os.getenv("BACKGROUND_VIDEO", "data/backgrounds/nasa_moon_to_earth.mp4")),
+        background_video_url=os.getenv("BACKGROUND_VIDEO_URL", "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005039/moon_to_earth_1080p30.mp4"),
         topic_limit=int(os.getenv("TOPIC_LIMIT", "10")),
         output_dir=Path(os.getenv("OUTPUT_DIR", "output")),
         data_dir=Path(os.getenv("DATA_DIR", "data")),

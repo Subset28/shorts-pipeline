@@ -1,0 +1,9 @@
+services:
+  shorts-pipeline:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./output:/app/output
+      - ./data:/app/data
+      - ./secrets:/app/secrets:ro

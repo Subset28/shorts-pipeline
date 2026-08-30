@@ -14,3 +14,8 @@ uploads private until audit. TikTok Direct Post requires an approved app and
 the `video.publish` scope; unaudited clients are private-only. Use the
 platform-specific privacy values returned by TikTok creator-info rather than
 assuming public access.
+
+For an always-on host, run `docker compose up -d --build`. The container
+restarts after process failures and keeps `data/` and `output/` on the host.
+Use `DRY_RUN=true` for the first deployment; switch it only after both platform
+credentials have been tested with private uploads.

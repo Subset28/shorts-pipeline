@@ -24,3 +24,10 @@ For unattended operation, use `python -m shorts_pipeline run --daemon` with a
 process supervisor. The default free mode uses RSS, fallback copy, Pillow, and
 FFmpeg. An OpenAI API key and ElevenLabs rotator are optional quality upgrades;
 a ChatGPT Plus subscription is not an API credential.
+
+The included `Dockerfile` and `docker-compose.yml` provide a restart-on-failure
+runtime for a NAS or other always-on host. Keep `.env` and the mounted `secrets`
+directory local and private.
+
+The visual defaults and footage/caption rules are documented in
+`docs/STYLE_GUIDE.md`.

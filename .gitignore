@@ -6,6 +6,7 @@ credentials*.json
 token*.json
 keys.json
 key_state.json
+secrets/
 __pycache__/
 *.egg-info/
 .pytest_cache/

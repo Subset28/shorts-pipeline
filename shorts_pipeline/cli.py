@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import traceback
 import time
 
 from .config import load_settings
 from .captions import create_captions
 from .history import load_publish_state, load_seen, mark_seen, save_publish_state
 from .llm import create_package
+from .media import ensure_background_video
 from .publish import save_manifest, upload_tiktok, upload_youtube
 from .render import render_video
 from .sources import discover_topics
@@ -28,7 +30,8 @@ def run(force_dry_run: bool = False) -> int:
     package = create_package(topic, settings.openai_api_key, settings.openai_model)
     audio = synthesize(package.narration, settings, settings.output_dir / "narration.mp3")
     captions = create_captions(package.narration, audio, settings.output_dir / "captions.srt", settings.caption_model) if settings.captions_enabled else None
-    video = render_video(package, settings.output_dir, audio, captions)
+    background = ensure_background_video(settings.background_video_url, settings.background_video)
+    video = render_video(package, settings.output_dir, audio, captions, background)
     manifest = save_manifest(package, video, settings.output_dir)
     print(f"Created {manifest}")
     if dry_run:
@@ -53,6 +56,10 @@ def main() -> None:
     args = parser.parse_args()
     if args.daemon:
         while True:
-            run(force_dry_run=args.dry_run)
+            try:
+                run(force_dry_run=args.dry_run)
+            except Exception as exc:
+                print(f"Pipeline run failed; will retry: {exc}")
+                traceback.print_exc()
             time.sleep(max(args.interval_hours, 0.25) * 3600)
     raise SystemExit(run(force_dry_run=args.dry_run))

@@ -13,6 +13,14 @@ def _timestamp(seconds: float) -> str:
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{millis:03d}"
 
 
+def _ass_timestamp(seconds: float) -> str:
+    centiseconds = max(0, round(seconds * 100))
+    hours, remainder = divmod(centiseconds, 360000)
+    minutes, remainder = divmod(remainder, 6000)
+    seconds, centiseconds = divmod(remainder, 100)
+    return f"{hours}:{minutes:02d}:{seconds:02d}.{centiseconds:02d}"
+
+
 def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
@@ -38,6 +46,33 @@ def _write_srt(segments: list[tuple[float, float, str]], output: Path) -> Path |
     return output
 
 
+def _write_ass(segments: list[tuple[float, float, str]], output: Path) -> Path | None:
+    usable = [(start, end, _clean(text)) for start, end, text in segments if _clean(text)]
+    if not usable:
+        return None
+    output.parent.mkdir(parents=True, exist_ok=True)
+    header = """[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,48,&H0000D7FF,&H0000D7FF,&H00101010,&H99000000,-1,0,0,0,100,100,0,0,1,4,2,2,80,80,430,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+"""
+    events = []
+    for start, end, text in usable:
+        wrapped = "\\N".join(" ".join(text.split()[i : i + 4]) for i in range(0, len(text.split()), 4))
+        wrapped = wrapped.upper()
+        events.append(f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Default,,0,0,0,,{wrapped}")
+    output.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
+    return output
+
+
 def _audio_duration(audio: Path | None) -> float:
     if not audio or not audio.exists():
         return 10.0
@@ -49,6 +84,17 @@ def _audio_duration(audio: Path | None) -> float:
         return max(float(result.stdout.strip()), 1.0)
     except (OSError, subprocess.SubprocessError, ValueError):
         return 10.0
+
+
+def _estimated_duration(text: str) -> float:
+    return max(10.0, min(60.0, len(_clean(text).split()) / 2.5))
+
+
+def _write_caption_files(segments: list[tuple[float, float, str]], output: Path) -> Path | None:
+    result = _write_srt(segments, output)
+    if result:
+        _write_ass(segments, output.with_suffix(".ass"))
+    return result
 
 
 def create_captions(text: str, audio: Path | None, output: Path, model_name: str = "base") -> Path | None:
@@ -64,9 +110,10 @@ def create_captions(text: str, audio: Path | None, output: Path, model_name: str
                 words = getattr(segment, "words", None) or []
                 caption_text = " ".join(word.word.strip() for word in words).strip() or segment.text
                 whisper_segments.append((float(segment.start), float(segment.end), caption_text))
-            result = _write_srt(whisper_segments, output)
+            result = _write_caption_files(whisper_segments, output)
             if result:
                 return result
         except (ImportError, OSError, RuntimeError, ValueError) as exc:
             print(f"Whisper unavailable; using timed captions: {exc}")
-    return _write_srt(_fallback_segments(text, _audio_duration(audio)), output)
+    duration = _audio_duration(audio) if audio else _estimated_duration(text)
+    return _write_caption_files(_fallback_segments(text, duration), output)
