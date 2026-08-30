@@ -44,6 +44,9 @@
 - Added category-aware background selection and per-render segment variation:
   sources are reordered, offset, subtly reframed, and concatenated so repeat
   renders do not reuse the same opening frames.
+- Updated script-generation guidance to target format-specific duration bands:
+  18-33 seconds for quick entertainment, 40-55 for explainers/news, and
+  42-58 for complete Reddit stories when the source supports them.
 - Added `user_orbital_capsule_earth.mp4` (Aerospace) and
   `user_computer_typing.mp4` (CS) at 1080p; source URLs and rights notes are
   recorded in the asset manifest.
