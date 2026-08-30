@@ -332,6 +332,8 @@ def render_video(
             "48000",
             "-ac",
             "2",
+            "-movflags",
+            "+faststart",
             "-shortest",
             str(output),
         ]
@@ -363,6 +365,8 @@ def render_video(
             "48000",
             "-ac",
             "2",
+            "-movflags",
+            "+faststart",
             str(output),
         ]
     subprocess.run(command, check=True, capture_output=True, text=True)

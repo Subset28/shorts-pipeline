@@ -519,6 +519,7 @@ def test_short_render_normalizes_audio_and_sets_consistent_output_format(tmp_pat
     assert command[command.index("-af") + 1] == AUDIO_NORMALIZATION_FILTER
     assert command[command.index("-ar") + 1] == "48000"
     assert command[command.index("-ac") + 1] == "2"
+    assert command[command.index("-movflags") + 1] == "+faststart"
 
 
 def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
