@@ -1,2 +1,0 @@
-[console_scripts]
-shorts-pipeline = shorts_pipeline.cli:main
