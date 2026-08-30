@@ -103,7 +103,13 @@ def _clean_text(value: str) -> str:
 def _get_with_retries(client, url: str, params: dict) -> object | None:
     """Fetch a Reddit listing while tolerating stale communities and throttling."""
     for attempt in range(3):
-        response = client.get(url, params=params)
+        try:
+            response = client.get(url, params=params)
+        except httpx.RequestError:
+            if attempt == 2:
+                return None
+            time.sleep(1.0)
+            continue
         status = getattr(response, "status_code", None)
         if status in {403, 404}:
             return None

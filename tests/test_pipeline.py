@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import httpx
 from PIL import Image
 
 import shorts_pipeline.cli as cli
@@ -16,6 +17,7 @@ from shorts_pipeline.models import ScriptPackage, Source, Topic
 from shorts_pipeline.publish import fetch_tiktok_status, metadata, quality_gate, save_manifest, youtube_status
 from shorts_pipeline.quality import assess_render
 from shorts_pipeline.reddit import (
+    _get_with_retries,
     _is_niche_relevant,
     _reddit_quality_score,
     discover_reddit_topics,
@@ -368,6 +370,24 @@ def test_reddit_quality_prefers_specific_story_arcs_over_generic_high_scores():
     assert _reddit_quality_score(Topic(strong.title, "CS", (strong,), 100)) > _reddit_quality_score(
         Topic(weak.title, "CS", (weak,), 1000)
     )
+
+
+def test_reddit_fetch_retries_transient_request_errors(monkeypatch):
+    class Client:
+        def __init__(self):
+            self.calls = 0
+
+        def get(self, *_args, **_kwargs):
+            self.calls += 1
+            if self.calls < 3:
+                raise httpx.RequestError("temporary network failure")
+            return SimpleNamespace(status_code=200, raise_for_status=lambda: None)
+
+    client = Client()
+    monkeypatch.setattr("shorts_pipeline.reddit.time.sleep", lambda _delay: None)
+    response = _get_with_retries(client, "https://example.test", {})
+    assert response is not None
+    assert client.calls == 3
 
 
 def test_longform_package_has_argument_structure_and_source_link():
