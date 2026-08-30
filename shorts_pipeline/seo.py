@@ -61,8 +61,13 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     if "reddit_story" in formats and variant == 0:
         format_name = "reddit_story"
     else:
-        format_index = (int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) + max(0, variant)) % len(formats)
-        format_name = formats[format_index]
+        if variant == 0 and topic.category in {"AI News", "Aerospace", "Cyber", "Finance"}:
+            format_name = "news_breakdown" if "news_breakdown" in formats else formats[0]
+        elif variant == 0 and "fact_explainer" in formats:
+            format_name = "fact_explainer"
+        else:
+            format_index = (int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) + max(0, variant)) % len(formats)
+            format_name = formats[format_index]
     headline = re.sub(r"\s+", " ", source.title).strip().rstrip(".")
     # The source title remains in narration/metadata; the on-screen hook needs
     # to stay scannable on a phone instead of becoming a tiny headline block.
@@ -92,16 +97,19 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
             summary = summary[:900].rsplit(".", 1)[0].rstrip() + "."
     elif len(summary) > 560:
         summary = summary[:560].rsplit(" ", 1)[0] + "..."
+    category_label = {"AI News": "AI", "ML": "machine learning", "CS": "software", "Cyber": "cybersecurity"}.get(topic.category, topic.category.lower())
     if format_name == "technical_joke":
         narration = f"POV: you ask {topic.category} one simple question and get a twelve-page answer. The useful part is this: {summary} So the practical takeaway is to separate the demo from what actually works."
+    elif format_name == "news_breakdown":
+        narration = f"This is the part that matters: {summary} In practical terms, this is a real development in {category_label}. The next question is whether the result holds up beyond the headline."
     elif format_name == "fact_explainer":
-        narration = f"Here's the simple version: {summary} In plain English, that means it changes how we understand {topic.category.lower()}. The part to remember is what the evidence shows—not the biggest version of the headline."
+        narration = f"Here's what happened: {summary} In plain English, this matters because it changes one specific part of {category_label}. The takeaway is the evidence behind the result—not the biggest version of the headline."
     elif format_name == "surprising_fact":
         narration = f"The detail most people will miss is this: {summary} That matters because it changes the usual way we think about {topic.category.lower()}. The context is the difference between a real result and hype."
     elif format_name == "timeline":
         narration = f"Here's the short version of how this story developed: {summary} The important point is what changed, not just the headline. That sequence explains why this matters now."
     elif format_name == "question_answer":
-        narration = f"The question is simple: what does this actually mean? The answer starts here: {summary} The headline is shorter than the reality, so keep the useful distinction between evidence and interpretation."
+        narration = f"So what does this actually mean? {summary} The useful distinction is between what the source demonstrates and what people might assume from the headline."
     elif format_name == "prediction_watch":
         narration = f"This is a claim worth watching, not a promise: {summary} The next thing to look for is evidence that it holds outside the original context. Until then, separate a measured result from a prediction."
     elif format_name == "reddit_story":
