@@ -123,6 +123,8 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
     background_sources = select_backgrounds(
         background_dir,
         f"{source_url}|{package.variant}",
+        category=package.category,
+        provenance=topic.sources[0].community,
     )
     if background_sources:
         background = build_background_reel(
@@ -132,7 +134,7 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
     else:
         background = fallback_background
     video = render_video(package, output_dir, audio, captions, background)
-    manifest = save_manifest(package, video, output_dir, background, background_sources)
+    manifest = save_manifest(package, video, output_dir, background, background_sources, audio, captions)
     record_event(events_path, "draft_created", source_url=source_url, category=package.category, format_name=package.format_name, variant=package.variant, title=package.title, video=str(video), dry_run=dry_run)
     print(f"Created {manifest}")
     if dry_run:
@@ -228,9 +230,9 @@ def run_longform(source_url: str | None, output_dir: Path) -> int:
     if not audio or not audio.exists() or audio.stat().st_size == 0:
         raise RuntimeError("TTS produced no audio for long-form video")
     captions = create_captions(package.narration, audio, output_dir / "captions.srt", settings.caption_model) if settings.captions_enabled else None
-    background = select_backgrounds(settings.background_dir, topic.sources[0].url, limit=1)
+    background = select_backgrounds(settings.background_dir, topic.sources[0].url, limit=1, category=topic.category, provenance=topic.sources[0].community)
     video = render_longform_video(package, output_dir, audio, captions, background[0] if background else None)
-    save_manifest(package, video, output_dir, background[0] if background else None, background)
+    save_manifest(package, video, output_dir, background[0] if background else None, background, audio, captions)
     print(f"Created {video}")
     return 0
 

@@ -41,10 +41,14 @@ def metadata(package: ScriptPackage) -> dict:
     return {"title": package.title, "description": description[:5000], "tags": package.tags, "sources": package.sources, "format_name": package.format_name, "category": package.category, "variant": package.variant}
 
 
-def save_manifest(package: ScriptPackage, video: Path, output_dir: Path, background: Path | None = None, background_sources: list[Path] | None = None) -> Path:
+def save_manifest(package: ScriptPackage, video: Path, output_dir: Path, background: Path | None = None, background_sources: list[Path] | None = None, audio: Path | None = None, captions: Path | None = None) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest = output_dir / "manifest.json"
     payload = {"video": str(video), **metadata(package)}
+    if audio:
+        payload["audio"] = str(audio)
+    if captions:
+        payload["captions"] = str(captions)
     if background:
         payload["background"] = str(background)
     if background_sources:

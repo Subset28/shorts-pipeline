@@ -15,7 +15,7 @@ from shorts_pipeline.sources import _clean_summary, is_relevant, is_usable_sourc
 from shorts_pipeline.reddit import _is_niche_relevant, _reddit_quality_score, discover_reddit_topics, load_approved_reddit_topics
 from shorts_pipeline.config import load_settings
 from shorts_pipeline.render import _reddit_post_card
-from shorts_pipeline.longform import create_longform_package
+from shorts_pipeline.longform import create_longform_package, render_longform_video
 from PIL import Image
 import shorts_pipeline.cli as cli
 
@@ -244,6 +244,21 @@ def test_longform_package_has_argument_structure_and_source_link():
     source = Source("A production incident", "https://www.reddit.com/r/sysadmin/comments/example/story/", "The deployment failed. The team restored a backup and added a safeguard.", author="author", community="sysadmin", reuse_permission=True)
     package = create_longform_package(Topic(source.title, "CS", (source,)))
     assert package.format_name == "longform_explainer"
+
+
+def test_longform_render_writes_video_with_audio_and_captions(tmp_path, monkeypatch):
+    source = Source("A technical incident", "https://example.test/source", "A detailed technical report.")
+    package = create_longform_package(Topic(source.title, "CS", (source,)))
+    audio = tmp_path / "audio.mp3"
+    captions = tmp_path / "captions.srt"
+    audio.write_bytes(b"audio")
+    captions.write_text("1\n00:00:00,000 --> 00:00:01,000\nTest\n", encoding="utf-8")
+    calls = []
+    monkeypatch.setattr("shorts_pipeline.longform.shutil.which", lambda _: "/usr/bin/ffmpeg")
+    monkeypatch.setattr("shorts_pipeline.longform.subprocess.run", lambda command, **kwargs: calls.append(command))
+    output = render_longform_video(package, tmp_path, audio, captions, None)
+    assert output.name == "longform.mp4"
+    assert "2:a" in calls[0]
     assert all(section in package.narration for section in ("Context:", "What happened:", "Why it matters:", "Takeaway:"))
     assert source.url in package.description
 
@@ -399,6 +414,16 @@ def test_manifest_records_selected_background(tmp_path):
     background.write_bytes(b"video")
     manifest = save_manifest(fallback_package(Topic("A breakthrough", "AI", (source,))), tmp_path / "short.mp4", tmp_path, background)
     assert json.loads(manifest.read_text(encoding="utf-8"))["background"] == str(background)
+
+
+def test_manifest_records_audio_and_caption_paths(tmp_path):
+    source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
+    audio = tmp_path / "audio.mp3"
+    captions = tmp_path / "captions.srt"
+    manifest = save_manifest(fallback_package(Topic("A breakthrough", "AI", (source,))), tmp_path / "short.mp4", tmp_path, audio=audio, captions=captions)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    assert payload["audio"] == str(audio)
+    assert payload["captions"] == str(captions)
 
 
 def test_background_reel_selection_rotates_stably(tmp_path):

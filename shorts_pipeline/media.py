@@ -19,14 +19,15 @@ def select_background(directory: Path, key: str, fallback: Path | None = None) -
     return fallback if fallback and fallback.exists() else None
 
 
-def select_backgrounds(directory: Path, key: str, limit: int = 3) -> list[Path]:
+def select_backgrounds(directory: Path, key: str, limit: int = 3, category: str | None = None, provenance: str | None = None) -> list[Path]:
     """Return a stable, rotated set of approved footage for a short reel."""
     candidates = sorted(
         path for path in directory.glob("*") if path.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"} and path.is_file()
     ) if directory.exists() else []
     if not candidates:
         return []
-    start = int(hashlib.sha256(key.encode("utf-8")).hexdigest()[:8], 16) % len(candidates)
+    selection_key = "|".join(part for part in (key, category, provenance) if part)
+    start = int(hashlib.sha256(selection_key.encode("utf-8")).hexdigest()[:8], 16) % len(candidates)
     rotated = candidates[start:] + candidates[:start]
     return rotated[:max(1, min(limit, len(rotated)))]
 
