@@ -20,7 +20,7 @@ from shorts_pipeline.reddit import (
     discover_reddit_topics,
     load_approved_reddit_topics,
 )
-from shorts_pipeline.render import _reddit_post_card
+from shorts_pipeline.render import _reddit_post_card, _render_duration
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.sources import (
     _clean_summary,
@@ -40,6 +40,26 @@ def test_fallback_package_preserves_source_url():
     assert source.url in package.description
     assert package.sources == [source.url]
     assert "one-minute version" not in package.narration
+
+
+def test_render_duration_follows_measured_audio(tmp_path, monkeypatch):
+    audio = tmp_path / "narration.mp3"
+    audio.write_bytes(b"audio")
+    monkeypatch.setattr(
+        "shorts_pipeline.render.subprocess.run",
+        lambda *args, **kwargs: type("Result", (), {"stdout": "37.25\n"})(),
+    )
+    assert _render_duration("short text", audio) == 37.25
+
+
+def test_render_duration_falls_back_when_audio_probe_fails(tmp_path, monkeypatch):
+    audio = tmp_path / "narration.mp3"
+    audio.write_bytes(b"audio")
+    monkeypatch.setattr(
+        "shorts_pipeline.render.subprocess.run",
+        lambda *args, **kwargs: (_ for _ in ()).throw(OSError("ffprobe unavailable")),
+    )
+    assert _render_duration("one two three four five six seven eight nine ten", audio) == 10.0
 
 
 def test_long_form_non_reddit_fallback_keeps_enough_context_for_explainers():
