@@ -109,3 +109,15 @@ def write_report(report: dict[str, Any], output: Path) -> Path:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2), encoding="utf-8")
     return output
+
+
+def archive_report(report: dict[str, Any], output: Path, week_of: str) -> Path:
+    """Write a repository-safe weekly snapshot with no source event payloads."""
+    payload = {
+        "week_of": week_of,
+        "rows": report.get("rows", []),
+        "recommendations": report.get("recommendations", []),
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return output

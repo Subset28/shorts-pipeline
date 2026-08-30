@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .config import load_settings
 from .captions import create_captions
-from .analytics import build_report, write_report
+from .analytics import archive_report, build_report, write_report
 from .asset_library import sync_backgrounds
 from .history import load_publish_state, load_seen, mark_seen, save_publish_state
 from .llm import create_package
@@ -271,6 +271,10 @@ def main() -> None:
     report_parser.add_argument("--metrics", required=True, help="CSV export with source_url, platform, and views columns")
     report_parser.add_argument("--events", default="data/events.jsonl")
     report_parser.add_argument("--out", default="data/analytics_report.json")
+    archive_parser = sub.add_parser("archive-analytics")
+    archive_parser.add_argument("--input", required=True, help="Aggregate analytics JSON report")
+    archive_parser.add_argument("--out", default="docs/analytics/weekly.json")
+    archive_parser.add_argument("--week-of", required=True, help="ISO date identifying the report week")
     schedule_parser = sub.add_parser("schedule")
     schedule_parser.add_argument("--file", required=True)
     schedule_parser.add_argument("--dry-run", action="store_true")
@@ -297,6 +301,11 @@ def main() -> None:
         report = build_report(Path(args.events), Path(args.metrics))
         output = write_report(report, Path(args.out))
         print(f"Wrote {output} ({report['matched_rows']} matched rows, {report['unmatched_rows']} unmatched)")
+        return
+    if args.command == "archive-analytics":
+        report = json.loads(Path(args.input).read_text(encoding="utf-8"))
+        output = archive_report(report, Path(args.out), args.week_of)
+        print(f"Archived {output}")
         return
     if args.command == "schedule":
         raise SystemExit(run_schedule(Path(args.file), force_dry_run=args.dry_run))

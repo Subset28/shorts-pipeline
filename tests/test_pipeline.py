@@ -6,7 +6,7 @@ import json
 from shorts_pipeline.publish import fetch_tiktok_status, metadata, youtube_status
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.media import select_background, select_backgrounds
-from shorts_pipeline.analytics import build_report, tuning_recommendations
+from shorts_pipeline.analytics import archive_report, build_report, tuning_recommendations
 from shorts_pipeline.asset_library import load_asset_manifest
 from shorts_pipeline.asset_library import sync_backgrounds
 from shorts_pipeline.publish import save_manifest
@@ -396,6 +396,12 @@ def test_tuning_recommendations_require_repeated_evidence():
 
 def test_tuning_recommendations_call_out_insufficient_sample_size():
     assert tuning_recommendations({"rows": []}) == ["Collect at least two videos per lane before changing the content mix."]
+
+
+def test_archive_report_keeps_only_aggregate_tuning_data(tmp_path):
+    output = archive_report({"rows": [{"category": "AI", "videos": 2}], "recommendations": ["Keep testing AI."]}, tmp_path / "weekly.json", "2026-08-30")
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload == {"week_of": "2026-08-30", "rows": [{"category": "AI", "videos": 2}], "recommendations": ["Keep testing AI."]}
 
 
 def test_background_manifest_requires_provenance_fields(tmp_path):

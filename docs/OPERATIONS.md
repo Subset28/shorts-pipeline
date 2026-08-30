@@ -66,6 +66,11 @@ The command writes `data/analytics_report.json` and groups matched videos by
 category, format, and platform. It never fabricates view counts; unmatched
 rows are reported separately for cleanup.
 
+To create a Git-tracked, repository-safe snapshot, run
+`python -m shorts_pipeline archive-analytics --input data/analytics_report.json
+--week-of YYYY-MM-DD --out docs/analytics/YYYY-MM-DD.json`, then commit that
+file. The archive contains aggregate lane rows and recommendations only.
+
 The weekly analytics sync sends only an explicit allowlist of report artifacts
 (`analytics_report.json`, `youtube_analytics.json`, `youtube_weekly_report.json`,
 and `tuning_log.md`) to the
