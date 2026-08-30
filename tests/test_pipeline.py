@@ -6,6 +6,7 @@ import json
 from shorts_pipeline.publish import metadata
 from shorts_pipeline.seo import fallback_package, normalize_package
 from shorts_pipeline.media import select_background
+from shorts_pipeline.analytics import build_report
 
 
 def test_fallback_package_preserves_source_url():
@@ -80,3 +81,15 @@ def test_background_selection_is_stable_and_uses_fallback(tmp_path):
     fallback = tmp_path / "fallback.mp4"
     fallback.write_bytes(b"fallback")
     assert select_background(empty, "topic", fallback) == fallback
+
+
+def test_analytics_joins_platform_metrics_to_experiment_metadata(tmp_path):
+    events = tmp_path / "events.jsonl"
+    events.write_text(json.dumps({"event": "draft_created", "source_url": "https://example.test/source", "category": "AI", "format_name": "news_breakdown", "title": "A title"}) + "\n", encoding="utf-8")
+    metrics = tmp_path / "metrics.csv"
+    metrics.write_text("source_url,platform,views,likes,comments,shares\nhttps://example.test/source,youtube,1000,50,10,5\nhttps://missing.test, tiktok, 4, 1, 0, 0\n", encoding="utf-8")
+    report = build_report(events, metrics)
+    assert report["matched_rows"] == 1
+    assert report["unmatched_rows"] == 1
+    assert report["rows"][0]["views"] == 1000
+    assert report["rows"][0]["engagement_rate"] == 0.065

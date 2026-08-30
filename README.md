@@ -39,3 +39,8 @@ Generate a queue of distinct drafts with `python -m shorts_pipeline batch
 --count 3 --dry-run`; each asset is written to its own `output/batch-NN`
 folder (with `item-NN` children; reruns allocate a new batch) and uses the
 source/format telemetry path.
+
+After publishing, export platform metrics to a CSV containing `source_url`,
+`platform`, and `views` (optionally `likes`, `comments`, and `shares`), then
+run `python -m shorts_pipeline report --metrics metrics.csv`. The report joins
+metrics to category/format telemetry so future batches can follow evidence.

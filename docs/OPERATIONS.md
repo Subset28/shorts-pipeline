@@ -26,3 +26,16 @@ For an always-on host, run `docker compose up -d --build`. The container
 restarts after process failures and keeps `data/` and `output/` on the host.
 Use `DRY_RUN=true` for the first deployment; switch it only after both platform
 credentials have been tested with private uploads.
+
+## Metrics feedback loop
+
+Export platform analytics to a CSV with `source_url`, `platform`, and `views`
+columns, plus optional `likes`, `comments`, and `shares`. Run:
+
+```powershell
+python -m shorts_pipeline report --metrics metrics.csv
+```
+
+The command writes `data/analytics_report.json` and groups matched videos by
+category, format, and platform. It never fabricates view counts; unmatched
+rows are reported separately for cleanup.

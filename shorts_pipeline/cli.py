@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .config import load_settings
 from .captions import create_captions
+from .analytics import build_report, write_report
 from .history import load_publish_state, load_seen, mark_seen, save_publish_state
 from .llm import create_package
 from .media import ensure_background_video, select_background, split_authorized_clip
@@ -100,6 +101,10 @@ def main() -> None:
     batch_parser = sub.add_parser("batch")
     batch_parser.add_argument("--count", type=int, default=3)
     batch_parser.add_argument("--dry-run", action="store_true")
+    report_parser = sub.add_parser("report")
+    report_parser.add_argument("--metrics", required=True, help="CSV export with source_url, platform, and views columns")
+    report_parser.add_argument("--events", default="data/events.jsonl")
+    report_parser.add_argument("--out", default="data/analytics_report.json")
     args = parser.parse_args()
     if args.command == "split":
         for part in split_authorized_clip(Path(args.input), Path(args.out), args.parts):
@@ -107,6 +112,11 @@ def main() -> None:
         return
     if args.command == "batch":
         raise SystemExit(run_batch(max(1, args.count), force_dry_run=args.dry_run))
+    if args.command == "report":
+        report = build_report(Path(args.events), Path(args.metrics))
+        output = write_report(report, Path(args.out))
+        print(f"Wrote {output} ({report['matched_rows']} matched rows, {report['unmatched_rows']} unmatched)")
+        return
     if args.daemon:
         while True:
             try:
