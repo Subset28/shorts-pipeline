@@ -17,10 +17,16 @@ def main() -> None:
         narration=(
             "I accidentally took down our company's production database. "
             "I was cleaning up an old staging environment during an overnight "
-            "maintenance window, but the script matched the production hostname "
-            "too. The site was down for eleven minutes before we restored the "
-            "backup, and now every deployment requires a second person to approve "
-            "the command."
+            "maintenance window, and the first few commands looked completely "
+            "normal. Then the script matched the production hostname too. Within "
+            "seconds, our customer dashboard started timing out and the on-call "
+            "phone lit up. I froze, stopped the script, and called the senior "
+            "engineer instead of trying to hide it. The site was down for eleven "
+            "minutes while we restored the backup. The incident review found that "
+            "the staging and production credentials had identical names, so the "
+            "team separated the accounts, added a dry-run requirement, and made a "
+            "second person approve destructive commands. The author says the new "
+            "safeguard has prevented a repeat."
         ),
         title="I accidentally took down our company's production database.",
         card_text="I accidentally took down our company's production database.",

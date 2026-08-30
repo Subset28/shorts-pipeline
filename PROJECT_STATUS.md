@@ -42,6 +42,9 @@
   A live API refresh produced niche candidates from sysadmin, programming,
   aerospace, aviation, and career communities; all remain uncleared until
   explicit reuse permission is documented.
+- The review demo now uses a complete CS incident arc and renders at about
+  45 seconds, establishing the first watch-time experiment band rather than
+  treating a short 10–15 second sample as the finished story format.
 - Replaced the local Aerospire and Supkin background masters with fresh
   yt-dlp downloads: Aerospire is 1280x720/24fps (the source maximum), and
   Supkin is 1920x1080/60fps.
