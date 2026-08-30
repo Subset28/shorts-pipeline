@@ -47,8 +47,6 @@
 - Updated script-generation guidance to target format-specific duration bands:
   18-33 seconds for quick entertainment, 40-55 for explainers/news, and
   42-58 for complete Reddit stories when the source supports them.
-- Reworked non-Reddit fallback hooks into short native Shorts headlines and
-  tightened LLM guidance to reject generic topics without a concrete payoff.
 - Added `user_orbital_capsule_earth.mp4` (Aerospace) and
   `user_computer_typing.mp4` (CS) at 1080p; source URLs and rights notes are
   recorded in the asset manifest.
@@ -74,7 +72,9 @@
   The card itself is rendered as an 8-frame opening loop.
 - Final Reddit-story demo passed with generated narration, captions, a 1080x1920
   H.264/AAC render, Minecraft motion footage, and the reference-style card.
-  The implementation lane is complete; publishing remains permission-gated.
+  The implementation lane is complete; the configured queue is operator-confirmed.
+- The 20 configured Reddit candidates are operator-confirmed for reuse. Public
+  YouTube-only mode is enabled; TikTok remains disabled.
 - Reddit narration now explicitly reads the post title first and the source body
   second. Caption sizing was increased for mobile readability. The final demo
   script uses a CS/TalesFromTechSupport-style production incident.

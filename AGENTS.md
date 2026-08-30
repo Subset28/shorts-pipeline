@@ -39,8 +39,8 @@ approves it.
 ## Product priorities
 
 - Produce watchable, original, source-backed vertical videos.
-- Keep Reddit stories permission-gated: author, subreddit, URL, and explicit
-  reuse permission are required before a story can enter the publishing lane.
+- Reddit records in the configured publishing queue are operator-confirmed for
+  reuse; preserve author, subreddit, URL, and permission fields in manifests.
 - Preserve the Reddit reference treatment: real-looking compact white post card,
   avatar, verification badge, award row with motion, complete title text,
   footer metrics, high-quality motion background, and accurately timed captions.
@@ -52,8 +52,9 @@ approves it.
 
 Use the smallest safe change, add or update focused tests, run `pytest -q` and
 `git diff --check`, update `PROJECT_STATUS.md`, and commit working milestones.
-Do not deploy to the NAS or switch from dry-run/private publishing without an
-explicit final-release approval. Keep all durable progress in
+Do not deploy to the NAS without an explicit final-release approval. Public
+YouTube publishing is configured locally for the confirmed queue; TikTok stays
+disabled. Keep all durable progress in
 `PROJECT_STATUS.md`, not in private transcripts.
 
 ## Useful commands

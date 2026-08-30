@@ -17,6 +17,19 @@ def _estimated_duration(text: str) -> float:
     return max(10.0, min(60.0, len(text.split()) / 2.5))
 
 
+def _audio_duration(audio: Path | None) -> float | None:
+    if not audio or not audio.exists():
+        return None
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(audio)],
+            check=True, capture_output=True, text=True, timeout=20,
+        )
+        return max(float(result.stdout.strip()), 1.0)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+
+
 def _caption_filter(captions: Path, margin_v: int = 430) -> str:
     ass_file = captions.with_suffix(".ass") if captions.suffix.lower() == ".srt" else captions
     caption_file = str(ass_file.resolve()).replace("\\", "/").replace(":", r"\:")
@@ -61,8 +74,14 @@ def _card(package: ScriptPackage, path: Path, transparent: bool = False, show_ho
     draw = ImageDraw.Draw(image)
     font = _font(40 if transparent else 54)
     if transparent and show_hook:
-        lines = textwrap.wrap(package.hook.upper(), width=30)[:3]
-        draw.multiline_text((60, 230), "\n".join(lines), fill="white", font=font, spacing=8, stroke_width=2, stroke_fill=(0, 0, 0, 230))
+        font = _font(70, bold=True)
+        lines = textwrap.wrap(package.hook.upper(), width=25)[:3]
+        text = "\n".join(lines)
+        top = 90
+        bbox = draw.multiline_textbbox((0, 0), text, font=font, spacing=4, stroke_width=2)
+        height = bbox[3] - bbox[1] + 54
+        draw.rounded_rectangle((30, top, 1050, top + height), radius=24, fill=(0, 0, 0, 175))
+        draw.multiline_text((540, top + 27), text, fill="white", font=font, spacing=4, stroke_width=2, stroke_fill=(0, 0, 0, 240), anchor="ma", align="center")
     elif not transparent:
         draw.rounded_rectangle((48, 450, 1032, 820), radius=34, fill=(5, 10, 22, 190) if transparent else (5, 10, 22))
         lines = textwrap.wrap(package.hook, width=29)[:4]
@@ -201,7 +220,7 @@ def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = 
         # a plain card rather than silently skipping the artifact.
         Image.new("RGB", (1080, 1920), (12, 20, 38)).save(card)
     output = output_dir / "short.mp4"
-    duration = _estimated_duration(package.narration)
+    duration = _audio_duration(audio) or _estimated_duration(package.narration)
     if background and background.exists():
         command = ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(background), "-loop", "1", "-i", str(card)]
         audio_index = 2

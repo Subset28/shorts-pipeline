@@ -29,11 +29,6 @@ def sync_backgrounds(manifest_path: Path, output_dir: Path) -> list[Path]:
         if target.exists() and target.stat().st_size:
             downloaded.append(target)
             continue
-        if asset["url"].startswith("local://"):
-            # Local user-supplied footage is cataloged for selection but is
-            # copied into the library separately; never treat its placeholder
-            # URL as a network download.
-            continue
         # Deployment and Container Manager can invoke a sync concurrently.
         # A shared ``.part`` path lets one process remove/replace another's
         # download before the atomic rename. Keep each in-flight transfer

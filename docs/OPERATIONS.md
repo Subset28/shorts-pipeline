@@ -1,7 +1,6 @@
 # Operations
 
-Start with `python -m shorts_pipeline run --dry-run`. Keep `DRY_RUN=true` until
-the output and source citations are acceptable. Store OAuth tokens, client
+Start with `python -m shorts_pipeline run --dry-run`. Store OAuth tokens, client
 secrets, and ElevenLabs `keys.json` outside Git.
 
 TTS prefers the local ElevenLabs rotator when configured, then falls back to
@@ -9,10 +8,9 @@ the keyless `edge-tts` command using `EDGE_TTS_VOICE`.
 
 To collect real professional anecdotes, configure Reddit OAuth credentials and
 run `python -m shorts_pipeline reddit --count 10`. This writes candidates only;
-each record starts with `reuse_permission=false`. Verify permission with the
-author and preserve the post URL, username, and subreddit before changing that
-field to `true`. Approved records in `REDDIT_APPROVED_FILE` are eligible for the
-dedicated Reddit-story lane, whose default treatment uses that lane directly.
+the configured records in `REDDIT_APPROVED_FILE` are operator-confirmed and
+eligible for the dedicated Reddit-story lane, whose default treatment uses
+that lane directly.
 
 Use the `split` command only for clips whose reuse rights are already cleared;
 it creates independently playable 2–4-part files and does not publish them by
@@ -40,10 +38,9 @@ variant (`source_url#variant=N`); the default variant retains the legacy
 source-only key. This prevents one treatment from reusing another treatment's
 upload IDs.
 
-For an always-on host, run `docker compose up -d --build`. The container
-restarts after process failures and keeps `data/` and `output/` on the host.
-Use `DRY_RUN=true` for the first deployment; switch it only after both platform
-credentials have been tested with private uploads.
+For an always-on host, run `python -m shorts_pipeline run --daemon --reddit-only
+--youtube-only --interval-hours 6` under a restartable supervisor. TikTok is
+not invoked by `--youtube-only`.
 
 On the configured Windows host, `.\scripts\deploy-nas.ps1` performs the
 same deployment using the `synology` SSH alias. It uses legacy SCP for the

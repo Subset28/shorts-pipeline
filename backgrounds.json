@@ -1,0 +1,175 @@
+{
+  "assets": [
+    {
+      "name": "user_robot_ai_4k",
+      "filename": "user_robot_ai_4k.mp4",
+      "url": "local://user_robot_ai_4k.mp4",
+      "source_page": "local file supplied by user",
+      "category": "AI",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_ai_dev_setup_4k",
+      "filename": "user_ai_dev_setup_4k.mp4",
+      "url": "local://user_ai_dev_setup_4k.mp4",
+      "source_page": "local file supplied by user",
+      "category": "AI",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_unreviewed_4974884",
+      "filename": "user_unreviewed_4974884.mp4",
+      "url": "local://user_unreviewed_4974884.mp4",
+      "source_page": "local file supplied by user",
+      "category": "CS",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_code_typing_hands_4k",
+      "filename": "user_code_typing_hands_4k.mp4",
+      "url": "local://user_code_typing_hands_4k.mp4",
+      "source_page": "local file supplied by user",
+      "category": "CS",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_hacker_typing_4k",
+      "filename": "user_hacker_typing_4k.mp4",
+      "url": "local://user_hacker_typing_4k.mp4",
+      "source_page": "local file supplied by user",
+      "category": "Cybersecurity",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_malicious_hacker_hd",
+      "filename": "user_malicious_hacker_hd.mp4",
+      "url": "local://user_malicious_hacker_hd.mp4",
+      "source_page": "local file supplied by user",
+      "category": "Cybersecurity",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_city_pan_sky_4k",
+      "filename": "user_city_pan_sky_4k.mp4",
+      "url": "local://user_city_pan_sky_4k.mp4",
+      "source_page": "local file supplied by user",
+      "category": "General",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_train_ride_4k",
+      "filename": "user_train_ride_4k.mp4",
+      "url": "local://user_train_ride_4k.mp4",
+      "source_page": "local file supplied by user",
+      "category": "General",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_neon_city_drive",
+      "filename": "user_neon_city_drive.mp4",
+      "url": "https://www.youtube.com/watch?v=ff2zAkzX82s",
+      "source_page": "https://www.youtube.com/watch?v=ff2zAkzX82s",
+      "category": "CS",
+      "attribution": "YouTube source; creator attribution to be confirmed",
+      "rights_note": "User-provided download; confirm the uploader's license or obtain permission before commercial publication"
+    },
+    {
+      "name": "user_technology_loop",
+      "filename": "user_technology_loop.mp4",
+      "url": "https://www.youtube.com/watch?v=Hgg7M3kSqyE",
+      "source_page": "https://www.youtube.com/watch?v=Hgg7M3kSqyE",
+      "category": "CS",
+      "attribution": "YouTube source; creator attribution to be confirmed",
+      "rights_note": "User-provided download; confirm the uploader's license or obtain permission before commercial publication"
+    },
+    {
+      "name": "user_computer_typing",
+      "filename": "user_computer_typing.mp4",
+      "url": "https://www.youtube.com/watch?v=E7lFvgEfreE",
+      "source_page": "https://www.youtube.com/watch?v=E7lFvgEfreE",
+      "category": "CS",
+      "attribution": "YouTube source; creator attribution to be confirmed",
+      "rights_note": "User-provided download; confirm the uploader's license or obtain permission before commercial publication"
+    },
+    {
+      "name": "user_orbital_capsule_earth",
+      "filename": "user_orbital_capsule_earth.mp4",
+      "url": "https://www.youtube.com/watch?v=Jwslbz8ICQY",
+      "source_page": "https://www.youtube.com/watch?v=Jwslbz8ICQY",
+      "category": "Aerospace",
+      "attribution": "YouTube source; creator attribution to be confirmed",
+      "rights_note": "User-provided download; confirm the uploader's license or obtain permission before commercial publication"
+    },
+    {
+      "name": "user_rocket_launch_stock",
+      "filename": "user_rocket_launch_stock.mp4",
+      "url": "https://www.youtube.com/watch?v=KGwYUgadZrg",
+      "source_page": "https://www.youtube.com/watch?v=KGwYUgadZrg",
+      "category": "Aerospace",
+      "attribution": "YouTube source; creator attribution to be confirmed",
+      "rights_note": "User-provided download; confirm the uploader's license or obtain permission before commercial publication"
+    },
+    {
+      "name": "user_earth_zoom_space",
+      "filename": "user_earth_zoom_space.mp4",
+      "url": "https://www.youtube.com/watch?v=PeY9pWJ2Mbk",
+      "source_page": "https://www.youtube.com/watch?v=PeY9pWJ2Mbk",
+      "category": "Aerospace",
+      "attribution": "YouTube source; creator attribution to be confirmed",
+      "rights_note": "User-provided download; confirm the uploader's license or obtain permission before commercial publication"
+    },
+    {
+      "name": "earth_zoom",
+      "filename": "nasa_earth_zoom.mp4",
+      "category": "Aerospace",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a002200/a002255/a002255.mp4",
+      "source_page": "https://svs.gsfc.nasa.gov/2255",
+      "attribution": "NASA/Goddard Space Flight Center Scientific Visualization Studio",
+      "rights_note": "NASA SVS visualization; verify page-specific credits before commercial use"
+    },
+    {
+      "name": "osiris_apex_earth_flyby",
+      "filename": "nasa_osiris_apex_earth_flyby.mp4",
+      "category": "Aerospace",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005500/a005582/osiris_apex_092025_ega_top-down_1080p60.mp4",
+      "source_page": "https://svs.gsfc.nasa.gov/5582",
+      "attribution": "NASA/Goddard Space Flight Center Scientific Visualization Studio",
+      "rights_note": "NASA SVS visualization; verify page-specific credits before commercial use"
+    },
+    {
+      "name": "earth_atmosphere_night_lights",
+      "filename": "nasa_earth_atmosphere_night_lights.mp4",
+      "category": "Aerospace",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005500/a005570/Earth_wAtmos_spin_02_1080p60.mp4",
+      "source_page": "https://svs.gsfc.nasa.gov/5570",
+      "attribution": "NASA's Scientific Visualization Studio",
+      "rights_note": "NASA SVS visualization; verify page-specific credits and dataset attribution before commercial use"
+    },
+    {
+      "name": "earth_system_spheres_vertical",
+      "filename": "nasa_earth_system_spheres_vertical.mp4",
+      "category": "Aerospace",
+      "url": "https://svs.gsfc.nasa.gov/vis/a030000/a031300/a031365/rotating_globes_vert_1920p30.mp4",
+      "source_page": "https://svs.gsfc.nasa.gov/31365",
+      "attribution": "NASA's Scientific Visualization Studio",
+      "rights_note": "NASA SVS visualization; verify page-specific credits and dataset attribution before commercial use"
+    },
+    {
+      "name": "earth_day_night_lights",
+      "filename": "nasa_earth_day_night_lights.mp4",
+      "category": "Aerospace",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005400/a005477/nightlights_day-night_ksc_4096x2048_30p_h264.mp4",
+      "source_page": "https://svs.gsfc.nasa.gov/5477",
+      "attribution": "NASA's Scientific Visualization Studio",
+      "rights_note": "NASA SVS visualization; verify page-specific credits and dataset attribution before commercial use"
+    }
+  ]
+}

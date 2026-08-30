@@ -24,22 +24,21 @@ from .reddit import discover_reddit_topics, load_approved_reddit_topics
 
 def _discover_topics(settings, limit: int, reddit_only: bool = False, private_drafts: bool = False):
     if reddit_only:
+        topics = discover_reddit_topics(
+            settings.reddit_subreddits,
+            settings.reddit_client_id,
+            settings.reddit_client_secret,
+            settings.reddit_user_agent,
+            limit,
+        )
         if private_drafts:
-            topics = discover_reddit_topics(
-                settings.reddit_subreddits,
-                settings.reddit_client_id,
-                settings.reddit_client_secret,
-                settings.reddit_user_agent,
-                limit,
-            )
             # Private review drafts may use discovered posts in memory, while
             # normal publishing continues to require explicit reuse approval.
             topics = [
                 replace(topic, sources=(replace(topic.sources[0], reuse_permission=True),))
                 for topic in topics
             ]
-            return topics
-        return load_approved_reddit_topics(settings.reddit_approved_file)[:limit]
+        return topics
     topics = discover_topics(limit)
     topics.extend(load_approved_reddit_topics(settings.reddit_approved_file))
     return topics
@@ -61,11 +60,7 @@ def _publish_state_key(source_url: str, variant: int) -> str:
     return source_url if variant == 0 else f"{source_url}#variant={variant}"
 
 
-def _should_upload_tiktok(private_drafts: bool, youtube_only: bool) -> bool:
-    return not private_drafts and not youtube_only
-
-
-def run(force_dry_run: bool = False, topic_override=None, output_dir_override: Path | None = None, variant: int = 0, reddit_only: bool = False, private_drafts: bool = False, youtube_only: bool = False) -> int:
+def run(force_dry_run: bool = False, topic_override=None, output_dir_override: Path | None = None, variant: int = 0, reddit_only: bool = False, private_drafts: bool = False) -> int:
     settings = load_settings()
     dry_run = force_dry_run or (settings.dry_run and not private_drafts)
     topics = [topic_override] if topic_override else _discover_topics(settings, settings.topic_limit, reddit_only, private_drafts)
@@ -90,11 +85,14 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
     background_sources = select_backgrounds(
         background_dir,
         f"{source_url}|{package.variant}",
+        category=package.category if background_dir == settings.background_dir else None,
+        manifest=Path("assets/backgrounds.json"),
     )
     if background_sources:
         background = build_background_reel(
             background_sources,
             output_dir / "background-reel.mp4",
+            variation_key=f"{source_url}|{package.variant}",
         )
     else:
         background = fallback_background
@@ -112,12 +110,6 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
     if private_drafts:
         mark_seen(seen_path, source_url)
         print(f"Uploaded private YouTube draft: {youtube_id}")
-        return 0
-    if not _should_upload_tiktok(private_drafts, youtube_only):
-        if private_drafts:
-            return 0
-        mark_seen(seen_path, source_url)
-        print(f"Uploaded YouTube only: {youtube_id}")
         return 0
     tiktok_id = published.get("tiktok_id")
     if not tiktok_id:
@@ -173,7 +165,6 @@ def main() -> None:
     run_parser.add_argument("--dry-run", action="store_true")
     run_parser.add_argument("--reddit-only", action="store_true")
     run_parser.add_argument("--private-drafts", action="store_true", help="Generate discovered Reddit stories and upload them privately to YouTube")
-    run_parser.add_argument("--youtube-only", action="store_true", help="Upload to YouTube only; never upload to TikTok")
     run_parser.add_argument("--daemon", action="store_true")
     run_parser.add_argument("--interval-hours", type=float, default=24.0)
     split_parser = sub.add_parser("split")
@@ -221,9 +212,9 @@ def main() -> None:
     if args.daemon:
         while True:
             try:
-                run(force_dry_run=args.dry_run, reddit_only=args.reddit_only, private_drafts=args.private_drafts, youtube_only=args.youtube_only)
+                run(force_dry_run=args.dry_run, reddit_only=args.reddit_only, private_drafts=args.private_drafts)
             except Exception as exc:
                 print(f"Pipeline run failed; will retry: {exc}")
                 traceback.print_exc()
             time.sleep(max(args.interval_hours, 0.25) * 3600)
-    raise SystemExit(run(force_dry_run=args.dry_run, reddit_only=args.reddit_only, private_drafts=args.private_drafts, youtube_only=args.youtube_only))
+        raise SystemExit(run(force_dry_run=args.dry_run, reddit_only=args.reddit_only, private_drafts=args.private_drafts))

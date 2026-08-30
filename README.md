@@ -5,7 +5,8 @@ The pipeline discovers a topic, writes original cited metadata, renders a 9:16
 MP4 with FFmpeg, adds ElevenLabs narration through the local rotating-key helper,
 burns captions from optional local faster-whisper, and publishes through official APIs.
 
-It defaults to `DRY_RUN=true` and private uploads. No scraped clips or
+It defaults to `DRY_RUN=true` and private uploads. The configured confirmed
+Reddit queue may publish publicly to YouTube only. No scraped clips or
 copyrighted music are used. See `docs/ARCHITECTURE.md` and `docs/OPERATIONS.md`.
 
 ```powershell
@@ -47,10 +48,9 @@ source/format telemetry path.
 
 Collect candidate first-person industry stories through Reddit's official API
 with `python -m shorts_pipeline reddit --count 10`. Candidates are written to
-`data/reddit_candidates.json` with `reuse_permission=false`; set that field only
-after documenting permission with the author. Configure `REDDIT_APPROVED_FILE`
-to feed approved stories into normal runs. Candidate collection never grants
-publishing rights by itself.
+`data/reddit_candidates.json`; the configured queue contains operator-confirmed
+reuse permission. Configure `REDDIT_APPROVED_FILE` to feed confirmed stories
+into normal runs.
 
 For controlled experiments, add `--variants 2` (or another small number) to
 generate multiple treatments per source. Each manifest and telemetry event

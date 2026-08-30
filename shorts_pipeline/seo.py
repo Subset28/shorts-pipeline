@@ -68,17 +68,17 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     # to stay scannable on a phone instead of becoming a tiny headline block.
     headline = headline[:42].rsplit(" ", 1)[0] if len(headline) > 42 else headline
     hook_templates = {
-        "news_breakdown": "THIS JUST CHANGED {headline}",
-        "fact_explainer": "WHY {headline} MATTERS",
-        "myth_bust": "THE TRUTH ABOUT {headline}",
-        "technical_joke": "POV: {headline} HIT PRODUCTION",
-        "surprising_fact": "THE DETAIL EVERYONE MISSED: {headline}",
-        "question_answer": "SO WHAT IS {headline}?",
-        "timeline": "HOW {headline} GOT HERE",
-        "prediction_watch": "WILL {headline} ACTUALLY WORK?",
+        "news_breakdown": "What '{headline}' actually means",
+        "fact_explainer": "The simple explanation of '{headline}'",
+        "myth_bust": "What '{headline}' gets wrong",
+        "technical_joke": "POV: '{headline}' reaches production",
+        "surprising_fact": "The detail in '{headline}' that changes the story",
+        "question_answer": "What does '{headline}' actually mean?",
+        "timeline": "How '{headline}' got here",
+        "prediction_watch": "Will '{headline}' actually happen?",
         "reddit_story": "The config change that took down an office",
     }
-    hook = hook_templates[format_name].format(headline=headline).replace("  ", " ")
+    hook = hook_templates[format_name].format(headline=headline)
     summary = " ".join(source.summary.split())
     if len(summary.split()) < 8:
         # Some RSS feeds, especially link aggregators, provide only URLs and

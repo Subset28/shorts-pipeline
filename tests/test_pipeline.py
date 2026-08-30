@@ -70,6 +70,13 @@ def test_metadata_is_platform_neutral():
     assert data["category"] == "AI"
 
 
+def test_metadata_description_is_youtube_safe():
+    source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
+    package = fallback_package(Topic("A breakthrough", "AI", (source,)))
+    package.description = "Valid\x00 description\u2028"
+    assert metadata(package)["description"] == "Valid description"
+
+
 def test_variants_rotate_content_lane_without_changing_source():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     first = fallback_package(Topic("A breakthrough", "AI", (source,)), variant=0)
@@ -228,6 +235,12 @@ def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
 def test_variant_publish_state_keys_are_isolated_but_legacy_default_survives():
     assert cli._publish_state_key("https://example.test/source", 0) == "https://example.test/source"
     assert cli._publish_state_key("https://example.test/source", 1) == "https://example.test/source#variant=1"
+
+
+def test_youtube_only_mode_skips_tiktok():
+    assert cli._should_upload_tiktok(private_drafts=False, youtube_only=True) is False
+    assert cli._should_upload_tiktok(private_drafts=False, youtube_only=False) is True
+    assert cli._should_upload_tiktok(private_drafts=True, youtube_only=False) is False
 
 
 def test_publish_state_resumes_each_platform_without_overwriting(tmp_path):
@@ -415,6 +428,7 @@ def test_discovery_rejects_generic_or_underdescribed_feed_titles():
 
 def test_batch_reports_feed_outage_before_claiming_topics_are_seen(monkeypatch):
     monkeypatch.setattr(cli, "discover_topics", lambda limit: [])
+    monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda path: [])
     try:
         cli.run_batch(1, force_dry_run=True)
     except RuntimeError as exc:

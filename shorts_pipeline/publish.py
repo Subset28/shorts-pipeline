@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import unicodedata
 from pathlib import Path
 
 import httpx
@@ -16,7 +17,12 @@ YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 
 def metadata(package: ScriptPackage) -> dict:
-    return {"title": package.title, "description": package.description, "tags": package.tags, "sources": package.sources, "format_name": package.format_name, "category": package.category, "variant": package.variant}
+    description = "".join(
+        " " if unicodedata.category(char) in {"Zl", "Zp"} else char
+        for char in package.description
+        if unicodedata.category(char)[0] != "C"
+    ).strip()
+    return {"title": package.title, "description": description[:5000], "tags": package.tags, "sources": package.sources, "format_name": package.format_name, "category": package.category, "variant": package.variant}
 
 
 def save_manifest(package: ScriptPackage, video: Path, output_dir: Path, background: Path | None = None, background_sources: list[Path] | None = None) -> Path:
