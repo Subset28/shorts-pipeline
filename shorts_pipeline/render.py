@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import textwrap
 import re
+import os
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -35,6 +36,25 @@ def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.I
     return ImageFont.load_default()
 
 
+def _asset(path: Path, size: tuple[int, int]) -> Image.Image | None:
+    """Load an optional transparent card asset without making it mandatory."""
+    if not path.exists():
+        return None
+    try:
+        image = Image.open(path).convert("RGBA")
+        image.thumbnail(size, Image.Resampling.LANCZOS)
+        return image
+    except (OSError, ValueError):
+        return None
+
+
+def _paste_circle(base: Image.Image, image: Image.Image, box: tuple[int, int, int, int]) -> None:
+    image = image.resize((box[2] - box[0], box[3] - box[1]), Image.Resampling.LANCZOS)
+    mask = Image.new("L", image.size, 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, image.width - 1, image.height - 1), fill=255)
+    base.paste(image, (box[0], box[1]), mask)
+
+
 def _card(package: ScriptPackage, path: Path, transparent: bool = False, show_hook: bool = True) -> None:
     image = Image.new("RGBA" if transparent else "RGB", (1080, 1920), (0, 0, 0, 0) if transparent else (12, 20, 38))
     draw = ImageDraw.Draw(image)
@@ -55,6 +75,7 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     body_font = _font(35, bold=True)
     username_font = _font(25, bold=True)
     small = _font(21)
+    asset_dir = Path(os.getenv("REDDIT_ASSETS_DIR", "assets/reddit"))
     attribution = re.search(r"Reddit attribution: u/([^ ]+) in r/([^\n]+)", package.description)
     username = attribution.group(1) if attribution else "story_author"
     community = attribution.group(2).strip() if attribution else "redditstories"
@@ -75,17 +96,30 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     draw.rounded_rectangle((left, top, right, bottom), radius=22, fill=(250, 250, 250, 252), outline=(215, 215, 215, 255), width=3)
 
     # Compact Reddit-style header with a recognizable orange avatar and metadata.
-    draw.ellipse((left + 28, top + 28, left + 86, top + 86), fill=(255, 69, 0, 255))
-    draw.ellipse((left + 45, top + 48, left + 51, top + 54), fill=(255, 255, 255, 255))
-    draw.ellipse((left + 65, top + 48, left + 71, top + 54), fill=(255, 255, 255, 255))
-    draw.arc((left + 46, top + 44, left + 70, top + 70), 15, 165, fill=(255, 255, 255, 255), width=3)
+    avatar = _asset(asset_dir / "avatar.png", (58, 58))
+    if avatar:
+        _paste_circle(image, avatar, (left + 28, top + 28, left + 86, top + 86))
+    else:
+        draw.ellipse((left + 28, top + 28, left + 86, top + 86), fill=(255, 69, 0, 255))
+        draw.ellipse((left + 45, top + 48, left + 51, top + 54), fill=(255, 255, 255, 255))
+        draw.ellipse((left + 65, top + 48, left + 71, top + 54), fill=(255, 255, 255, 255))
+        draw.arc((left + 46, top + 44, left + 70, top + 70), 15, 165, fill=(255, 255, 255, 255), width=3)
     name_x = left + 103
     draw.text((name_x, top + 34), f"u/{username}", fill=(35, 35, 35), font=username_font)
     name_width = int(draw.textlength(f"u/{username}", font=username_font))
-    draw.ellipse((name_x + name_width + 10, top + 40, name_x + name_width + 27, top + 57), fill=(38, 132, 255, 255))
+    verified = _asset(asset_dir / "verified.png", (17, 17))
+    if verified:
+        image.alpha_composite(verified, (name_x + name_width + 10, top + 40))
+    else:
+        draw.ellipse((name_x + name_width + 10, top + 40, name_x + name_width + 27, top + 57), fill=(38, 132, 255, 255))
     badge_x = name_x + name_width + 42
-    for color in ((255, 69, 0, 255), (255, 190, 0, 255), (76, 175, 80, 255), (145, 95, 220, 255)):
-        draw.ellipse((badge_x, top + 40, badge_x + 17, top + 57), fill=color)
+    fallback_badges = ((255, 69, 0, 255), (255, 190, 0, 255), (76, 175, 80, 255), (145, 95, 220, 255))
+    for index, color in enumerate(fallback_badges, 1):
+        badge = _asset(asset_dir / f"badge-{index}.png", (17, 17))
+        if badge:
+            image.alpha_composite(badge, (badge_x, top + 40))
+        else:
+            draw.ellipse((badge_x, top + 40, badge_x + 17, top + 57), fill=color)
         badge_x += 25
     draw.text((right - 50, top + 38), "···", fill=(100, 100, 100), font=username_font)
 
