@@ -21,6 +21,10 @@ local `faster-whisper` audio alignment; without it, the free fallback creates
 timed captions from the generated narration. The first Whisper run may
 download the selected model (`CAPTION_MODEL`, default `base`).
 
+Each render manifest includes a quality report with duration sync, background
+coverage, caption coverage, and any failed checks. Treat `quality.passed=false`
+as a review gate before publishing.
+
 For source footage with multiple speakers, install WhisperX and set
 `WHISPERX_DIARIZATION=true` plus a Hugging Face token (`HF_TOKEN`). The
 pipeline then writes the same SRT timing alongside speaker-colored ASS
