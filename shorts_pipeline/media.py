@@ -19,6 +19,43 @@ def select_background(directory: Path, key: str, fallback: Path | None = None) -
     return fallback if fallback and fallback.exists() else None
 
 
+def select_backgrounds(directory: Path, key: str, limit: int = 3) -> list[Path]:
+    """Return a stable, rotated set of approved footage for a short reel."""
+    candidates = sorted(
+        path for path in directory.glob("*") if path.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"} and path.is_file()
+    ) if directory.exists() else []
+    if not candidates:
+        return []
+    start = int(hashlib.sha256(key.encode("utf-8")).hexdigest()[:8], 16) % len(candidates)
+    rotated = candidates[start:] + candidates[:start]
+    return rotated[:max(1, min(limit, len(rotated)))]
+
+
+def build_background_reel(sources: list[Path], output: Path, seconds_per_clip: float = 4.0) -> Path | None:
+    """Create a silent, cut-based reel from cataloged footage for rendering."""
+    if len(sources) < 2:
+        return sources[0] if sources else None
+    if not shutil.which("ffmpeg"):
+        raise RuntimeError("ffmpeg is required")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    filters = []
+    labels = []
+    for index in range(len(sources)):
+        label = f"v{index}"
+        filters.append(
+            f"[{index}:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+            f"setsar=1,fps=30,trim=duration={seconds_per_clip},setpts=PTS-STARTPTS[{label}]"
+        )
+        labels.append(f"[{label}]")
+    filters.append("".join(labels) + f"concat=n={len(sources)}:v=1:a=0[v]")
+    command = ["ffmpeg", "-y"]
+    for source in sources:
+        command += ["-i", str(source)]
+    command += ["-filter_complex", ";".join(filters), "-map", "[v]", "-an", "-c:v", "libx264", "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(output)]
+    subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)
+    return output
+
+
 def download_rights_cleared_source(url: str, output_dir: Path) -> Path:
     """Download a user-authorized source with yt-dlp.
 

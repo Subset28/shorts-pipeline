@@ -51,3 +51,7 @@ Run `python -m shorts_pipeline backgrounds` on a new host to provision the
 cataloged motion footage into `data/backgrounds`. Each entry records its source
 page, attribution, and rights note in `assets/backgrounds.json`; do not add
 uncataloged downloads to the publishing library.
+
+When at least two cataloged assets are available, each render builds a silent
+12-second reel from up to three sources with four-second cuts. The manifest
+records both the generated reel and its source files.

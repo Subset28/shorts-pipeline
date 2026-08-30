@@ -12,8 +12,9 @@ clips while keeping the channel recognizable as Signal Lab:
 - Caption baseline around 68-78% of frame height, leaving room for platform
   controls and the description overlay.
 - Prefer a new visual event, crop, or source shot every 2-4 seconds when the
-  source permits it. A single slow clip is acceptable as a background, but the
-  narration and captions must carry the progression.
+  source permits it. The default renderer builds a short reel from multiple
+  approved sources when the local library contains enough footage; narration
+  and captions must still carry the progression.
 - Use white for neutral text and reserve yellow/green accents for the words
   that carry the joke, reveal, or key technical term.
 

@@ -11,7 +11,7 @@ from .analytics import build_report, write_report
 from .asset_library import sync_backgrounds
 from .history import load_publish_state, load_seen, mark_seen, save_publish_state
 from .llm import create_package
-from .media import ensure_background_video, select_background, split_authorized_clip
+from .media import build_background_reel, ensure_background_video, select_background, select_backgrounds, split_authorized_clip
 from .publish import save_manifest, upload_tiktok, upload_youtube
 from .render import render_video
 from .sources import discover_topics
@@ -48,9 +48,13 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
     audio = synthesize(package.narration, settings, output_dir / "narration.mp3")
     captions = create_captions(package.narration, audio, output_dir / "captions.srt", settings.caption_model) if settings.captions_enabled else None
     fallback_background = ensure_background_video(settings.background_video_url, settings.background_video)
-    background = select_background(settings.background_dir, source_url, fallback_background)
+    background_sources = select_backgrounds(settings.background_dir, source_url)
+    if background_sources:
+        background = build_background_reel(background_sources, output_dir / "background-reel.mp4")
+    else:
+        background = fallback_background
     video = render_video(package, output_dir, audio, captions, background)
-    manifest = save_manifest(package, video, output_dir, background)
+    manifest = save_manifest(package, video, output_dir, background, background_sources)
     record_event(events_path, "draft_created", source_url=source_url, category=package.category, format_name=package.format_name, title=package.title, video=str(video), dry_run=dry_run)
     print(f"Created {manifest}")
     if dry_run:

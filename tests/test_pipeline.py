@@ -5,7 +5,7 @@ from shorts_pipeline.telemetry import record_event
 import json
 from shorts_pipeline.publish import metadata
 from shorts_pipeline.seo import fallback_package, normalize_package
-from shorts_pipeline.media import select_background
+from shorts_pipeline.media import select_background, select_backgrounds
 from shorts_pipeline.analytics import build_report
 from shorts_pipeline.asset_library import load_asset_manifest
 from shorts_pipeline.publish import save_manifest
@@ -111,6 +111,15 @@ def test_manifest_records_selected_background(tmp_path):
     background.write_bytes(b"video")
     manifest = save_manifest(fallback_package(Topic("A breakthrough", "AI", (source,))), tmp_path / "short.mp4", tmp_path, background)
     assert json.loads(manifest.read_text(encoding="utf-8"))["background"] == str(background)
+
+
+def test_background_reel_selection_rotates_stably(tmp_path):
+    for name in ("a.mp4", "b.mp4", "c.mp4"):
+        (tmp_path / name).write_bytes(name.encode())
+    selected = select_backgrounds(tmp_path, "https://example.test/topic")
+    assert len(selected) == 3
+    assert selected == select_backgrounds(tmp_path, "https://example.test/topic")
+    assert {path.name for path in selected} == {"a.mp4", "b.mp4", "c.mp4"}
 
 
 def test_dockerfile_copies_asset_manifest():
