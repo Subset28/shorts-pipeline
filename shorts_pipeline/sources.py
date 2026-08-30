@@ -83,7 +83,13 @@ def _clean_summary(value: str) -> str:
 
 
 def _clean_title(value: str) -> str:
-    return re.sub(r"\s+", " ", html.unescape(value).replace("\ufffd", "'")).strip()
+    title = re.sub(r"\s+", " ", html.unescape(value).replace("\ufffd", "'")).strip()
+    if title.casefold().startswith("the download:"):
+        lead = title.split(":", 1)[1].strip()
+        lead = re.split(r",\s+(?:and|plus|with)\s+", lead, maxsplit=1, flags=re.IGNORECASE)[0].strip(" .,-")
+        if lead:
+            title = lead
+    return title
 
 
 def _source_score(source: Source, published: str, now: datetime) -> float:

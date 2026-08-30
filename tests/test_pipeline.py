@@ -5,7 +5,7 @@ from shorts_pipeline.telemetry import record_event
 import json
 from shorts_pipeline.publish import fetch_tiktok_status, metadata, youtube_status
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
-from shorts_pipeline.media import select_background, select_backgrounds
+from shorts_pipeline.media import build_background_reel, select_background, select_backgrounds
 from shorts_pipeline.analytics import build_report, tuning_recommendations
 from shorts_pipeline.asset_library import load_asset_manifest
 from shorts_pipeline.asset_library import sync_backgrounds
@@ -13,6 +13,7 @@ from shorts_pipeline.publish import save_manifest
 from pathlib import Path
 from shorts_pipeline.sources import (
     _clean_summary,
+    _clean_title,
     _content_key,
     _has_narrative_quality,
     _is_content_mirror,
@@ -508,6 +509,23 @@ def test_background_reel_selection_rotates_stably(tmp_path):
     assert {path.name for path in selected} == {"a.mp4", "b.mp4", "c.mp4"}
 
 
+def test_background_reel_builds_long_sequence_instead_of_short_loop(tmp_path, monkeypatch):
+    sources = [tmp_path / "a.mp4", tmp_path / "b.mp4"]
+    for source in sources:
+        source.write_bytes(b"video")
+    captured = {}
+    monkeypatch.setattr("shorts_pipeline.media.shutil.which", lambda name: "ffmpeg")
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        return None
+    monkeypatch.setattr("shorts_pipeline.media.subprocess.run", fake_run)
+    result = build_background_reel(sources, tmp_path / "reel.mp4", duration=60, variation_key="demo")
+    assert result == tmp_path / "reel.mp4"
+    command = captured["command"]
+    assert command.count("-i") == 15
+    assert "concat=n=15:v=1:a=0[v]" in command[command.index("-filter_complex") + 1]
+
+
 def test_background_selection_maps_editorial_aliases_to_asset_categories(tmp_path):
     for name in ("ai.mp4", "cyber.mp4", "general.mp4", "rocket.mp4"):
         (tmp_path / name).write_bytes(name.encode())
@@ -597,6 +615,11 @@ def test_content_key_deduplicates_newsletter_and_article_mirrors():
     assert _content_key(first) != _content_key(different)
     assert _is_content_mirror(mirror, [first])
     assert not _is_content_mirror(different, [first])
+
+
+def test_newsletter_title_matches_the_lead_story():
+    assert _clean_title("The Download: inside OpenAI's hack, and a new EV takes on the US") == "inside OpenAI's hack"
+    assert _clean_title("A normal AI and robotics headline") == "A normal AI and robotics headline"
 
 
 def test_batch_reports_feed_outage_before_claiming_topics_are_seen(monkeypatch):
