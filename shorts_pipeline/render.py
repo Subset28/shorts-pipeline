@@ -147,6 +147,7 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     footer_y = bottom - 51
     like_icon = _asset(asset_dir / "like.png", (20, 20))
     comment_icon = _asset(asset_dir / "comment.png", (20, 20))
+    share_icon = _asset(asset_dir / "share.png", (20, 20))
     if like_icon:
         image.alpha_composite(like_icon, (left + 30, footer_y))
     else:
@@ -159,6 +160,13 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     else:
         draw.rounded_rectangle((left + 143, footer_y + 1, left + 161, footer_y + 14), radius=5, outline=(145, 145, 145), width=2)
         draw.line((left + 147, footer_y + 13, left + 145, footer_y + 18, left + 152, footer_y + 14), fill=(145, 145, 145), width=2)
+    if share_icon:
+        image.alpha_composite(share_icon, (right - 98, footer_y))
+    else:
+        draw.line((right - 91, footer_y + 17, right - 91, footer_y + 2), fill=(145, 145, 145), width=2)
+        draw.line((right - 91, footer_y + 2, right - 97, footer_y + 8), fill=(145, 145, 145), width=2)
+        draw.line((right - 91, footer_y + 2, right - 85, footer_y + 8), fill=(145, 145, 145), width=2)
+    draw.text((right - 66, bottom - 48), "Share", fill=(120, 120, 120), font=small)
     draw.text((left + 56, bottom - 48), "99+", fill=(120, 120, 120), font=small)
     draw.text((left + 169, bottom - 48), "99+", fill=(120, 120, 120), font=small)
     image.save(path)
