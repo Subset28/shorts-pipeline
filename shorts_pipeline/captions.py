@@ -62,16 +62,17 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-    Style: Default,Arial,52,&H0000D7FF,&H0000D7FF,&H00101010,&H99000000,-1,0,0,0,100,100,0,0,1,4,2,2,80,80,430,1
+    Style: Default,Arial,68,&H0000D7FF,&H0000D7FF,&H00101010,&H99000000,-1,0,0,0,100,100,0,0,1,5,2,2,65,65,430,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     events = []
     for start, end, text in usable:
-        wrapped = "\\N".join(" ".join(text.split()[i : i + 4]) for i in range(0, len(text.split()), 4))
+        wrapped = "\\N".join(" ".join(text.split()[i : i + 3]) for i in range(0, len(text.split()), 3))
         wrapped = wrapped.upper()
-        events.append(f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Default,,0,0,0,,{wrapped}")
+        animated = r"{\fad(70,50)\blur1\t(0,120,\fscx108\fscy108\blur0)}" + wrapped
+        events.append(f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Default,,0,0,0,,{animated}")
     output.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
     return output
 
