@@ -11,7 +11,7 @@ from shorts_pipeline.asset_library import load_asset_manifest
 from shorts_pipeline.asset_library import sync_backgrounds
 from shorts_pipeline.publish import save_manifest
 from pathlib import Path
-from shorts_pipeline.sources import _clean_summary, is_relevant, is_usable_source
+from shorts_pipeline.sources import _clean_summary, _has_narrative_quality, is_relevant, is_usable_source
 from shorts_pipeline.reddit import _is_niche_relevant, _reddit_quality_score, discover_reddit_topics, load_approved_reddit_topics
 from shorts_pipeline.config import load_settings
 from shorts_pipeline.render import _reddit_post_card
@@ -586,6 +586,15 @@ def test_discovery_rejects_generic_or_underdescribed_feed_titles():
     assert not is_usable_source(generic)
     assert not is_usable_source(thin)
     assert is_usable_source(useful)
+
+
+def test_discovery_requires_lane_specific_narrative_quality():
+    thin_finance = Source("Tech stocks rally", "https://example.test/markets", "Stocks rose after earnings beat estimates and investors reacted.")
+    ceremony = Source("Ribbon-Cutting Event for a New Facility", "https://example.test/event", "Officials attended a ceremony and gave remarks to the audience. " * 5)
+    useful_finance = Source("How AI spending changed the market", "https://example.test/market-story", "The company changed its AI spending plan after revenue missed expectations. " * 6)
+    assert not _has_narrative_quality("Finance", thin_finance)
+    assert not _has_narrative_quality("Aerospace", ceremony)
+    assert _has_narrative_quality("Finance", useful_finance)
 
 
 def test_batch_reports_feed_outage_before_claiming_topics_are_seen(monkeypatch):

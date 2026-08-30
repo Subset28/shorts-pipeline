@@ -70,6 +70,11 @@
   aerospace or general visuals.
 - Mapped Finance explainers to neutral General motion footage when no
   finance-specific assets exist, preventing misleading cross-topic visuals.
+- Tightened live source discovery with lane-specific minimum context and a
+  low-signal ceremony filter, removing thin finance snippets and weak
+  ribbon-cutting or honors entries before narration.
+- Made the ceremony filter require concrete signal in the source summary,
+  preventing generic title words such as “new” from bypassing it.
 - Extended substantive non-Reddit news/explainer fallback context to support
   the intended longer runtime while retaining sentence-boundary clipping and
   refusing to pad thin sources.

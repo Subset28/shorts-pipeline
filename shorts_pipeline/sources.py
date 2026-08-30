@@ -103,6 +103,23 @@ def _has_truncation_marker(value: str) -> bool:
     return bool(re.search(r"(?:\.\.\.|…|\[\s*(?:\.\.\.|…)\s*\])", value[-100:]))
 
 
+def _has_narrative_quality(category: str, source: Source) -> bool:
+    """Require enough context and signal for a watchable source-backed short."""
+    minimum_words = {
+        "Finance": 40,
+        "Cyber": 30,
+        "Aerospace": 30,
+    }.get(category, 25)
+    text = f"{source.title} {source.summary}"
+    if len(re.findall(r"[a-z0-9]+", source.summary.lower())) < minimum_words:
+        return False
+    # Ceremonies and honors rarely explain a concrete development on their
+    # own. Keep them only when the accompanying text supplies a real change.
+    if _LOW_SIGNAL_TERMS.search(source.title) and not _HIGH_SIGNAL_TERMS.search(source.summary):
+        return False
+    return True
+
+
 def discover_topics(limit: int = 10) -> list[Topic]:
     by_category: dict[str, list[Topic]] = {category: [] for category in FEEDS}
     now = datetime.now(timezone.utc)
@@ -132,7 +149,7 @@ def discover_topics(limit: int = 10) -> list[Topic]:
             # Do not turn RSS truncation markers into spoken cliffhangers.
             summary_words = source.summary.split()
             if (
-                len(summary_words) < 20
+                not _has_narrative_quality(category, source)
                 or _has_truncation_marker(raw_summary)
                 or _has_truncation_marker(source.summary)
                 or "\ufffd" in raw_summary
