@@ -26,6 +26,14 @@ def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _animated_caption_text(text: str) -> str:
+    """Add a short readable entrance animation without changing timings."""
+    wrapped = "\\N".join(" ".join(text.upper().split()[i : i + 3]) for i in range(0, len(text.split()), 3))
+    # A brief blur-to-sharp and scale settle gives captions energy while
+    # keeping the text legible on fast-moving vertical footage.
+    return r"{\fad(70,45)\blur1\t(0,120,\blur0)\t(0,100,\fscx106\fscy106)\t(100,200,\fscx100\fscy100)}" + wrapped
+
+
 def _fallback_segments(text: str, duration: float) -> list[tuple[float, float, str]]:
     words = _clean(text).split()
     if not words:
@@ -66,17 +74,15 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-    Style: Default,Arial,52,&H0000D7FF,&H0000D7FF,&H00101010,&H99000000,-1,0,0,0,100,100,0,0,1,4,2,2,80,80,430,1
+    Style: Default,Arial,68,&H00FFFFFF,&H00FFFFFF,&H00101010,&H99000000,-1,0,0,0,100,100,0,0,1,5,2,2,65,65,430,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     events = []
     for start, end, text in usable:
-        wrapped = "\\N".join(" ".join(text.split()[i : i + 4]) for i in range(0, len(text.split()), 4))
-        wrapped = wrapped.upper()
         events.append(
-            f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Default,,0,0,0,,{wrapped}"
+            f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Default,,0,0,0,,{_animated_caption_text(text)}"
         )
     output.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
     return output
@@ -117,9 +123,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     events = []
     for start, end, text, speaker in usable:
-        wrapped = "\\N".join(" ".join(text.upper().split()[i : i + 4]) for i in range(0, len(text.split()), 4))
         events.append(
-            f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Speaker{speakers[speaker]},,0,0,0,,{wrapped}"
+            f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Speaker{speakers[speaker]},,0,0,0,,{_animated_caption_text(text)}"
         )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(header + "\n".join(events) + "\n", encoding="utf-8")

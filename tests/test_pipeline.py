@@ -7,7 +7,7 @@ from PIL import Image
 import shorts_pipeline.cli as cli
 from shorts_pipeline.analytics import archive_report, build_report, build_youtube_report, tuning_recommendations
 from shorts_pipeline.asset_library import load_asset_manifest, sync_backgrounds
-from shorts_pipeline.captions import create_captions, write_speaker_ass
+from shorts_pipeline.captions import _write_ass, create_captions, write_speaker_ass
 from shorts_pipeline.config import load_settings
 from shorts_pipeline.history import load_publish_state, save_publish_state
 from shorts_pipeline.longform import create_longform_package, render_longform_video
@@ -473,8 +473,17 @@ def test_speaker_captions_assign_distinct_colors_and_readable_size(tmp_path):
     content = output.read_text(encoding="utf-8")
     assert "Speaker0,Arial,68,&H0000D7FF" in content
     assert "Speaker1,Arial,68,&H0000FF80" in content
-    assert "Speaker0,,0,0,0,,FIRST SPEAKER" in content
-    assert "Speaker1,,0,0,0,,SECOND SPEAKER" in content
+    assert r"{\fad(70,45)\blur1\t(0,120,\blur0)" in content
+    assert "Speaker0,,0,0,0,," in content and "FIRST SPEAKER" in content
+    assert "Speaker1,,0,0,0,," in content and "SECOND SPEAKER" in content
+
+
+def test_standard_captions_use_large_animated_three_word_beats(tmp_path):
+    output = _write_ass([(0, 1, "One two three four")], tmp_path / "captions.ass")
+    content = output.read_text(encoding="utf-8")
+    assert r"{\fad(70,45)\blur1" in content
+    assert "Style: Default,Arial,68,&H00FFFFFF" in content
+    assert "ONE TWO THREE\\NFOUR" in content
 
 
 def test_create_captions_uses_opt_in_speaker_path(tmp_path, monkeypatch):
