@@ -176,5 +176,7 @@
   assuming any lane will go viral.
 - Added a model source-fidelity gate that rejects generic non-Reddit drafts and
   anchors accepted narration to the exact source headline before TTS.
+- Extended source anchoring to repair generic model hooks and platform titles
+  from the source instead of allowing ungrounded metadata into publishing.
 - Finish platform OAuth/configuration and perform a deliberate final-release
   review before deploying to the NAS.
