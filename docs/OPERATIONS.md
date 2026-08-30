@@ -70,6 +70,8 @@ To create a Git-tracked, repository-safe snapshot, run
 `python -m shorts_pipeline archive-analytics --input data/analytics_report.json
 --week-of YYYY-MM-DD --out docs/analytics/YYYY-MM-DD.json`, then commit that
 file. The archive contains aggregate lane rows and recommendations only.
+The Sunday launchd job runs the SSH sync and opens a dedicated GitHub PR for
+the same archive automatically when a new report exists.
 
 The weekly analytics sync sends only an explicit allowlist of report artifacts
 (`analytics_report.json`, `youtube_analytics.json`, `youtube_weekly_report.json`,

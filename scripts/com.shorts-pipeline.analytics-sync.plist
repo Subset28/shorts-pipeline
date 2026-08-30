@@ -6,7 +6,7 @@
     <string>com.shorts-pipeline.analytics-sync</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Volumes/n2me/Developer/shorts-pipeline/scripts/sync-analytics.sh</string>
+        <string>/Volumes/n2me/Developer/shorts-pipeline/scripts/run-weekly-analytics.sh</string>
     </array>
     <key>WorkingDirectory</key>
     <string>/Volumes/n2me/Developer/shorts-pipeline</string>
