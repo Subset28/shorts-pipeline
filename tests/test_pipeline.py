@@ -44,6 +44,17 @@ def test_fallback_package_preserves_source_url():
     assert "one-minute version" not in package.narration
 
 
+def test_nonreddit_fallback_opens_with_source_headline_and_lane_takeaway():
+    source = Source(
+        "A new model passes a difficult evaluation",
+        "https://example.test/source",
+        "Researchers report a measured improvement on a difficult evaluation. The result is limited to this test.",
+    )
+    package = fallback_package(Topic(source.title, "ML", (source,)))
+    assert package.narration.startswith(source.title + ".")
+    assert "The real test is whether the result holds on new data" in package.narration
+
+
 def test_render_duration_follows_measured_audio(tmp_path, monkeypatch):
     audio = tmp_path / "narration.mp3"
     audio.write_bytes(b"audio")

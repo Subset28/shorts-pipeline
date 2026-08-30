@@ -79,6 +79,19 @@ def _native_hook(headline: str, source_text: str, category: str, format_name: st
     return f"WHY {compact} MATTERS" if format_name == "fact_explainer" else compact.upper()
 
 
+def _nonreddit_takeaway(category: str) -> str:
+    """Return a cautious, lane-specific close for source-backed narration."""
+    return {
+        "AI": "The real test is whether it improves a real workflow outside the demo.",
+        "AI News": "The real test is whether it works reliably outside the announcement.",
+        "ML": "The real test is whether the result holds on new data, not just one benchmark.",
+        "CS": "The real test is whether it survives real users, real load, and real edge cases.",
+        "Cyber": "The defensive lesson is to verify the exposure and fix the underlying control.",
+        "Aerospace": "The real test is what happens after the headline milestone, when the system has to keep working.",
+        "Finance": "The important distinction is a reported development versus a promise about future returns.",
+    }.get(category, "The useful takeaway is to separate the measured result from the headline.")
+
+
 def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     source = topic.sources[0]
     title = topic.title[:85]
@@ -131,23 +144,25 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         sentences = re.split(r"(?<=[.!?])\s+", bounded)
         summary = " ".join(sentences[:-1]).strip() if len(sentences) > 1 else bounded.rsplit(" ", 1)[0]
     hook = _native_hook(headline, summary, topic.category, format_name)
+    headline_sentence = source.title.rstrip(". ") + "."
+    takeaway = _nonreddit_takeaway(topic.category)
     category_label = {"AI News": "AI", "ML": "machine learning", "CS": "software", "Cyber": "cybersecurity"}.get(
         topic.category, topic.category.lower()
     )
     if format_name == "technical_joke":
-        narration = f"POV: you ask {topic.category} one simple question and get a twelve-page answer. The useful part is this: {summary} So the practical takeaway is to separate the demo from what actually works."
+        narration = f"{headline_sentence} POV: you ask {topic.category} one simple question and get a twelve-page answer. The useful part is this: {summary} {takeaway}"
     elif format_name == "news_breakdown":
-        narration = f"This is the part that matters: {summary} In practical terms, this is a real development in {category_label}. The next question is whether the result holds up beyond the headline."
+        narration = f"{headline_sentence} Here's the update: {summary} In practical terms, this is a development in {category_label}. {takeaway}"
     elif format_name == "fact_explainer":
-        narration = f"Here's what happened: {summary} In plain English, this matters because it changes one specific part of {category_label}. The takeaway is the evidence behind the result—not the biggest version of the headline."
+        narration = f"{headline_sentence} Here's what the source reports: {summary} In plain English, this changes one specific part of {category_label}. {takeaway}"
     elif format_name == "surprising_fact":
-        narration = f"The detail most people will miss is this: {summary} That matters because it changes the usual way we think about {topic.category.lower()}. The context is the difference between a real result and hype."
+        narration = f"{headline_sentence} The detail most people will miss is this: {summary} That changes how we think about {topic.category.lower()}. {takeaway}"
     elif format_name == "timeline":
-        narration = f"Here's the short version of how this story developed: {summary} The important point is what changed, not just the headline. That sequence explains why this matters now."
+        narration = f"{headline_sentence} Here's the short version of how this story developed: {summary} The important point is what changed, not just the headline. {takeaway}"
     elif format_name == "question_answer":
-        narration = f"So what does this actually mean? {summary} The useful distinction is between what the source demonstrates and what people might assume from the headline."
+        narration = f"{headline_sentence} So what does this actually mean? {summary} The useful distinction is between what the source demonstrates and what people might assume from the headline. {takeaway}"
     elif format_name == "prediction_watch":
-        narration = f"This is a claim worth watching, not a promise: {summary} The next thing to look for is evidence that it holds outside the original context. Until then, separate a measured result from a prediction."
+        narration = f"{headline_sentence} This is a claim worth watching, not a promise: {summary} The next thing to look for is evidence that it holds outside the original context. {takeaway}"
     elif format_name == "reddit_story":
         # Match the reference format: read the post title first, then the
         # author's body. Attribution, permission, and the disclaimer stay in
@@ -161,9 +176,9 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
             else f"{source.title}. {ending}"
         )
     elif format_name == "myth_bust":
-        narration = f"This sounds like a bigger claim than it is. Here's what the evidence says: {summary} The honest takeaway is to separate the result from the hype."
+        narration = f"{headline_sentence} This sounds like a bigger claim than it is. Here's what the source says: {summary} {takeaway}"
     else:
-        narration = f"Here's what changed: {summary} Why does it matter? It shifts how we think about {topic.category.lower()}. The key is to follow the evidence, not just the headline."
+        narration = f"{headline_sentence} Here's what changed: {summary} Why does it matter? It shifts how we think about {topic.category.lower()}. {takeaway}"
     disclaimer = "This is educational technology commentary, not professional advice."
     if topic.category == "Finance":
         disclaimer = "This is educational market commentary, not financial advice or an investment recommendation."
