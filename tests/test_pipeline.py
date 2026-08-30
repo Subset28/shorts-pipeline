@@ -244,6 +244,27 @@ def test_model_narration_opens_with_exact_source_headline():
     assert package.narration.startswith(source.title + ".")
 
 
+def test_generic_model_metadata_is_repaired_from_source():
+    source = Source(
+        "A new compiler improves code speed",
+        "https://example.test/compiler",
+        "The compiler reduced build time in a measured benchmark.",
+    )
+    package = normalize_package(
+        Topic(source.title, "CS", (source,)),
+        {
+            "hook": "This changes everything",
+            "narration": "The compiler improved code speed in a measured benchmark for developers, reducing build time in the reported test.",
+            "title": "You will not believe this",
+            "description": "An original explanation.",
+            "tags": ["CS"],
+            "format_name": "news_breakdown",
+        },
+    )
+    assert "compiler" in package.hook.lower()
+    assert "compiler" in package.title.lower()
+
+
 def test_metadata_is_platform_neutral():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     data = metadata(fallback_package(Topic("A breakthrough", "AI", (source,))))

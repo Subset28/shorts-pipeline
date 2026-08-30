@@ -53,6 +53,12 @@ def _has_source_fidelity(source_title: str, source_summary: str, narration: str)
     return title_overlap >= 2 or (title_overlap >= 1 and summary_overlap >= 2)
 
 
+def _has_any_source_anchor(source_title: str, source_summary: str, text: str) -> bool:
+    """Return whether short metadata retains at least one concrete source term."""
+    source_terms = _content_terms(f"{source_title} {source_summary}")
+    return bool(source_terms & _content_terms(text))
+
+
 def eligible_formats(topic: Topic) -> tuple[str, ...]:
     """Return lanes whose promise can be supported by this source."""
     source = topic.sources[0]
@@ -307,10 +313,16 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
         attribution = f"Reddit attribution: u/{source.author} in r/{source.community}"
         if attribution not in description:
             description += f"\n{attribution}"
+    hook = data["hook"].strip()[:140]
+    if not _has_any_source_anchor(source.title, source.summary, hook):
+        hook = _native_hook(source.title, source.summary, topic.category, format_name)
+    metadata_title = data["title"].strip()[:100]
+    if not _has_any_source_anchor(source.title, source.summary, metadata_title):
+        metadata_title = source.title[:100]
     return ScriptPackage(
-        data["hook"].strip()[:140],
+        hook,
         narration,
-        data["title"].strip()[:100],
+        metadata_title,
         description,
         tags,
         [source.url],
