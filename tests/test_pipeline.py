@@ -983,6 +983,20 @@ def test_quality_report_rejects_detectable_low_quality_video_profile(tmp_path, m
     assert report["video_fps"] == 20.0
 
 
+def test_quality_report_rejects_late_first_caption(tmp_path, monkeypatch):
+    video = tmp_path / "short.mp4"
+    audio = tmp_path / "narration.mp3"
+    captions = tmp_path / "captions.srt"
+    video.write_bytes(b"video")
+    audio.write_bytes(b"audio")
+    captions.write_text("1\n00:00:01,500 --> 00:00:10,000\nWORDS\n", encoding="utf-8")
+    monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda _path: 10.0)
+    report = assess_render(video, audio, captions, None)
+    assert report["passed"] is False
+    assert report["issues"] == ["captions_start_too_late"]
+    assert report["caption_start_seconds"] == 1.5
+
+
 def test_background_reel_selection_rotates_stably(tmp_path):
     for name in ("a.mp4", "b.mp4", "c.mp4"):
         (tmp_path / name).write_bytes(name.encode())
