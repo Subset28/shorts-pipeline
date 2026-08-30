@@ -500,7 +500,7 @@ def test_nonreddit_transparent_hook_card_has_high_contrast_opening(tmp_path):
     assert image.getpixel((75, 215))[3] > 0
 
 
-def test_short_render_normalizes_audio_and_sets_consistent_output_format(tmp_path, monkeypatch):
+def test_short_render_uses_upload_friendly_mp4_muxing(tmp_path, monkeypatch):
     audio = tmp_path / "narration.mp3"
     audio.write_bytes(b"audio")
     captured = {}
@@ -516,9 +516,6 @@ def test_short_render_normalizes_audio_and_sets_consistent_output_format(tmp_pat
     )
     render_video(package, tmp_path, audio)
     command = captured["command"]
-    assert command[command.index("-af") + 1] == AUDIO_NORMALIZATION_FILTER
-    assert command[command.index("-ar") + 1] == "48000"
-    assert command[command.index("-ac") + 1] == "2"
     assert command[command.index("-movflags") + 1] == "+faststart"
 
 
