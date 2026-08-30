@@ -41,7 +41,7 @@ def _discover_topics(settings, limit: int, reddit_only: bool = False, private_dr
                 for topic in topics
             ]
             return topics
-        return load_approved_reddit_topics(settings.reddit_approved_file)[:limit]
+        return load_approved_reddit_topics(settings.reddit_approved_file)
     topics = discover_topics(limit)
     topics.extend(load_approved_reddit_topics(settings.reddit_approved_file))
     return topics
