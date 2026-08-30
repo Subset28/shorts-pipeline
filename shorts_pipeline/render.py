@@ -17,6 +17,40 @@ def _estimated_duration(text: str) -> float:
     return max(10.0, min(60.0, len(text.split()) / 2.5))
 
 
+def _audio_duration(audio: Path | None) -> float | None:
+    """Probe generated narration so video length follows the actual voice track."""
+    if not audio or not audio.exists():
+        return None
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                str(audio),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        return max(0.0, float(result.stdout.strip()))
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+
+
+def _render_duration(text: str, audio: Path | None) -> float:
+    """Use measured narration duration, falling back to the text estimate."""
+    measured = _audio_duration(audio)
+    if measured is None:
+        return _estimated_duration(text)
+    return max(10.0, min(60.0, measured))
+
+
 def _caption_filter(captions: Path, margin_v: int = 430) -> str:
     ass_file = captions.with_suffix(".ass") if captions.suffix.lower() == ".srt" else captions
     caption_file = str(ass_file.resolve()).replace("\\", "/").replace(":", r"\:")
@@ -235,7 +269,7 @@ def render_video(
         # a plain card rather than silently skipping the artifact.
         Image.new("RGB", (1080, 1920), (12, 20, 38)).save(card)
     output = output_dir / "short.mp4"
-    duration = _estimated_duration(package.narration)
+    duration = _render_duration(package.narration, audio)
     if background and background.exists():
         command = ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(background), "-loop", "1", "-i", str(card)]
         audio_index = 2
