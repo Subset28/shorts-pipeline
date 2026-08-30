@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -19,13 +20,45 @@ def select_background(directory: Path, key: str, fallback: Path | None = None) -
     return fallback if fallback and fallback.exists() else None
 
 
-def select_backgrounds(directory: Path, key: str, limit: int = 3, category: str | None = None, provenance: str | None = None) -> list[Path]:
-    """Return a stable, rotated set of approved footage for a short reel."""
+def _manifest_categories(manifest: Path | None) -> dict[str, str]:
+    if not manifest or not manifest.exists():
+        return {}
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    return {item["filename"]: item.get("category", "") for item in payload.get("assets", [])}
+
+
+def _background_category(category: str) -> str:
+    """Map editorial lanes to the asset-catalog categories they consume."""
+    return {
+        "AI News": "AI",
+        "Cyber": "Cybersecurity",
+    }.get(category, category)
+
+
+def select_backgrounds(
+    directory: Path,
+    key: str,
+    limit: int = 3,
+    category: str | None = None,
+    provenance: str | None = None,
+    manifest: Path | None = None,
+) -> list[Path]:
+    """Return a stable, rotated set of approved footage for a short reel.
+
+    Category matches are preferred when the manifest supplies them; if a
+    category has no local matches, the full local library remains available.
+    """
     candidates = sorted(
         path for path in directory.glob("*") if path.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"} and path.is_file()
     ) if directory.exists() else []
     if not candidates:
         return []
+    if category:
+        categories = _manifest_categories(manifest)
+        target_category = _background_category(category)
+        matching = [path for path in candidates if categories.get(path.name, "").casefold() == target_category.casefold()]
+        if matching:
+            candidates = matching
     selection_key = "|".join(part for part in (key, category, provenance) if part)
     start = int(hashlib.sha256(selection_key.encode("utf-8")).hexdigest()[:8], 16) % len(candidates)
     rotated = candidates[start:] + candidates[:start]
