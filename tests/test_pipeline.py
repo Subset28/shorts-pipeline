@@ -10,6 +10,7 @@ from shorts_pipeline.analytics import build_report
 from shorts_pipeline.asset_library import load_asset_manifest
 from shorts_pipeline.publish import save_manifest
 from pathlib import Path
+from shorts_pipeline.sources import _clean_summary
 
 
 def test_fallback_package_preserves_source_url():
@@ -123,3 +124,15 @@ def test_nas_deploy_script_preserves_remote_environment():
     assert "scp -O" in text
     assert "cp -n .env.example .env" in text
     assert "keys.json" not in text
+
+
+def test_feed_summary_removes_markup_urls_and_link_aggregator_boilerplate():
+    cleaned = _clean_summary('<p>Article URL: <a href="https://example.test">https://example.test</a></p><p>Points: 27</p># Comments: 11')
+    assert cleaned == ""
+
+
+def test_fallback_narration_uses_title_when_summary_is_feed_boilerplate():
+    source = Source("A useful machine-learning discovery", "https://example.test/source", "27")
+    package = fallback_package(Topic("A useful machine-learning discovery", "ML", (source,)))
+    assert "A useful machine-learning discovery" in package.narration
+    assert "https://" not in package.narration

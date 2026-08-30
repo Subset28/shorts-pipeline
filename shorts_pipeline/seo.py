@@ -35,6 +35,11 @@ def fallback_package(topic: Topic) -> ScriptPackage:
     category_hooks = hooks.get(topic.category)
     hook = category_hooks[format_index] if category_hooks else f"The {format_name.replace('_', ' ')} behind {topic.category.lower()}"
     summary = " ".join(source.summary.split())
+    if len(summary.split()) < 8:
+        # Some RSS feeds, especially link aggregators, provide only URLs and
+        # engagement counts. The title is safer and more intelligible than
+        # narrating feed boilerplate or inventing missing context.
+        summary = source.title
     if len(summary) > 560:
         summary = summary[:560].rsplit(" ", 1)[0] + "..."
     if format_name == "technical_joke":

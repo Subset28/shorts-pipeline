@@ -19,7 +19,12 @@ FEEDS = {
 
 
 def _clean_summary(value: str) -> str:
-    return re.sub(r"\s+", " ", html.unescape(value)).strip()
+    value = html.unescape(value)
+    value = re.sub(r"<[^>]+>", " ", value)
+    value = re.sub(r"https?://\S+", " ", value)
+    value = re.sub(r"\b(?:article|comments?)\s+url\s*:\s*", " ", value, flags=re.IGNORECASE)
+    value = re.sub(r"(?:\bpoints|#\s*comments?)\s*:\s*\d+", " ", value, flags=re.IGNORECASE)
+    return re.sub(r"\s+", " ", value).strip(" .-")
 
 
 def discover_topics(limit: int = 10) -> list[Topic]:
