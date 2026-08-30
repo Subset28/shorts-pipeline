@@ -49,23 +49,6 @@ def _card(package: ScriptPackage, path: Path, transparent: bool = False, show_ho
     image.save(path)
 
 
-def _delay_ass(source: Path, output: Path, delay: float) -> Path:
-    """Shift ASS events without changing the source caption artifact."""
-    def shift(match: re.Match[str]) -> str:
-        hours, minutes, seconds, centiseconds = match.groups()
-        total = (int(hours) * 3600) + (int(minutes) * 60) + float(seconds) + (int(centiseconds) / 100.0) + delay
-        total = max(0.0, total)
-        whole, fraction = divmod(round(total * 100), 100)
-        shifted_hours, remainder = divmod(whole, 3600)
-        shifted_minutes, shifted_seconds = divmod(remainder, 60)
-        return f"{shifted_hours}:{shifted_minutes:02d}:{shifted_seconds:02d}.{fraction:02d}"
-
-    content = source.read_text(encoding="utf-8")
-    shifted = re.sub(r"(?<![\d:])(\d+):(\d{2}):(\d{2})\.(\d{2})(?!\d)", shift, content)
-    output.write_text(shifted, encoding="utf-8")
-    return output
-
-
 def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     image = Image.new("RGBA", (1080, 1920), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
@@ -145,11 +128,9 @@ def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = 
         if package.format_name == "reddit_story":
             video_filter = video_filter.replace("[bg][1:v]overlay=0:0", "[bg][1:v]overlay=0:0[base];[base][2:v]overlay=0:0:enable='between(t,0,4)'")
         if captions and captions.exists():
-            caption_input = captions
-            ass_input = captions.with_suffix(".ass") if captions.suffix.lower() == ".srt" else captions
-            if package.format_name == "reddit_story" and ass_input.exists():
-                caption_input = _delay_ass(ass_input, output_dir / "captions-delayed.ass", 4.0)
-            video_filter += "," + _caption_filter(caption_input)
+            # Keep the proven narration-aligned timing. The opening card is a
+            # visual layer and must not rewrite subtitle timestamps.
+            video_filter += "," + _caption_filter(captions)
         command += ["-filter_complex", video_filter + "[v]", "-map", "[v]", "-map", f"{audio_index}:a", "-t", str(duration), "-r", "30", "-c:v", "libx264", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(output)]
     else:
         command = ["ffmpeg", "-y", "-loop", "1", "-i", str(card)]
