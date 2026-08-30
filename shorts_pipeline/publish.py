@@ -24,6 +24,7 @@ def metadata(package: ScriptPackage) -> dict:
         if unicodedata.category(char)[0] != "C"
     ).strip()
     description = " ".join(description.split())
+    description = description.translate(str.maketrans("", "", ">*_<#"))
     return {"title": package.title, "description": description[:5000], "tags": package.tags, "sources": package.sources, "format_name": package.format_name, "category": package.category, "variant": package.variant}
 
 
