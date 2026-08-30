@@ -64,6 +64,9 @@ private until their RFC 3339 `publish_at` time and never invoke TikTok.
 Provision the tracked, rights-documented background library with
 `python -m shorts_pipeline backgrounds`. The command downloads only URLs in
 `assets/backgrounds.json` and skips files already present.
+Set `BACKGROUND_MANIFEST` when the local footage directory uses a different
+asset manifest; category-aware selection will prefer matching footage when
+the manifest supplies categories.
 
 After publishing, export platform metrics to a CSV containing `source_url`,
 `platform`, and `views` (optionally `variant`, `likes`, `comments`, and `shares`), then
