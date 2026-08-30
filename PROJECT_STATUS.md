@@ -35,6 +35,9 @@
 - Generated 20 muted 45-second candidate clips in
   `data/backgrounds/minecraft_parkour_chunks`; Reddit-story renders prefer
   this library through `REDDIT_BACKGROUND_DIR`.
+- Removed the obsolete Moon-to-Earth background from the local and Mac
+  runtimes and disabled its automatic download fallback. Replacement footage
+  will be added only after it is selected and its provenance is recorded.
 - Added the supplied Reddit avatar and verification graphics plus the public
   Reddit award collection. Reddit cards now choose eight deterministic award
   images per post and guarantee at least one animated award when available.
