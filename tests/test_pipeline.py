@@ -12,9 +12,10 @@ from shorts_pipeline.asset_library import sync_backgrounds
 from shorts_pipeline.publish import save_manifest
 from pathlib import Path
 from shorts_pipeline.sources import _clean_summary, is_relevant, is_usable_source
-from shorts_pipeline.reddit import _is_niche_relevant, discover_reddit_topics, load_approved_reddit_topics
+from shorts_pipeline.reddit import _is_niche_relevant, _reddit_quality_score, discover_reddit_topics, load_approved_reddit_topics
 from shorts_pipeline.config import load_settings
 from shorts_pipeline.render import _reddit_post_card
+from shorts_pipeline.longform import create_longform_package, render_longform_video
 from PIL import Image
 import shorts_pipeline.cli as cli
 
@@ -223,6 +224,45 @@ def test_generic_reddit_prompts_must_match_a_channel_topic():
     assert _is_niche_relevant("TalesFromTechSupport", "My strangest ticket", "The printer became sentient.") is True
 
 
+def test_reddit_quality_prefers_specific_story_arcs_over_generic_high_scores():
+    strong = Source(
+        "Our deploy deleted production data",
+        "https://www.reddit.com/r/sysadmin/comments/strong/story/",
+        "The deployment failed after a permission change. We restored the backup, traced the error, and added a second-person approval step.",
+        author="author", community="sysadmin", reuse_permission=True,
+    )
+    weak = Source(
+        "Does anyone else feel burned out?",
+        "https://www.reddit.com/r/sysadmin/comments/weak/story/",
+        "Work has been stressful lately and I am tired.",
+        author="author", community="sysadmin", reuse_permission=True,
+    )
+    assert _reddit_quality_score(Topic(strong.title, "CS", (strong,), 100)) > _reddit_quality_score(Topic(weak.title, "CS", (weak,), 1000))
+
+
+def test_longform_package_has_argument_structure_and_source_link():
+    source = Source("A production incident", "https://www.reddit.com/r/sysadmin/comments/example/story/", "The deployment failed. The team restored a backup and added a safeguard.", author="author", community="sysadmin", reuse_permission=True)
+    package = create_longform_package(Topic(source.title, "CS", (source,)))
+    assert package.format_name == "longform_explainer"
+
+
+def test_longform_render_writes_video_with_audio_and_captions(tmp_path, monkeypatch):
+    source = Source("A technical incident", "https://example.test/source", "A detailed technical report.")
+    package = create_longform_package(Topic(source.title, "CS", (source,)))
+    audio = tmp_path / "audio.mp3"
+    captions = tmp_path / "captions.srt"
+    audio.write_bytes(b"audio")
+    captions.write_text("1\n00:00:00,000 --> 00:00:01,000\nTest\n", encoding="utf-8")
+    calls = []
+    monkeypatch.setattr("shorts_pipeline.longform.shutil.which", lambda _: "/usr/bin/ffmpeg")
+    monkeypatch.setattr("shorts_pipeline.longform.subprocess.run", lambda command, **kwargs: calls.append(command))
+    output = render_longform_video(package, tmp_path, audio, captions, None)
+    assert output.name == "longform.mp4"
+    assert "2:a" in calls[0]
+    assert all(section in package.narration for section in ("Context:", "What happened:", "Why it matters:", "Takeaway:"))
+    assert source.url in package.description
+
+
 def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
     path = tmp_path / "reddit.json"
     source = {
@@ -237,6 +277,7 @@ def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
     topics = load_approved_reddit_topics(path)
     assert len(topics) == 1
     assert topics[0].sources[0].reuse_permission is True
+    assert topics[0].category == "CS"
 
 
 def test_variant_publish_state_keys_are_isolated_but_legacy_default_survives():
@@ -373,6 +414,16 @@ def test_manifest_records_selected_background(tmp_path):
     background.write_bytes(b"video")
     manifest = save_manifest(fallback_package(Topic("A breakthrough", "AI", (source,))), tmp_path / "short.mp4", tmp_path, background)
     assert json.loads(manifest.read_text(encoding="utf-8"))["background"] == str(background)
+
+
+def test_manifest_records_audio_and_caption_paths(tmp_path):
+    source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
+    audio = tmp_path / "audio.mp3"
+    captions = tmp_path / "captions.srt"
+    manifest = save_manifest(fallback_package(Topic("A breakthrough", "AI", (source,))), tmp_path / "short.mp4", tmp_path, audio=audio, captions=captions)
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    assert payload["audio"] == str(audio)
+    assert payload["captions"] == str(captions)
 
 
 def test_background_reel_selection_rotates_stably(tmp_path):

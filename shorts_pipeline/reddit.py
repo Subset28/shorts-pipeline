@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 import time
 from pathlib import Path
@@ -26,6 +27,8 @@ NICHE_SIGNALS = re.compile(
     r"engineer|engineering|finance|trading|market|stock)\b",
     re.IGNORECASE,
 )
+STORY_SIGNALS = re.compile(r"\b(after|before|then|eventually|finally|turned out|ended up|restored|fixed|failed|broke|lesson|takeaway|incident|outage)\b", re.IGNORECASE)
+GENERIC_TITLE = re.compile(r"\b(anyone else|are we doomed|does anyone|what do you think|thoughts|help me)\b", re.IGNORECASE)
 
 
 def _story_category(community: str) -> str:
@@ -37,7 +40,7 @@ def _story_category(community: str) -> str:
         return "Cyber"
     if name in {"machinelearning", "artificialintelligence", "deeplearning"}:
         return "AI/ML"
-    if name in {"talesfromtechsupport", "sysadmin", "shittysysadmin", "experienceddevs", "programmerhumor", "cscareerquestions", "techsupport"}:
+    if name in {"talesfromtechsupport", "sysadmin", "shittysysadmin", "experienceddevs", "programmerhumor", "programming", "cscareerquestions", "techsupport"}:
         return "CS"
     return "Technology"
 
@@ -47,6 +50,21 @@ def _is_niche_relevant(community: str, title: str, body: str) -> bool:
     if community.lower() not in GENERIC_COMMUNITIES:
         return True
     return bool(NICHE_SIGNALS.search(f"{title} {body}"))
+
+
+def _reddit_quality_score(topic: Topic) -> float:
+    source = topic.sources[0]
+    text = f"{source.title} {source.summary}"
+    score = math.log1p(max(0.0, topic.score)) * 10
+    score += min(len(source.summary.split()), 500) * 0.12
+    score += len(NICHE_SIGNALS.findall(text)) * 8
+    score += len(STORY_SIGNALS.findall(text)) * 14
+    score += min(len(source.title.split()), 12) * 2
+    if GENERIC_TITLE.search(source.title):
+        score -= 35
+    if len(source.summary.split()) < 100:
+        score -= 45
+    return score
 
 
 def _clean_text(value: str) -> str:
@@ -170,7 +188,7 @@ def discover_reddit_topics(
                     )
                     topics.append(Topic(comment_source.title, _story_category(community), (comment_source,), float(comment.get("score", 0))))
                     seen_urls.add(comment_url)
-        return sorted(topics, key=lambda item: item.score, reverse=True)[: max(1, limit)]
+        return sorted(topics, key=_reddit_quality_score, reverse=True)[: max(1, limit)]
 
 
 def load_approved_reddit_topics(path: Path) -> list[Topic]:
@@ -201,5 +219,5 @@ def load_approved_reddit_topics(path: Path) -> list[Topic]:
             and source.community
             and source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/"))
         ):
-            topics.append(Topic(source.title, "Reddit Stories", (source,), float(record.get("score", 0))))
+            topics.append(Topic(source.title, _story_category(source.community), (source,), float(record.get("score", 0))))
     return topics

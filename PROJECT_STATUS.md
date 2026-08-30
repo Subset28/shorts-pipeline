@@ -75,6 +75,9 @@
   The implementation lane is complete; the configured queue is operator-confirmed.
 - The 20 configured Reddit candidates are operator-confirmed for reuse. Public
   YouTube-only mode is enabled; TikTok remains disabled.
+- Reddit ranking now favors technical specificity, multi-step incidents, and
+  explicit outcomes over raw score alone. A landscape long-form explainer path
+  and `longform` CLI command are available for approved sources.
 - Reddit narration now explicitly reads the post title first and the source body
   second. Caption sizing was increased for mobile readability. The final demo
   script uses a CS/TalesFromTechSupport-style production incident.

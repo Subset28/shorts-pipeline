@@ -66,6 +66,13 @@ The command writes `data/analytics_report.json` and groups matched videos by
 category, format, and platform. It never fabricates view counts; unmatched
 rows are reported separately for cleanup.
 
+The weekly analytics sync sends only an explicit allowlist of report artifacts
+(`analytics_report.json`, `youtube_analytics.json`, and `tuning_log.md`) to the
+configured SSH target. It never sends `.env`, OAuth tokens, client secrets, or
+API keys. Install `scripts/com.shorts-pipeline.analytics-sync.plist` with
+launchd to run Sundays at 23:30; override `ANALYTICS_REMOTE_HOST` and
+`ANALYTICS_REMOTE_DIR` when the Windows/NAS SSH alias or path differs.
+
 ## Background library
 
 Run `python -m shorts_pipeline backgrounds` on a new host to provision the
