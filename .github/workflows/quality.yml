@@ -1,0 +1,30 @@
+name: quality
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and test tools
+        run: python -m pip install --upgrade pip && pip install -e . pytest
+      - name: Reject tracked runtime secrets
+        shell: bash
+        run: |
+          if git ls-files | grep -E '(^|/)(\.env|token[^/]*\.json|client_secrets\.json|keys\.json)$'; then
+            echo "Tracked runtime secret file detected" >&2
+            exit 1
+          fi
+      - name: Compile Python
+        run: python -m compileall -q shorts_pipeline
+      - name: Run tests
+        run: pytest -q
