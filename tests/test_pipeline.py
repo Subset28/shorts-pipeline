@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 import httpx
 from PIL import Image
+import pytest
 
 import shorts_pipeline.cli as cli
 from shorts_pipeline.analytics import archive_report, build_report, build_youtube_report, tuning_recommendations
@@ -388,6 +389,20 @@ def test_reddit_fetch_retries_transient_request_errors(monkeypatch):
     response = _get_with_retries(client, "https://example.test", {})
     assert response is not None
     assert client.calls == 3
+
+
+def test_private_draft_reddit_worker_keeps_polling_without_approved_queue(monkeypatch):
+    class StopLoop(BaseException):
+        pass
+
+    calls = []
+    monkeypatch.setattr(cli, "load_settings", lambda: object())
+    monkeypatch.setattr(cli, "_has_unseen_reddit_topic", lambda _settings: False)
+    monkeypatch.setattr(cli, "run", lambda **kwargs: calls.append(kwargs) or 0)
+    monkeypatch.setattr(cli.time, "sleep", lambda _delay: (_ for _ in ()).throw(StopLoop()))
+    with pytest.raises(StopLoop):
+        cli.run_worker(reddit_only=True, private_drafts=True)
+    assert calls == [{"force_dry_run": False, "reddit_only": True, "private_drafts": True, "youtube_only": False}]
 
 
 def test_longform_package_has_argument_structure_and_source_link():
