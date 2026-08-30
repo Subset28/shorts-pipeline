@@ -56,7 +56,7 @@ def _caption_filter(captions: Path, margin_v: int = 430) -> str:
     caption_file = str(ass_file.resolve()).replace("\\", "/").replace(":", r"\:")
     if ass_file.exists():
         return f"subtitles='{caption_file}':force_style='MarginV={margin_v}'"
-    style = "FontName=Arial,FontSize=48,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginL=80,MarginR=80,MarginV=430"
+    style = "FontName=Arial,FontSize=68,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=5,Shadow=2,Bold=1,Alignment=2,MarginL=65,MarginR=65,MarginV=430"
     return f"subtitles='{caption_file}':original_size=1080x1920:force_style='{style}'"
 
 
