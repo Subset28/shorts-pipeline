@@ -12,6 +12,12 @@ if [ ! -f "$source_report" ]; then
 fi
 test -f "$source_report" || { echo "No analytics report to archive: $source_report" >&2; exit 0; }
 
+existing_pr=$(gh pr list --repo Subset28/shorts-pipeline --head "$branch" --state open --json url --jq '.[0].url // empty')
+if [ -n "$existing_pr" ]; then
+    echo "Analytics PR already open: $existing_pr"
+    exit 0
+fi
+
 worktree=$(mktemp -d "${TMPDIR:-/tmp}/shorts-analytics.XXXXXX")
 cleanup() {
     git -C "$repo_dir" worktree remove --force "$worktree" >/dev/null 2>&1 || true
