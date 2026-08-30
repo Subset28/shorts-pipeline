@@ -96,7 +96,9 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         if len(summary) > 900:
             summary = summary[:900].rsplit(".", 1)[0].rstrip() + "."
     elif len(summary) > 560:
-        summary = summary[:560].rsplit(" ", 1)[0] + "..."
+        bounded = summary[:560]
+        sentences = re.split(r"(?<=[.!?])\s+", bounded)
+        summary = " ".join(sentences[:-1]).strip() if len(sentences) > 1 else bounded.rsplit(" ", 1)[0]
     category_label = {"AI News": "AI", "ML": "machine learning", "CS": "software", "Cyber": "cybersecurity"}.get(topic.category, topic.category.lower())
     if format_name == "technical_joke":
         narration = f"POV: you ask {topic.category} one simple question and get a twelve-page answer. The useful part is this: {summary} So the practical takeaway is to separate the demo from what actually works."
