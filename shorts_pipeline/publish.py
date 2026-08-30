@@ -75,6 +75,19 @@ def save_manifest(
     return manifest
 
 
+def quality_gate(manifest: Path) -> dict:
+    """Reject uploads whose deterministic render evidence did not pass."""
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+        quality = payload["quality"]
+    except (OSError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Quality report unavailable: {manifest}") from exc
+    if not isinstance(quality, dict) or quality.get("passed") is not True:
+        issues = quality.get("issues", []) if isinstance(quality, dict) else ["quality_report_invalid"]
+        raise RuntimeError(f"Render quality gate failed: {', '.join(str(item) for item in issues) or 'unknown issue'}")
+    return quality
+
+
 def upload_youtube(
     video: Path,
     package: ScriptPackage,

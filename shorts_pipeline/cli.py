@@ -15,7 +15,7 @@ from .history import load_publish_state, load_seen, mark_seen, save_publish_stat
 from .llm import create_package
 from .longform import create_longform_package, render_longform_video
 from .media import build_background_reel, ensure_background_video, select_backgrounds, split_authorized_clip
-from .publish import fetch_tiktok_status, save_manifest, upload_tiktok, upload_youtube
+from .publish import fetch_tiktok_status, quality_gate, save_manifest, upload_tiktok, upload_youtube
 from .reddit import discover_reddit_topics, load_approved_reddit_topics
 from .render import render_video
 from .sources import discover_topics
@@ -180,6 +180,7 @@ def run(
     if dry_run:
         print("Dry run: YouTube and TikTok uploads skipped")
         return 0
+    quality_gate(manifest)
     privacy = "private" if private_drafts else settings.youtube_privacy_status
     youtube_id = published.get("youtube_id") or upload_youtube(
         video, package, settings.youtube_client_secrets, settings.youtube_token_file, privacy, publish_at
