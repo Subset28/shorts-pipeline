@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-
 CHECKPOINT = timedelta(hours=24)
 
 
@@ -30,7 +29,16 @@ def load_publications(events_path: Path) -> list[dict[str, Any]]:
         uploaded_at = _timestamp(event.get("timestamp", ""))
         if event.get("event") != "youtube_published" or not video_id or not uploaded_at:
             continue
-        found.setdefault(video_id, {"video_id": video_id, "uploaded_at": uploaded_at.isoformat(), "source_url": event.get("source_url", ""), "category": event.get("category", "unknown"), "format_name": event.get("format_name", "unknown")})
+        found.setdefault(
+            video_id,
+            {
+                "video_id": video_id,
+                "uploaded_at": uploaded_at.isoformat(),
+                "source_url": event.get("source_url", ""),
+                "category": event.get("category", "unknown"),
+                "format_name": event.get("format_name", "unknown"),
+            },
+        )
     return sorted(found.values(), key=lambda item: item["uploaded_at"])
 
 
@@ -52,7 +60,11 @@ def due_videos(events_path: Path, snapshots_path: Path, now: datetime | None = N
         uploaded_at = _timestamp(publication["uploaded_at"])
         if not uploaded_at or now - uploaded_at < CHECKPOINT:
             continue
-        prior = [_timestamp(item.get("collected_at", "")) for item in snapshots.get(publication["video_id"], []) if isinstance(item, dict)]
+        prior = [
+            _timestamp(item.get("collected_at", ""))
+            for item in snapshots.get(publication["video_id"], [])
+            if isinstance(item, dict)
+        ]
         prior = [item for item in prior if item]
         if not prior or now - max(prior) >= CHECKPOINT:
             due.append(publication)

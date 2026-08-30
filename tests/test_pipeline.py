@@ -1,17 +1,27 @@
-from shorts_pipeline.models import Source, Topic, ScriptPackage
-from shorts_pipeline.history import load_publish_state, save_publish_state
-from shorts_pipeline.captions import create_captions, write_speaker_ass
-from shorts_pipeline.telemetry import record_event
 import json
-from shorts_pipeline.publish import fetch_tiktok_status, metadata, youtube_status
-from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
-from shorts_pipeline.media import build_background_reel, select_background, select_backgrounds
-from shorts_pipeline.analytics import build_report, tuning_recommendations
-from shorts_pipeline.asset_library import load_asset_manifest
-from shorts_pipeline.asset_library import sync_backgrounds
-from shorts_pipeline.publish import save_manifest
-from shorts_pipeline.quality import assess_render
 from pathlib import Path
+
+from PIL import Image
+
+import shorts_pipeline.cli as cli
+from shorts_pipeline.analytics import build_report, tuning_recommendations
+from shorts_pipeline.asset_library import load_asset_manifest, sync_backgrounds
+from shorts_pipeline.captions import create_captions, write_speaker_ass
+from shorts_pipeline.config import load_settings
+from shorts_pipeline.history import load_publish_state, save_publish_state
+from shorts_pipeline.longform import create_longform_package, render_longform_video
+from shorts_pipeline.media import build_background_reel, select_background, select_backgrounds
+from shorts_pipeline.models import ScriptPackage, Source, Topic
+from shorts_pipeline.publish import fetch_tiktok_status, metadata, save_manifest, youtube_status
+from shorts_pipeline.quality import assess_render
+from shorts_pipeline.reddit import (
+    _is_niche_relevant,
+    _reddit_quality_score,
+    discover_reddit_topics,
+    load_approved_reddit_topics,
+)
+from shorts_pipeline.render import _reddit_post_card
+from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.sources import (
     _clean_summary,
     _clean_title,
@@ -21,12 +31,7 @@ from shorts_pipeline.sources import (
     is_relevant,
     is_usable_source,
 )
-from shorts_pipeline.reddit import _is_niche_relevant, _reddit_quality_score, discover_reddit_topics, load_approved_reddit_topics
-from shorts_pipeline.config import load_settings
-from shorts_pipeline.render import _reddit_post_card
-from shorts_pipeline.longform import create_longform_package, render_longform_video
-from PIL import Image
-import shorts_pipeline.cli as cli
+from shorts_pipeline.telemetry import record_event
 
 
 def test_fallback_package_preserves_source_url():
@@ -51,11 +56,22 @@ def test_long_form_non_reddit_fallback_keeps_enough_context_for_explainers():
 def test_fallback_package_uses_only_supported_content_lanes():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     package = fallback_package(Topic("A breakthrough", "AI", (source,)))
-    assert package.format_name in {"news_breakdown", "fact_explainer", "myth_bust", "technical_joke", "surprising_fact", "timeline", "question_answer", "prediction_watch"}
+    assert package.format_name in {
+        "news_breakdown",
+        "fact_explainer",
+        "myth_bust",
+        "technical_joke",
+        "surprising_fact",
+        "timeline",
+        "question_answer",
+        "prediction_watch",
+    }
 
 
 def test_finance_topics_get_safe_source_linked_packaging():
-    source = Source("A technology market update", "https://example.test/finance", "A company reported a new technology investment.")
+    source = Source(
+        "A technology market update", "https://example.test/finance", "A company reported a new technology investment."
+    )
     package = fallback_package(Topic("A technology market update", "Finance", (source,)))
     assert package.category == "Finance"
     assert "financial advice" in package.description
@@ -65,14 +81,17 @@ def test_finance_topics_get_safe_source_linked_packaging():
 def test_model_output_is_normalized_and_rejects_unsupported_formats():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     topic = Topic("A breakthrough", "AI", (source,))
-    package = normalize_package(topic, {
-        "hook": "A strong hook",
-        "narration": "This is a sufficiently long narration that explains the source-backed idea in plain language.",
-        "title": "A title",
-        "description": "An original explanation.",
-        "tags": ["AI", "science"],
-        "format_name": "news_breakdown",
-    })
+    package = normalize_package(
+        topic,
+        {
+            "hook": "A strong hook",
+            "narration": "This is a sufficiently long narration that explains the source-backed idea in plain language.",
+            "title": "A title",
+            "description": "An original explanation.",
+            "tags": ["AI", "science"],
+            "format_name": "news_breakdown",
+        },
+    )
     assert source.url in package.description
     assert package.sources == [source.url]
     invalid = dict(package.__dict__, format_name="unknown")
@@ -85,17 +104,26 @@ def test_model_output_is_normalized_and_rejects_unsupported_formats():
 
 
 def test_model_narration_clips_at_a_complete_sentence():
-    source = Source("A breakthrough in model safety", "https://example.test/source", "A useful finding with supporting details.")
+    source = Source(
+        "A breakthrough in model safety", "https://example.test/source", "A useful finding with supporting details."
+    )
     topic = Topic(source.title, "AI", (source,))
-    long_narration = "First, the source reports a measured change. " + ("This sentence adds source-backed context. " * 30) + "The takeaway is to check the evidence."
-    package = normalize_package(topic, {
-        "hook": "A strong hook",
-        "narration": long_narration,
-        "title": "A title",
-        "description": "An original explanation.",
-        "tags": ["AI"],
-        "format_name": "news_breakdown",
-    })
+    long_narration = (
+        "First, the source reports a measured change. "
+        + ("This sentence adds source-backed context. " * 30)
+        + "The takeaway is to check the evidence."
+    )
+    package = normalize_package(
+        topic,
+        {
+            "hook": "A strong hook",
+            "narration": long_narration,
+            "title": "A title",
+            "description": "An original explanation.",
+            "tags": ["AI"],
+            "format_name": "news_breakdown",
+        },
+    )
     assert len(package.narration) <= 900
     assert package.narration.endswith("context.")
 
@@ -130,11 +158,15 @@ def test_variants_rotate_content_lane_without_changing_source():
     assert second.variant == 1
     assert first.format_name in eligible_formats(Topic("A breakthrough", "AI", (source,)))
     assert second.format_name in eligible_formats(Topic("A breakthrough", "AI", (source,)))
-    assert len({fallback_package(Topic("A breakthrough", "AI", (source,)), variant=i).format_name for i in range(4)}) >= 2
+    assert (
+        len({fallback_package(Topic("A breakthrough", "AI", (source,)), variant=i).format_name for i in range(4)}) >= 2
+    )
 
 
 def test_fallback_hooks_match_the_source_headline():
-    source = Source("A breakthrough in model safety", "https://example.test/safety", "A useful finding with supporting details.")
+    source = Source(
+        "A breakthrough in model safety", "https://example.test/safety", "A useful finding with supporting details."
+    )
     topic = Topic(source.title, "AI", (source,))
     for variant in range(4):
         package = fallback_package(topic, variant=variant)
@@ -148,7 +180,14 @@ def test_unsupported_timeline_or_prediction_is_rejected_for_plain_source():
     topic = Topic("A breakthrough", "AI", (source,))
     assert "timeline" not in eligible_formats(topic)
     assert "prediction_watch" not in eligible_formats(topic)
-    data = {"hook": "A hook", "narration": "This is a sufficiently long narration that explains the source-backed idea in plain language.", "title": "A title", "description": "An explanation.", "tags": [], "format_name": "timeline"}
+    data = {
+        "hook": "A hook",
+        "narration": "This is a sufficiently long narration that explains the source-backed idea in plain language.",
+        "title": "A title",
+        "description": "An explanation.",
+        "tags": [],
+        "format_name": "timeline",
+    }
     try:
         normalize_package(topic, data)
     except ValueError as exc:
@@ -178,7 +217,9 @@ def test_plain_source_keeps_only_universal_watchable_lanes():
 
 
 def test_joke_lane_is_limited_to_audiences_where_it_fits_naturally():
-    source = Source("Why spacecraft use staging", "https://example.test/rocket", "Dropping empty mass improves the next burn.")
+    source = Source(
+        "Why spacecraft use staging", "https://example.test/rocket", "Dropping empty mass improves the next burn."
+    )
     formats = eligible_formats(Topic(source.title, "Aerospace", (source,)))
     assert "technical_joke" not in formats
 
@@ -219,14 +260,26 @@ def test_reddit_discovery_candidates_are_not_automatically_cleared(monkeypatch):
             return None
 
         def json(self):
-            return {"access_token": "token"} if self.token else {"data": {"children": [{"data": {
-                "title": "A production incident",
-                "selftext": "A detailed account " + "with useful context " * 30,
-                "author": "story_author",
-                "permalink": "/r/programming/comments/abc/story/",
-                "subreddit": "programming",
-                "score": 123,
-            }}]}}
+            return (
+                {"access_token": "token"}
+                if self.token
+                else {
+                    "data": {
+                        "children": [
+                            {
+                                "data": {
+                                    "title": "A production incident",
+                                    "selftext": "A detailed account " + "with useful context " * 30,
+                                    "author": "story_author",
+                                    "permalink": "/r/programming/comments/abc/story/",
+                                    "subreddit": "programming",
+                                    "score": 123,
+                                }
+                            }
+                        ]
+                    }
+                }
+            )
 
         def __init__(self, token=False):
             self.token = token
@@ -256,7 +309,9 @@ def test_reddit_discovery_candidates_are_not_automatically_cleared(monkeypatch):
 
 def test_generic_reddit_prompts_must_match_a_channel_topic():
     assert _is_niche_relevant("AskReddit", "What is your favorite meal?", "I love pasta.") is False
-    assert _is_niche_relevant("AskReddit", "What was your worst server outage?", "The database failed overnight.") is True
+    assert (
+        _is_niche_relevant("AskReddit", "What was your worst server outage?", "The database failed overnight.") is True
+    )
     assert _is_niche_relevant("TalesFromTechSupport", "My strangest ticket", "The printer became sentient.") is True
 
 
@@ -265,19 +320,32 @@ def test_reddit_quality_prefers_specific_story_arcs_over_generic_high_scores():
         "Our deploy deleted production data",
         "https://www.reddit.com/r/sysadmin/comments/strong/story/",
         "The deployment failed after a permission change. We restored the backup, traced the error, and added a second-person approval step.",
-        author="author", community="sysadmin", reuse_permission=True,
+        author="author",
+        community="sysadmin",
+        reuse_permission=True,
     )
     weak = Source(
         "Does anyone else feel burned out?",
         "https://www.reddit.com/r/sysadmin/comments/weak/story/",
         "Work has been stressful lately and I am tired.",
-        author="author", community="sysadmin", reuse_permission=True,
+        author="author",
+        community="sysadmin",
+        reuse_permission=True,
     )
-    assert _reddit_quality_score(Topic(strong.title, "CS", (strong,), 100)) > _reddit_quality_score(Topic(weak.title, "CS", (weak,), 1000))
+    assert _reddit_quality_score(Topic(strong.title, "CS", (strong,), 100)) > _reddit_quality_score(
+        Topic(weak.title, "CS", (weak,), 1000)
+    )
 
 
 def test_longform_package_has_argument_structure_and_source_link():
-    source = Source("A production incident", "https://www.reddit.com/r/sysadmin/comments/example/story/", "The deployment failed. The team restored a backup and added a safeguard.", author="author", community="sysadmin", reuse_permission=True)
+    source = Source(
+        "A production incident",
+        "https://www.reddit.com/r/sysadmin/comments/example/story/",
+        "The deployment failed. The team restored a backup and added a safeguard.",
+        author="author",
+        community="sysadmin",
+        reuse_permission=True,
+    )
     package = create_longform_package(Topic(source.title, "CS", (source,)))
     assert package.format_name == "longform_explainer"
 
@@ -295,7 +363,9 @@ def test_longform_render_writes_video_with_audio_and_captions(tmp_path, monkeypa
     output = render_longform_video(package, tmp_path, audio, captions, None)
     assert output.name == "longform.mp4"
     assert "2:a" in calls[0]
-    assert all(section in package.narration for section in ("Context:", "What happened:", "Why it matters:", "Takeaway:"))
+    assert all(
+        section in package.narration for section in ("Context:", "What happened:", "Why it matters:", "Takeaway:")
+    )
     assert source.url in package.description
 
 
@@ -309,7 +379,9 @@ def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
         "community": "programming",
         "reuse_permission": False,
     }
-    path.write_text(json.dumps([{"source": source}, {"source": {**source, "reuse_permission": True}}]), encoding="utf-8")
+    path.write_text(
+        json.dumps([{"source": source}, {"source": {**source, "reuse_permission": True}}]), encoding="utf-8"
+    )
     topics = load_approved_reddit_topics(path)
     assert len(topics) == 1
     assert topics[0].sources[0].reuse_permission is True
@@ -369,10 +441,13 @@ def test_captions_fallback_writes_srt_without_whisper(tmp_path, monkeypatch):
 
 
 def test_speaker_captions_assign_distinct_colors_and_readable_size(tmp_path):
-    output = write_speaker_ass([
-        {"start": 0, "end": 1, "text": "First speaker", "speaker": "SPEAKER_00"},
-        {"start": 1, "end": 2, "text": "Second speaker", "speaker": "SPEAKER_01"},
-    ], tmp_path / "captions.ass")
+    output = write_speaker_ass(
+        [
+            {"start": 0, "end": 1, "text": "First speaker", "speaker": "SPEAKER_00"},
+            {"start": 1, "end": 2, "text": "Second speaker", "speaker": "SPEAKER_01"},
+        ],
+        tmp_path / "captions.ass",
+    )
     content = output.read_text(encoding="utf-8")
     assert "Speaker0,Arial,68,&H0000D7FF" in content
     assert "Speaker1,Arial,68,&H0000FF80" in content
@@ -384,10 +459,13 @@ def test_create_captions_uses_opt_in_speaker_path(tmp_path, monkeypatch):
     audio = tmp_path / "narration.mp3"
     audio.write_bytes(b"audio")
     monkeypatch.setenv("WHISPERX_DIARIZATION", "true")
-    monkeypatch.setattr("shorts_pipeline.captions._whisperx_speaker_segments", lambda *_args: [
-        {"start": 0, "end": 1, "text": "First speaker", "speaker": "SPEAKER_00"},
-        {"start": 1, "end": 2, "text": "Second speaker", "speaker": "SPEAKER_01"},
-    ])
+    monkeypatch.setattr(
+        "shorts_pipeline.captions._whisperx_speaker_segments",
+        lambda *_args: [
+            {"start": 0, "end": 1, "text": "First speaker", "speaker": "SPEAKER_00"},
+            {"start": 1, "end": 2, "text": "Second speaker", "speaker": "SPEAKER_01"},
+        ],
+    )
     output = create_captions("unused", audio, tmp_path / "captions.srt")
     assert output and output.exists()
     assert "Speaker1,Arial,68" in output.with_suffix(".ass").read_text(encoding="utf-8")
@@ -419,9 +497,24 @@ def test_background_selection_is_stable_and_uses_fallback(tmp_path):
 
 def test_analytics_joins_platform_metrics_to_experiment_metadata(tmp_path):
     events = tmp_path / "events.jsonl"
-    events.write_text(json.dumps({"event": "draft_created", "source_url": "https://example.test/source", "category": "AI", "format_name": "news_breakdown", "title": "A title"}) + "\n", encoding="utf-8")
+    events.write_text(
+        json.dumps(
+            {
+                "event": "draft_created",
+                "source_url": "https://example.test/source",
+                "category": "AI",
+                "format_name": "news_breakdown",
+                "title": "A title",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     metrics = tmp_path / "metrics.csv"
-    metrics.write_text("source_url,platform,views,likes,comments,shares\nhttps://example.test/source,youtube,1000,50,10,5\nhttps://missing.test, tiktok, 4, 1, 0, 0\n", encoding="utf-8")
+    metrics.write_text(
+        "source_url,platform,views,likes,comments,shares\nhttps://example.test/source,youtube,1000,50,10,5\nhttps://missing.test, tiktok, 4, 1, 0, 0\n",
+        encoding="utf-8",
+    )
     report = build_report(events, metrics)
     assert report["matched_rows"] == 1
     assert report["unmatched_rows"] == 1
@@ -432,51 +525,126 @@ def test_analytics_joins_platform_metrics_to_experiment_metadata(tmp_path):
 def test_analytics_keeps_variants_separate(tmp_path):
     events = tmp_path / "events.jsonl"
     events.write_text(
-        "\n".join([
-            json.dumps({"event": "draft_created", "source_url": "https://example.test/source", "category": "AI", "format_name": "myth_bust", "variant": 0}),
-            json.dumps({"event": "draft_created", "source_url": "https://example.test/source", "category": "AI", "format_name": "technical_joke", "variant": 1}),
-        ]) + "\n",
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "event": "draft_created",
+                        "source_url": "https://example.test/source",
+                        "category": "AI",
+                        "format_name": "myth_bust",
+                        "variant": 0,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "event": "draft_created",
+                        "source_url": "https://example.test/source",
+                        "category": "AI",
+                        "format_name": "technical_joke",
+                        "variant": 1,
+                    }
+                ),
+            ]
+        )
+        + "\n",
         encoding="utf-8",
     )
     metrics = tmp_path / "metrics.csv"
-    metrics.write_text("source_url,platform,variant,views\nhttps://example.test/source,youtube,0,100\nhttps://example.test/source,youtube,1,200\n", encoding="utf-8")
+    metrics.write_text(
+        "source_url,platform,variant,views\nhttps://example.test/source,youtube,0,100\nhttps://example.test/source,youtube,1,200\n",
+        encoding="utf-8",
+    )
     report = build_report(events, metrics)
     assert report["matched_rows"] == 2
     assert {row["variant"] for row in report["rows"]} == {0, 1}
 
 
 def test_tuning_recommendations_require_repeated_evidence():
-    report = {"rows": [
-        {"category": "AI", "format_name": "fact_explainer", "videos": 3, "avg_views": 1000, "engagement_rate": 0.02},
-        {"category": "Cyber", "format_name": "news_breakdown", "videos": 1, "avg_views": 5000, "engagement_rate": 0.09},
-    ]}
+    report = {
+        "rows": [
+            {
+                "category": "AI",
+                "format_name": "fact_explainer",
+                "videos": 3,
+                "avg_views": 1000,
+                "engagement_rate": 0.02,
+            },
+            {
+                "category": "Cyber",
+                "format_name": "news_breakdown",
+                "videos": 1,
+                "avg_views": 5000,
+                "engagement_rate": 0.09,
+            },
+        ]
+    }
     recommendations = tuning_recommendations(report)
     assert any("AI" in item and "fact_explainer" in item for item in recommendations)
     assert all("Cyber" not in item for item in recommendations)
 
 
 def test_tuning_recommendations_call_out_insufficient_sample_size():
-    assert tuning_recommendations({"rows": []}) == ["Collect at least two videos per lane before changing the content mix."]
+    assert tuning_recommendations({"rows": []}) == [
+        "Collect at least two videos per lane before changing the content mix."
+    ]
 
 
 def test_background_manifest_requires_provenance_fields(tmp_path):
     manifest = tmp_path / "backgrounds.json"
-    manifest.write_text(json.dumps({"assets": [{"name": "x", "filename": "x.mp4", "url": "https://example.test/x.mp4", "source_page": "https://example.test", "attribution": "Example", "rights_note": "authorized"}]}), encoding="utf-8")
+    manifest.write_text(
+        json.dumps(
+            {
+                "assets": [
+                    {
+                        "name": "x",
+                        "filename": "x.mp4",
+                        "url": "https://example.test/x.mp4",
+                        "source_page": "https://example.test",
+                        "attribution": "Example",
+                        "rights_note": "authorized",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
     assert load_asset_manifest(manifest)[0]["name"] == "x"
 
 
 def test_background_sync_uses_isolated_temporary_download_path(tmp_path, monkeypatch):
     manifest = tmp_path / "backgrounds.json"
-    manifest.write_text(json.dumps({"assets": [{"name": "x", "filename": "x.mp4", "url": "https://example.test/x.mp4", "source_page": "https://example.test", "attribution": "Example", "rights_note": "authorized"}]}), encoding="utf-8")
+    manifest.write_text(
+        json.dumps(
+            {
+                "assets": [
+                    {
+                        "name": "x",
+                        "filename": "x.mp4",
+                        "url": "https://example.test/x.mp4",
+                        "source_page": "https://example.test",
+                        "attribution": "Example",
+                        "rights_note": "authorized",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
     class Response:
         def __enter__(self):
             return self
+
         def __exit__(self, *args):
             return None
+
         def raise_for_status(self):
             return None
+
         def iter_bytes(self):
             yield b"video"
+
     monkeypatch.setattr("shorts_pipeline.asset_library.httpx.stream", lambda *args, **kwargs: Response())
     paths = sync_backgrounds(manifest, tmp_path / "out")
     assert paths[0].read_bytes() == b"video"
@@ -487,7 +655,9 @@ def test_manifest_records_selected_background(tmp_path):
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     background = tmp_path / "background.mp4"
     background.write_bytes(b"video")
-    manifest = save_manifest(fallback_package(Topic("A breakthrough", "AI", (source,))), tmp_path / "short.mp4", tmp_path, background)
+    manifest = save_manifest(
+        fallback_package(Topic("A breakthrough", "AI", (source,))), tmp_path / "short.mp4", tmp_path, background
+    )
     assert json.loads(manifest.read_text(encoding="utf-8"))["background"] == str(background)
 
 
@@ -495,7 +665,13 @@ def test_manifest_records_audio_and_caption_paths(tmp_path):
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     audio = tmp_path / "audio.mp3"
     captions = tmp_path / "captions.srt"
-    manifest = save_manifest(fallback_package(Topic("A breakthrough", "AI", (source,))), tmp_path / "short.mp4", tmp_path, audio=audio, captions=captions)
+    manifest = save_manifest(
+        fallback_package(Topic("A breakthrough", "AI", (source,))),
+        tmp_path / "short.mp4",
+        tmp_path,
+        audio=audio,
+        captions=captions,
+    )
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     assert payload["audio"] == str(audio)
     assert payload["captions"] == str(captions)
@@ -529,7 +705,9 @@ def test_quality_report_flags_background_and_caption_failures(tmp_path, monkeypa
     monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda path: durations.get(path))
     report = assess_render(video, audio, captions, background)
     assert report["passed"] is False
-    assert {"audio_video_duration_mismatch", "background_shorter_than_video", "captions_end_too_early"}.issubset(report["issues"])
+    assert {"audio_video_duration_mismatch", "background_shorter_than_video", "captions_end_too_early"}.issubset(
+        report["issues"]
+    )
 
 
 def test_background_reel_selection_rotates_stably(tmp_path):
@@ -547,9 +725,11 @@ def test_background_reel_builds_long_sequence_instead_of_short_loop(tmp_path, mo
         source.write_bytes(b"video")
     captured = {}
     monkeypatch.setattr("shorts_pipeline.media.shutil.which", lambda name: "ffmpeg")
+
     def fake_run(command, **kwargs):
         captured["command"] = command
         return None
+
     monkeypatch.setattr("shorts_pipeline.media.subprocess.run", fake_run)
     result = build_background_reel(sources, tmp_path / "reel.mp4", duration=60, variation_key="demo")
     assert result == tmp_path / "reel.mp4"
@@ -563,17 +743,27 @@ def test_background_selection_maps_editorial_aliases_to_asset_categories(tmp_pat
         (tmp_path / name).write_bytes(name.encode())
     manifest = tmp_path / "backgrounds.json"
     manifest.write_text(
-        json.dumps({"assets": [
-            {"filename": "ai.mp4", "category": "AI"},
-            {"filename": "cyber.mp4", "category": "Cybersecurity"},
-            {"filename": "general.mp4", "category": "General"},
-            {"filename": "rocket.mp4", "category": "Aerospace"},
-        ]}),
+        json.dumps(
+            {
+                "assets": [
+                    {"filename": "ai.mp4", "category": "AI"},
+                    {"filename": "cyber.mp4", "category": "Cybersecurity"},
+                    {"filename": "general.mp4", "category": "General"},
+                    {"filename": "rocket.mp4", "category": "Aerospace"},
+                ]
+            }
+        ),
         encoding="utf-8",
     )
-    assert {path.name for path in select_backgrounds(tmp_path, "ai-key", category="AI News", manifest=manifest)} == {"ai.mp4"}
-    assert {path.name for path in select_backgrounds(tmp_path, "cyber-key", category="Cyber", manifest=manifest)} == {"cyber.mp4"}
-    assert {path.name for path in select_backgrounds(tmp_path, "finance-key", category="Finance", manifest=manifest)} == {"general.mp4"}
+    assert {path.name for path in select_backgrounds(tmp_path, "ai-key", category="AI News", manifest=manifest)} == {
+        "ai.mp4"
+    }
+    assert {path.name for path in select_backgrounds(tmp_path, "cyber-key", category="Cyber", manifest=manifest)} == {
+        "cyber.mp4"
+    }
+    assert {
+        path.name for path in select_backgrounds(tmp_path, "finance-key", category="Finance", manifest=manifest)
+    } == {"general.mp4"}
 
 
 def test_reddit_background_directory_is_configurable(monkeypatch):
@@ -596,7 +786,9 @@ def test_nas_deploy_script_preserves_remote_environment():
 
 
 def test_feed_summary_removes_markup_urls_and_link_aggregator_boilerplate():
-    cleaned = _clean_summary('<p>Article URL: <a href="https://example.test">https://example.test</a></p><p>Points: 27</p># Comments: 11')
+    cleaned = _clean_summary(
+        '<p>Article URL: <a href="https://example.test">https://example.test</a></p><p>Points: 27</p># Comments: 11'
+    )
     assert cleaned == ""
 
 
@@ -616,7 +808,11 @@ def test_fallback_narration_uses_title_when_summary_is_feed_boilerplate():
 
 def test_discovery_rejects_off_topic_items_for_audience_lanes():
     drought = Source("Europe's summer drought", "https://example.test/drought", "Rivers and soil are unusually dry.")
-    software = Source("A new compiler improves code", "https://example.test/compiler", "The developer tool changes how software is built.")
+    software = Source(
+        "A new compiler improves code",
+        "https://example.test/compiler",
+        "The developer tool changes how software is built.",
+    )
     assert not is_relevant("CS", drought)
     assert is_relevant("CS", software)
 
@@ -624,25 +820,53 @@ def test_discovery_rejects_off_topic_items_for_audience_lanes():
 def test_discovery_rejects_generic_or_underdescribed_feed_titles():
     generic = Source("Markets - Bloomberg.com", "https://example.test/markets", "")
     thin = Source("AI update", "https://example.test/ai", "A short note.")
-    useful = Source("How a new compiler improves code", "https://example.test/compiler", "A developer tool changes how software is built.")
+    useful = Source(
+        "How a new compiler improves code",
+        "https://example.test/compiler",
+        "A developer tool changes how software is built.",
+    )
     assert not is_usable_source(generic)
     assert not is_usable_source(thin)
     assert is_usable_source(useful)
 
 
 def test_discovery_requires_lane_specific_narrative_quality():
-    thin_finance = Source("Tech stocks rally", "https://example.test/markets", "Stocks rose after earnings beat estimates and investors reacted.")
-    ceremony = Source("Ribbon-Cutting Event for a New Facility", "https://example.test/event", "Officials attended a ceremony and gave remarks to the audience. " * 5)
-    useful_finance = Source("How AI spending changed the market", "https://example.test/market-story", "The company changed its AI spending plan after revenue missed expectations. " * 6)
+    thin_finance = Source(
+        "Tech stocks rally",
+        "https://example.test/markets",
+        "Stocks rose after earnings beat estimates and investors reacted.",
+    )
+    ceremony = Source(
+        "Ribbon-Cutting Event for a New Facility",
+        "https://example.test/event",
+        "Officials attended a ceremony and gave remarks to the audience. " * 5,
+    )
+    useful_finance = Source(
+        "How AI spending changed the market",
+        "https://example.test/market-story",
+        "The company changed its AI spending plan after revenue missed expectations. " * 6,
+    )
     assert not _has_narrative_quality("Finance", thin_finance)
     assert not _has_narrative_quality("Aerospace", ceremony)
     assert _has_narrative_quality("Finance", useful_finance)
 
 
 def test_content_key_deduplicates_newsletter_and_article_mirrors():
-    first = Source("The Download: AI story", "https://example.test/newsletter", "The same story explains how agents changed their behavior during training. More context follows.")
-    mirror = Source("Inside the AI story", "https://example.test/article", "The same story explains how agents changed their behavior during training. More context follows.")
-    different = Source("A different AI story", "https://example.test/other", "A separate report describes a different model and a different result.")
+    first = Source(
+        "The Download: AI story",
+        "https://example.test/newsletter",
+        "The same story explains how agents changed their behavior during training. More context follows.",
+    )
+    mirror = Source(
+        "Inside the AI story",
+        "https://example.test/article",
+        "The same story explains how agents changed their behavior during training. More context follows.",
+    )
+    different = Source(
+        "A different AI story",
+        "https://example.test/other",
+        "A separate report describes a different model and a different result.",
+    )
     assert _content_key(first) == _content_key(mirror)
     assert _content_key(first) != _content_key(different)
     assert _is_content_mirror(mirror, [first])

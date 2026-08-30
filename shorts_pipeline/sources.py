@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import html
 import re
-from difflib import SequenceMatcher
 from datetime import datetime, timezone
+from difflib import SequenceMatcher
 
 import feedparser
 
@@ -22,10 +22,44 @@ FEEDS = {
 _CATEGORY_TERMS = {
     "AI": ("artificial intelligence", " ai ", "llm", "language model", "neural", "agent", "generative"),
     "ML": ("machine learning", "deep learning", "neural", "model", "training", "inference", "dataset", "classifier"),
-    "CS": ("software", "programming", "developer", "code", "database", "browser", "linux", "computer", "open source", "api", "algorithm"),
+    "CS": (
+        "software",
+        "programming",
+        "developer",
+        "code",
+        "database",
+        "browser",
+        "linux",
+        "computer",
+        "open source",
+        "api",
+        "algorithm",
+    ),
     "AI News": ("artificial intelligence", " ai ", "llm", "robot", "neural", "model", "algorithm", "machine learning"),
-    "Aerospace": ("space", "rocket", "launch", "orbit", "satellite", "spacecraft", "nasa", "lunar", "mars", "astronaut"),
-    "Cyber": ("cve", "vulnerability", "security", "cyber", "malware", "ransomware", "exploit", "patch", "breach", "authentication"),
+    "Aerospace": (
+        "space",
+        "rocket",
+        "launch",
+        "orbit",
+        "satellite",
+        "spacecraft",
+        "nasa",
+        "lunar",
+        "mars",
+        "astronaut",
+    ),
+    "Cyber": (
+        "cve",
+        "vulnerability",
+        "security",
+        "cyber",
+        "malware",
+        "ransomware",
+        "exploit",
+        "patch",
+        "breach",
+        "authentication",
+    ),
     "Finance": ("finance", "market", "stock", "invest", "fund", "earnings", "bank", "economy", "revenue", "valuation"),
 }
 
@@ -117,7 +151,6 @@ def _has_narrative_quality(category: str, source: Source) -> bool:
         "Cyber": 30,
         "Aerospace": 30,
     }.get(category, 25)
-    text = f"{source.title} {source.summary}"
     if len(re.findall(r"[a-z0-9]+", source.summary.lower())) < minimum_words:
         return False
     # Ceremonies and honors rarely explain a concrete development on their
@@ -181,7 +214,6 @@ def discover_topics(limit: int = 10) -> list[Topic]:
             if not is_relevant(category, source) or not is_usable_source(source):
                 continue
             # Do not turn RSS truncation markers into spoken cliffhangers.
-            summary_words = source.summary.split()
             if (
                 not _has_narrative_quality(category, source)
                 or _has_truncation_marker(raw_summary)

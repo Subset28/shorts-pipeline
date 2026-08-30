@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Publish confirmed Reddit items to public YouTube, retrying on the next run."""
 
-import json
 import os
 import sys
 from pathlib import Path
@@ -23,7 +22,7 @@ os.environ.update(
     }
 )
 
-from shorts_pipeline.cli import run_worker
+from shorts_pipeline.cli import run_worker  # noqa: E402
 
 
 def main() -> None:

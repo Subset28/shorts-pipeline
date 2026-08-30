@@ -12,10 +12,25 @@ import httpx
 from .models import Source, Topic
 
 RANKED_STORY_SUBREDDITS = (
-    "TalesFromTechSupport", "AskReddit", "aviation", "flying", "sysadmin",
-    "AskEngineers", "cscareerquestions", "AerospaceEngineering", "cybersecurity",
-    "MachineLearning", "ExperiencedDevs", "ProgrammerHumor", "rocketry", "SpaceX",
-    "netsec", "hacking", "OSINT", "techsupport", "ShittySysAdmin",
+    "TalesFromTechSupport",
+    "AskReddit",
+    "aviation",
+    "flying",
+    "sysadmin",
+    "AskEngineers",
+    "cscareerquestions",
+    "AerospaceEngineering",
+    "cybersecurity",
+    "MachineLearning",
+    "ExperiencedDevs",
+    "ProgrammerHumor",
+    "rocketry",
+    "SpaceX",
+    "netsec",
+    "hacking",
+    "OSINT",
+    "techsupport",
+    "ShittySysAdmin",
 )
 
 MIN_STORY_WORDS = 80
@@ -27,8 +42,13 @@ NICHE_SIGNALS = re.compile(
     r"engineer|engineering|finance|trading|market|stock)\b",
     re.IGNORECASE,
 )
-STORY_SIGNALS = re.compile(r"\b(after|before|then|eventually|finally|turned out|ended up|restored|fixed|failed|broke|lesson|takeaway|incident|outage)\b", re.IGNORECASE)
-GENERIC_TITLE = re.compile(r"\b(anyone else|are we doomed|does anyone|what do you think|thoughts|help me)\b", re.IGNORECASE)
+STORY_SIGNALS = re.compile(
+    r"\b(after|before|then|eventually|finally|turned out|ended up|restored|fixed|failed|broke|lesson|takeaway|incident|outage)\b",
+    re.IGNORECASE,
+)
+GENERIC_TITLE = re.compile(
+    r"\b(anyone else|are we doomed|does anyone|what do you think|thoughts|help me)\b", re.IGNORECASE
+)
 
 
 def _story_category(community: str) -> str:
@@ -40,7 +60,16 @@ def _story_category(community: str) -> str:
         return "Cyber"
     if name in {"machinelearning", "artificialintelligence", "deeplearning"}:
         return "AI/ML"
-    if name in {"talesfromtechsupport", "sysadmin", "shittysysadmin", "experienceddevs", "programmerhumor", "programming", "cscareerquestions", "techsupport"}:
+    if name in {
+        "talesfromtechsupport",
+        "sysadmin",
+        "shittysysadmin",
+        "experienceddevs",
+        "programmerhumor",
+        "programming",
+        "cscareerquestions",
+        "techsupport",
+    }:
         return "CS"
     return "Technology"
 
@@ -148,12 +177,20 @@ def discover_reddit_topics(
                 if title and len(body.split()) >= MIN_STORY_WORDS:
                     source_url = f"https://www.reddit.com{permalink}"
                     if source_url not in seen_urls:
-                        source = Source(title, source_url, body[:4000], str(post.get("created_utc", "")), author, community, False)
-                        topics.append(Topic(source.title, _story_category(community), (source,), float(post.get("score", 0))))
+                        source = Source(
+                            title, source_url, body[:4000], str(post.get("created_utc", "")), author, community, False
+                        )
+                        topics.append(
+                            Topic(source.title, _story_category(community), (source,), float(post.get("score", 0)))
+                        )
                         seen_urls.add(source_url)
                 # Prompt threads often contain the best first-person stories in
                 # comments rather than in the post body itself.
-                prompt_thread = "?" in title or "story" in title.lower() or community.lower() in {"askreddit", "aviation", "flying", "askengineers"}
+                prompt_thread = (
+                    "?" in title
+                    or "story" in title.lower()
+                    or community.lower() in {"askreddit", "aviation", "flying", "askengineers"}
+                )
                 post_id = str(post.get("id", "")).strip()
                 if not prompt_thread or not post_id:
                     continue
@@ -172,7 +209,12 @@ def discover_reddit_topics(
                     comment_body = _clean_text(str(comment.get("body", "")))
                     comment_author = str(comment.get("author", "")).strip()
                     comment_permalink = str(comment.get("permalink", "")).strip()
-                    if comment.get("stickied") or comment_author in {"", "[deleted]"} or len(comment_body.split()) < MIN_STORY_WORDS or not comment_permalink:
+                    if (
+                        comment.get("stickied")
+                        or comment_author in {"", "[deleted]"}
+                        or len(comment_body.split()) < MIN_STORY_WORDS
+                        or not comment_permalink
+                    ):
                         continue
                     comment_url = f"https://www.reddit.com{comment_permalink}"
                     if comment_url in seen_urls:
@@ -186,7 +228,14 @@ def discover_reddit_topics(
                         community,
                         False,
                     )
-                    topics.append(Topic(comment_source.title, _story_category(community), (comment_source,), float(comment.get("score", 0))))
+                    topics.append(
+                        Topic(
+                            comment_source.title,
+                            _story_category(community),
+                            (comment_source,),
+                            float(comment.get("score", 0)),
+                        )
+                    )
                     seen_urls.add(comment_url)
         return sorted(topics, key=_reddit_quality_score, reverse=True)[: max(1, limit)]
 
@@ -217,7 +266,11 @@ def load_approved_reddit_topics(path: Path) -> list[Topic]:
             and source.summary
             and source.author
             and source.community
-            and source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/"))
+            and source.url.lower().startswith(
+                ("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")
+            )
         ):
-            topics.append(Topic(source.title, _story_category(source.community), (source,), float(record.get("score", 0))))
+            topics.append(
+                Topic(source.title, _story_category(source.community), (source,), float(record.get("score", 0)))
+            )
     return topics

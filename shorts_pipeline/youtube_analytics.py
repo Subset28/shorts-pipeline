@@ -13,11 +13,15 @@ from googleapiclient.discovery import build
 from .analytics_schedule import due_videos, week_videos
 
 ANALYTICS_SCOPE = "https://www.googleapis.com/auth/yt-analytics.readonly"
-METRICS = ",".join(("views", "likes", "comments", "shares", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage"))
+METRICS = ",".join(
+    ("views", "likes", "comments", "shares", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage")
+)
 
 
 def _credentials(client_secrets: Path, token_file: Path, authorize: bool = False) -> Credentials:
-    credentials = Credentials.from_authorized_user_file(str(token_file), [ANALYTICS_SCOPE]) if token_file.exists() else None
+    credentials = (
+        Credentials.from_authorized_user_file(str(token_file), [ANALYTICS_SCOPE]) if token_file.exists() else None
+    )
     if credentials and credentials.valid:
         return credentials
     if credentials and credentials.expired and credentials.refresh_token:
@@ -33,27 +37,43 @@ def _credentials(client_secrets: Path, token_file: Path, authorize: bool = False
     return credentials
 
 
-def fetch_video_metrics(client_secrets: Path, token_file: Path, video: dict[str, Any], authorize: bool = False, today: date | None = None) -> dict[str, Any]:
+def fetch_video_metrics(
+    client_secrets: Path, token_file: Path, video: dict[str, Any], authorize: bool = False, today: date | None = None
+) -> dict[str, Any]:
     credentials = _credentials(client_secrets, token_file, authorize)
     service = build("youtubeAnalytics", "v2", credentials=credentials)
     uploaded = datetime.fromisoformat(video["uploaded_at"].replace("Z", "+00:00"))
     end_date = today or datetime.now(timezone.utc).date()
-    response = service.reports().query(
-        ids="channel==MINE",
-        startDate=uploaded.date().isoformat(),
-        endDate=end_date.isoformat(),
-        metrics=METRICS,
-        dimensions="video",
-        filters=f"video=={video['video_id']}",
-    ).execute()
+    response = (
+        service.reports()
+        .query(
+            ids="channel==MINE",
+            startDate=uploaded.date().isoformat(),
+            endDate=end_date.isoformat(),
+            metrics=METRICS,
+            dimensions="video",
+            filters=f"video=={video['video_id']}",
+        )
+        .execute()
+    )
     headers = [item["name"] for item in response.get("columnHeaders", [])]
     values = response.get("rows", [[]])
     row = dict(zip(headers, values[0] if values else []))
     return {**video, "collected_at": datetime.now(timezone.utc).isoformat(), "metrics": row}
 
 
-def collect_due(events_path: Path, snapshots_path: Path, client_secrets: Path, token_file: Path, authorize: bool = False, now: datetime | None = None) -> list[dict[str, Any]]:
-    collected = [fetch_video_metrics(client_secrets, token_file, video, authorize) for video in due_videos(events_path, snapshots_path, now)]
+def collect_due(
+    events_path: Path,
+    snapshots_path: Path,
+    client_secrets: Path,
+    token_file: Path,
+    authorize: bool = False,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    collected = [
+        fetch_video_metrics(client_secrets, token_file, video, authorize)
+        for video in due_videos(events_path, snapshots_path, now)
+    ]
     existing = {}
     if snapshots_path.exists():
         try:
@@ -72,5 +92,15 @@ def write_weekly_report(events_path: Path, snapshots_path: Path, output: Path, n
     snapshots = json.loads(snapshots_path.read_text(encoding="utf-8")) if snapshots_path.exists() else {}
     rows = [snapshot for video_id in current for snapshot in snapshots.get(video_id, [])]
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps({"week_of": (now or datetime.now(timezone.utc)).date().isoformat(), "videos": sorted(current), "snapshots": rows}, indent=2), encoding="utf-8")
+    output.write_text(
+        json.dumps(
+            {
+                "week_of": (now or datetime.now(timezone.utc)).date().isoformat(),
+                "videos": sorted(current),
+                "snapshots": rows,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     return output

@@ -11,9 +11,15 @@ import httpx
 
 def select_background(directory: Path, key: str, fallback: Path | None = None) -> Path | None:
     """Choose a stable background from the locally approved footage library."""
-    candidates = sorted(
-        path for path in directory.glob("*") if path.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"} and path.is_file()
-    ) if directory.exists() else []
+    candidates = (
+        sorted(
+            path
+            for path in directory.glob("*")
+            if path.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"} and path.is_file()
+        )
+        if directory.exists()
+        else []
+    )
     if candidates:
         index = int(hashlib.sha256(key.encode("utf-8")).hexdigest()[:8], 16) % len(candidates)
         return candidates[index]
@@ -27,15 +33,23 @@ def _manifest_categories(manifest: Path | None) -> dict[str, str]:
     return {item["filename"]: item.get("category", "") for item in payload.get("assets", [])}
 
 
-def select_backgrounds(directory: Path, key: str, limit: int = 3, category: str | None = None, manifest: Path | None = None) -> list[Path]:
+def select_backgrounds(
+    directory: Path, key: str, limit: int = 3, category: str | None = None, manifest: Path | None = None
+) -> list[Path]:
     """Return a stable, rotated set of approved footage for a short reel.
 
     Category matches are preferred when the manifest supplies them; if a
     category has no local matches, the full local library remains available.
     """
-    candidates = sorted(
-        path for path in directory.glob("*") if path.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"} and path.is_file()
-    ) if directory.exists() else []
+    candidates = (
+        sorted(
+            path
+            for path in directory.glob("*")
+            if path.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"} and path.is_file()
+        )
+        if directory.exists()
+        else []
+    )
     if not candidates:
         return []
     if category:
@@ -45,10 +59,12 @@ def select_backgrounds(directory: Path, key: str, limit: int = 3, category: str 
             candidates = matching
     start = int(hashlib.sha256(key.encode("utf-8")).hexdigest()[:8], 16) % len(candidates)
     rotated = candidates[start:] + candidates[:start]
-    return rotated[:max(1, min(limit, len(rotated)))]
+    return rotated[: max(1, min(limit, len(rotated)))]
 
 
-def build_background_reel(sources: list[Path], output: Path, seconds_per_clip: float = 4.0, variation_key: str = "") -> Path | None:
+def build_background_reel(
+    sources: list[Path], output: Path, seconds_per_clip: float = 4.0, variation_key: str = ""
+) -> Path | None:
     """Create a silent, cut-based reel from cataloged footage for rendering."""
     if len(sources) < 2:
         return sources[0] if sources else None
@@ -74,7 +90,24 @@ def build_background_reel(sources: list[Path], output: Path, seconds_per_clip: f
     command = ["ffmpeg", "-y"]
     for source in sources:
         command += ["-stream_loop", "-1", "-i", str(source)]
-    command += ["-filter_complex", ";".join(filters), "-map", "[v]", "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(output)]
+    command += [
+        "-filter_complex",
+        ";".join(filters),
+        "-map",
+        "[v]",
+        "-an",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "medium",
+        "-crf",
+        "18",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        str(output),
+    ]
     subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)
     return output
 
@@ -132,7 +165,22 @@ def split_authorized_clip(source: Path, output_dir: Path, parts: int = 4) -> lis
         raise FileNotFoundError(source)
     if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
         raise RuntimeError("ffmpeg and ffprobe are required")
-    probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(source)], check=True, capture_output=True, text=True, timeout=30)
+    probe = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            str(source),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
     duration = float(probe.stdout.strip())
     output_dir.mkdir(parents=True, exist_ok=True)
     result = []
@@ -140,6 +188,28 @@ def split_authorized_clip(source: Path, output_dir: Path, parts: int = 4) -> lis
         start = duration * index / parts
         length = duration / parts
         target = output_dir / f"part-{index + 1}-of-{parts}.mp4"
-        subprocess.run(["ffmpeg", "-y", "-ss", f"{start:.3f}", "-i", str(source), "-t", f"{length:.3f}", "-c:v", "libx264", "-c:a", "aac", "-movflags", "+faststart", str(target)], check=True, capture_output=True, text=True, timeout=300)
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-ss",
+                f"{start:.3f}",
+                "-i",
+                str(source),
+                "-t",
+                f"{length:.3f}",
+                "-c:v",
+                "libx264",
+                "-c:a",
+                "aac",
+                "-movflags",
+                "+faststart",
+                str(target),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
         result.append(target)
     return result
