@@ -5,7 +5,10 @@ repo_dir=${PIPELINE_REPO_DIR:-/Volumes/n2me/Developer/shorts-pipeline}
 runtime_data=${ANALYTICS_LOCAL_DIR:-/Users/abba/shorts-pipeline/data}
 week_of=${1:-$(date -u +%F)}
 branch="analytics/weekly-$week_of"
-source_report="$runtime_data/analytics_report.json"
+source_report="$runtime_data/youtube_weekly_report.json"
+if [ ! -f "$source_report" ]; then
+    source_report="$runtime_data/analytics_report.json"
+fi
 test -f "$source_report" || { echo "No analytics report to archive: $source_report" >&2; exit 0; }
 
 worktree=$(mktemp -d "${TMPDIR:-/tmp}/shorts-analytics.XXXXXX")

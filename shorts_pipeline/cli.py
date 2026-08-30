@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .config import load_settings
 from .captions import create_captions
-from .analytics import archive_report, build_report, write_report
+from .analytics import archive_report, build_report, build_youtube_report, write_report
 from .asset_library import sync_backgrounds
 from .history import load_publish_state, load_seen, mark_seen, save_publish_state
 from .llm import create_package
@@ -304,6 +304,8 @@ def main() -> None:
         return
     if args.command == "archive-analytics":
         report = json.loads(Path(args.input).read_text(encoding="utf-8"))
+        if "snapshots" in report:
+            report = build_youtube_report(report)
         output = archive_report(report, Path(args.out), args.week_of)
         print(f"Archived {output}")
         return

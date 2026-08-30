@@ -121,3 +121,29 @@ def archive_report(report: dict[str, Any], output: Path, week_of: str) -> Path:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return output
+
+
+def build_youtube_report(weekly: dict[str, Any]) -> dict[str, Any]:
+    """Aggregate the latest checkpoint for each video into editorial lanes."""
+    latest: dict[str, dict[str, Any]] = {}
+    for snapshot in weekly.get("snapshots", []):
+        video_id = str(snapshot.get("video_id", "")).strip()
+        if not video_id:
+            continue
+        current = latest.get(video_id)
+        if not current or str(snapshot.get("collected_at", "")) > str(current.get("collected_at", "")):
+            latest[video_id] = snapshot
+    buckets: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for snapshot in latest.values():
+        buckets[(str(snapshot.get("category", "unknown")), str(snapshot.get("format_name", "unknown")))].append(snapshot)
+    rows = []
+    for (category, format_name), snapshots in sorted(buckets.items()):
+        metrics = [item.get("metrics", {}) for item in snapshots]
+        views = sum(_number({"value": str(metric.get("views", 0))}, "value") for metric in metrics)
+        likes = sum(_number({"value": str(metric.get("likes", 0))}, "value") for metric in metrics)
+        comments = sum(_number({"value": str(metric.get("comments", 0))}, "value") for metric in metrics)
+        shares = sum(_number({"value": str(metric.get("shares", 0))}, "value") for metric in metrics)
+        rows.append({"category": category, "format_name": format_name, "platform": "youtube", "variant": 0, "videos": len(snapshots), "views": int(views), "avg_views": round(views / len(snapshots), 2), "engagement_rate": round((likes + comments + shares) / views, 4) if views else 0})
+    report = {"rows": rows, "matched_rows": len(latest), "unmatched_rows": 0}
+    report["recommendations"] = tuning_recommendations(report)
+    return report
