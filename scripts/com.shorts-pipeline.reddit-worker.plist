@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.shorts-pipeline.reddit-worker</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/abba/shorts-pipeline/.venv/bin/python</string>
+        <string>/Volumes/n2me/Developer/shorts-pipeline/scripts/run_reddit_worker.py</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Volumes/n2me/Developer/shorts-pipeline</string>
+    <key>StartInterval</key>
+    <integer>21600</integer>
+    <key>StandardOutPath</key>
+    <string>/Volumes/n2me/Developer/shorts-pipeline/data/reddit-worker.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Volumes/n2me/Developer/shorts-pipeline/data/reddit-worker.error.log</string>
+</dict>
+</plist>
