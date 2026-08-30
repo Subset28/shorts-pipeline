@@ -9,4 +9,5 @@ key_state.json
 __pycache__/
 *.egg-info/
 .pytest_cache/
+.pytest-temp/
 *.pyc

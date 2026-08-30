@@ -25,12 +25,16 @@ def create_package(topic: Topic, api_key: str, model: str) -> ScriptPackage:
         "source_url": source.url,
         "requirements": "Return JSON with hook, narration, title, description, tags. Be accurate, original, educational, and do not give financial or cyber instructions.",
     }
-    response = httpx.post(
-        "https://api.openai.com/v1/chat/completions",
-        headers={"Authorization": f"Bearer {api_key}"},
-        json={"model": model, "temperature": 0.4, "response_format": {"type": "json_object"}, "messages": [{"role": "system", "content": "You write concise source-backed vertical video scripts."}, {"role": "user", "content": json.dumps(prompt)}]},
-        timeout=60,
-    )
-    response.raise_for_status()
-    data = json.loads(response.json()["choices"][0]["message"]["content"])
-    return ScriptPackage(data["hook"], data["narration"], data["title"][:100], data["description"], data.get("tags", []), [source.url])
+    try:
+        response = httpx.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={"model": model, "temperature": 0.4, "response_format": {"type": "json_object"}, "messages": [{"role": "system", "content": "You write concise source-backed vertical video scripts."}, {"role": "user", "content": json.dumps(prompt)}]},
+            timeout=60,
+        )
+        response.raise_for_status()
+        data = json.loads(response.json()["choices"][0]["message"]["content"])
+        return ScriptPackage(data["hook"], data["narration"], data["title"][:100], data["description"], data.get("tags", []), [source.url])
+    except (httpx.HTTPError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        print(f"LLM unavailable; using source-backed fallback: {exc}")
+        return fallback_package(topic)

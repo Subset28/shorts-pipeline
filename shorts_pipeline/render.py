@@ -22,7 +22,7 @@ def _card(package: ScriptPackage, path: Path) -> None:
     image.save(path)
 
 
-def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = None) -> Path:
+def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = None, captions: Path | None = None) -> Path:
     if not shutil.which("ffmpeg"):
         raise RuntimeError("ffmpeg is required")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -39,6 +39,10 @@ def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = 
         command += ["-i", str(audio), "-shortest"]
     else:
         command += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", "10"]
-    command += ["-vf", "scale=1080:1920", "-r", "30", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(output)]
+    video_filter = "scale=1080:1920"
+    if captions and captions.exists():
+        caption_file = str(captions.resolve()).replace("\\", "/").replace(":", r"\:")
+        video_filter += f",subtitles='{caption_file}'"
+    command += ["-vf", video_filter, "-r", "30", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", str(output)]
     subprocess.run(command, check=True, capture_output=True, text=True)
     return output

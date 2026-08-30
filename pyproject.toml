@@ -20,6 +20,9 @@ dependencies = [
 [project.scripts]
 shorts-pipeline = "shorts_pipeline.cli:main"
 
+[project.optional-dependencies]
+captions = ["faster-whisper>=1.1,<2"]
+
 [tool.setuptools.packages.find]
 include = ["shorts_pipeline*"]
 

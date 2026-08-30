@@ -19,6 +19,8 @@ class Settings:
     elevenlabs_rotator_path: Path
     elevenlabs_voice_id: str
     elevenlabs_model_id: str
+    captions_enabled: bool
+    caption_model: str
     topic_limit: int
     output_dir: Path
     data_dir: Path
@@ -39,6 +41,8 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
         elevenlabs_rotator_path=Path(os.getenv("ELEVENLABS_ROTATOR_PATH", "")),
         elevenlabs_voice_id=os.getenv("ELEVENLABS_VOICE_ID", ""),
         elevenlabs_model_id=os.getenv("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2"),
+        captions_enabled=os.getenv("CAPTIONS_ENABLED", "true").lower() in {"1", "true", "yes"},
+        caption_model=os.getenv("CAPTION_MODEL", "base"),
         topic_limit=int(os.getenv("TOPIC_LIMIT", "10")),
         output_dir=Path(os.getenv("OUTPUT_DIR", "output")),
         data_dir=Path(os.getenv("DATA_DIR", "data")),

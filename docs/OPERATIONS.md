@@ -4,6 +4,11 @@ Start with `python -m shorts_pipeline run --dry-run`. Keep `DRY_RUN=true` until
 the output and source citations are acceptable. Store OAuth tokens, client
 secrets, and ElevenLabs `keys.json` outside Git.
 
+Captions are enabled by default. Install `pip install -e .[captions]` to use
+local `faster-whisper` audio alignment; without it, the free fallback creates
+timed captions from the generated narration. The first Whisper run may
+download the selected model (`CAPTION_MODEL`, default `base`).
+
 YouTube requires OAuth with `youtube.upload`; unverified API projects make
 uploads private until audit. TikTok Direct Post requires an approved app and
 the `video.publish` scope; unaudited clients are private-only. Use the
