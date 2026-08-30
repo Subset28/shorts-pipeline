@@ -176,5 +176,7 @@
   assuming any lane will go viral.
 - Wired source and variant identity into background reel construction so
   repeated non-Reddit renders change their crop and pan sequence.
+- Hardened background discovery to ignore zero-byte video placeholders before
+  they can reach FFmpeg rendering.
 - Finish platform OAuth/configuration and perform a deliberate final-release
   review before deploying to the NAS.

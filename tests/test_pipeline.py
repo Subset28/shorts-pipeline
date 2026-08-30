@@ -572,6 +572,15 @@ def test_background_selection_is_stable_and_uses_fallback(tmp_path):
     assert select_background(empty, "topic", fallback) == fallback
 
 
+def test_background_selection_ignores_empty_video_placeholders(tmp_path):
+    (tmp_path / "empty.mp4").touch()
+    usable = tmp_path / "usable.mp4"
+    usable.write_bytes(b"video")
+
+    assert select_background(tmp_path, "topic") == usable
+    assert select_backgrounds(tmp_path, "topic") == [usable]
+
+
 def test_analytics_joins_platform_metrics_to_experiment_metadata(tmp_path):
     events = tmp_path / "events.jsonl"
     events.write_text(
