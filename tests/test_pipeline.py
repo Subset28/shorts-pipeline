@@ -119,7 +119,34 @@ def test_specialized_lanes_require_a_real_source_signal():
 def test_plain_source_keeps_only_universal_watchable_lanes():
     source = Source("A useful finding", "https://example.test/plain", "A useful finding with supporting details.")
     formats = eligible_formats(Topic("A useful finding", "AI", (source,)))
-    assert formats == ("news_breakdown", "fact_explainer", "myth_bust", "technical_joke", "question_answer")
+    assert formats == ("news_breakdown", "fact_explainer", "technical_joke", "question_answer")
+
+
+def test_joke_lane_is_limited_to_audiences_where_it_fits_naturally():
+    source = Source("Why spacecraft use staging", "https://example.test/rocket", "Dropping empty mass improves the next burn.")
+    formats = eligible_formats(Topic(source.title, "Aerospace", (source,)))
+    assert "technical_joke" not in formats
+
+
+def test_reddit_story_lane_requires_explicit_rights_and_attribution():
+    source = Source(
+        "A developer's production incident",
+        "https://www.reddit.com/r/programming/comments/example/story/",
+        "A developer describes an incident and the lesson learned.",
+        author="example_user",
+        community="programming",
+        reuse_permission=True,
+    )
+    topic = Topic(source.title, "CS", (source,))
+    assert "reddit_story" in eligible_formats(topic)
+    packages = [fallback_package(topic, variant=i) for i in range(len(eligible_formats(topic)))]
+    package = next(item for item in packages if item.format_name == "reddit_story")
+    assert "r/programming" in package.narration
+    assert "example_user" not in package.narration
+    assert "u/example_user" in package.description
+
+    unapproved = Source(source.title, source.url, source.summary, author="example_user", community="programming")
+    assert "reddit_story" not in eligible_formats(Topic(unapproved.title, "CS", (unapproved,)))
 
 
 def test_variant_publish_state_keys_are_isolated_but_legacy_default_survives():

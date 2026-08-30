@@ -31,3 +31,22 @@ posting schedule guarantees reach.
 
 These sources support the workflow and measurement choices; they do not support
 any forecast of a particular view count.
+
+## Reddit-style stories
+
+Reddit posts can provide authentic industry anecdotes, but they are not
+automatically free to republish. Reddit's terms say user content is owned by
+the users who created it, require compliance with each rightsholder's
+restrictions, and require attribution that links back to the post and names the
+user. Reddit's developer terms also restrict commercial use unless separately
+approved. YouTube's monetization policy separately warns against readings of
+other people's material and minimally changed online content.
+
+The `reddit_story` lane is therefore opt-in per source. It requires the post
+URL, author, subreddit, and explicit reuse permission in the source record. The
+generated script adds original analysis and describes the post as one person's
+account; it does not claim the anecdote is independently verified.
+
+- [Reddit Data API Terms](https://redditinc.com/policies/data-api-terms)
+- [Reddit Developer Terms](https://redditinc.com/policies/developer-terms)
+- [YouTube channel monetization policies](https://support.google.com/youtube/answer/1311392)

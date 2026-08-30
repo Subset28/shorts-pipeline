@@ -25,6 +25,9 @@
   substantive AI, CS, aerospace, and finance topics after the filter.
 - Added `docs/RESEARCH.md`, mapping hook, retention, format, and caption choices
   to current official YouTube guidance without claiming a guaranteed view count.
+- Added a permission-gated `reddit_story` format. It supports real Reddit
+  anecdotes only when author, subreddit, post URL, and explicit reuse permission
+  are present; otherwise Reddit content cannot enter that lane.
 - `pytest -q`: 27 passed. `git diff --check`: passed.
 
 ## Remaining work

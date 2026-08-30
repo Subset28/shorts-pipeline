@@ -23,6 +23,10 @@ surprising technology stories told quickly.
 9. **Series** — split one cleared long-form clip into 2–4 independently useful
    parts. Every part needs its own hook, `Part N of M` marker, source credit,
    and payoff; splitting alone is not transformation.
+10. **Permissioned Reddit industry story** — use a real post only when the
+    author, subreddit, post URL, and explicit reuse permission are recorded.
+    The script must add original commentary and frame the post as one person's
+    account, not verified industry fact.
 
 The deterministic fallback rotates formats by source URL. An LLM provider may
 choose among the same formats, but it must preserve source links, avoid claims

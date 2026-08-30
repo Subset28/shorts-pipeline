@@ -23,7 +23,7 @@ def create_package(topic: Topic, api_key: str, model: str, variant: int = 0) -> 
         "source_title": source.title,
         "source_summary": source.summary,
         "source_url": source.url,
-        "requirements": "Return JSON with hook, narration, title, description, tags, and format_name. Use a format appropriate to the source from news_breakdown, fact_explainer, myth_bust, technical_joke, surprising_fact, timeline, question_answer, prediction_watch; only use timeline or prediction_watch when the source supports that promise. Be accurate, original, entertaining, educational, and do not give financial advice, investment recommendations, or cyber instructions.",
+        "requirements": "Return JSON with hook, narration, title, description, tags, and format_name. Use a format appropriate to the source from news_breakdown, fact_explainer, myth_bust, technical_joke, surprising_fact, timeline, question_answer, prediction_watch, reddit_story. Only use timeline or prediction_watch when the source supports that promise; only use reddit_story when the Reddit source explicitly identifies the author, community, and reuse permission. Add substantial original commentary and never present a Reddit user's account as independently verified fact. Be accurate, original, entertaining, educational, and do not give financial advice, investment recommendations, or cyber instructions.",
     }
     try:
         response = httpx.post(

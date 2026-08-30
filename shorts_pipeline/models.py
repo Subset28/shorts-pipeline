@@ -7,6 +7,9 @@ class Source:
     url: str
     summary: str
     published: str = ""
+    author: str = ""
+    community: str = ""
+    reuse_permission: bool = False
 
 
 @dataclass(frozen=True)

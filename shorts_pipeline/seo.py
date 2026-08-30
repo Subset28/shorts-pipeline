@@ -12,13 +12,20 @@ ALLOWED_FORMATS = (
     "timeline",
     "question_answer",
     "prediction_watch",
+    "reddit_story",
 )
 
 
 def eligible_formats(topic: Topic) -> tuple[str, ...]:
     """Return lanes whose promise can be supported by this source."""
+    source = topic.sources[0]
     text = f"{topic.title} {topic.sources[0].summary}".lower()
-    formats = ["news_breakdown", "fact_explainer", "myth_bust", "technical_joke", "question_answer"]
+    formats = ["news_breakdown", "fact_explainer", "question_answer"]
+    if topic.category in {"AI", "ML", "CS", "AI News", "Cyber"}:
+        formats.insert(2, "technical_joke")
+    myth_signal = re.search(r"\b(myth|false|wrong|debunk|misconception|claim|actually|really|true|doesn['’]t|not)\b", text)
+    if myth_signal:
+        formats.insert(2, "myth_bust")
     surprise_signal = re.search(
         r"\b(first|only|largest|smallest|unexpected|surprising|record|breakthrough)\b|\b\d+(?:\.\d+)?%\b|\b\d+x\b",
         text,
@@ -37,6 +44,13 @@ def eligible_formats(topic: Topic) -> tuple[str, ...]:
     )
     if prediction_signal:
         formats.append("prediction_watch")
+    if (
+        source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/"))
+        and source.author
+        and source.community
+        and source.reuse_permission
+    ):
+        formats.append("reddit_story")
     return tuple(formats)
 
 
@@ -59,6 +73,7 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         "question_answer": "What does '{headline}' actually mean?",
         "timeline": "How '{headline}' got here",
         "prediction_watch": "Will '{headline}' actually happen?",
+        "reddit_story": "The industry story behind '{headline}'",
     }
     hook = hook_templates[format_name].format(headline=headline)
     summary = " ".join(source.summary.split())
@@ -81,6 +96,8 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         narration = f"The question is simple: what does this actually mean? The answer starts here: {summary} The headline is shorter than the reality, so keep the useful distinction between evidence and interpretation."
     elif format_name == "prediction_watch":
         narration = f"This is a claim worth watching, not a promise: {summary} The next thing to look for is evidence that it holds outside the original context. Until then, separate a measured result from a prediction."
+    elif format_name == "reddit_story":
+        narration = f"A Reddit user in r/{source.community} described this experience: {summary} The useful part is the industry lesson, not the outrage. Treat this as one person's account and compare it with primary evidence before drawing a wider conclusion."
     elif format_name == "myth_bust":
         narration = f"This sounds like a bigger claim than it is. Here's what the evidence says: {summary} The honest takeaway is to separate the result from the hype."
     else:
@@ -88,7 +105,10 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     disclaimer = "This is educational technology commentary, not professional advice."
     if topic.category == "Finance":
         disclaimer = "This is educational market commentary, not financial advice or an investment recommendation."
-    description = f"{narration}\n\nSource: {source.url}\n{disclaimer}"
+    attribution = ""
+    if source.author and source.community and source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")):
+        attribution = f"\nReddit attribution: u/{source.author} in r/{source.community}"
+    description = f"{narration}\n\nSource: {source.url}{attribution}\n{disclaimer}"
     tags = [topic.category, "technology", "science", "explained", "shorts"]
     if topic.category == "Finance":
         tags.extend(["markets", "business"])
@@ -114,6 +134,10 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     description = data["description"].strip()
     if source.url not in description:
         description += f"\n\nSource: {source.url}"
+    if source.author and source.community and source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")):
+        attribution = f"Reddit attribution: u/{source.author} in r/{source.community}"
+        if attribution not in description:
+            description += f"\n{attribution}"
     return ScriptPackage(
         data["hook"].strip()[:140],
         narration,
