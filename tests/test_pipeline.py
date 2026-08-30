@@ -765,8 +765,10 @@ def test_tts_does_not_reuse_stale_audio_after_provider_failure(tmp_path, monkeyp
         elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
         edge_tts_voice="en-US-GuyNeural",
     )
+
     def fail(*_args, **_kwargs):
         raise OSError("provider unavailable")
+
     monkeypatch.setattr("shorts_pipeline.tts.subprocess.run", fail)
     assert synthesize("new narration", settings, output) is None
     assert not output.exists()
