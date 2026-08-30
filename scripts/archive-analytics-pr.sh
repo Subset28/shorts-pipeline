@@ -5,6 +5,10 @@ repo_dir=${PIPELINE_REPO_DIR:-/Volumes/n2me/Developer/shorts-pipeline}
 runtime_data=${ANALYTICS_LOCAL_DIR:-/Users/abba/shorts-pipeline/data}
 python_bin=${PIPELINE_PYTHON:-/Users/abba/shorts-pipeline/.venv/bin/python}
 week_of=${1:-$(date -u +%F)}
+case "$week_of" in
+    ????-??-??) ;;
+    *) echo "week_of must be an ISO date (YYYY-MM-DD)" >&2; exit 2 ;;
+esac
 branch="analytics/weekly-$week_of"
 source_report="$runtime_data/youtube_weekly_report.json"
 if [ ! -f "$source_report" ]; then
