@@ -1,4 +1,4 @@
-from shorts_pipeline.models import Source, Topic
+from shorts_pipeline.models import Source, Topic, ScriptPackage
 from shorts_pipeline.history import load_publish_state, save_publish_state
 from shorts_pipeline.captions import create_captions
 from shorts_pipeline.telemetry import record_event
@@ -14,6 +14,8 @@ from pathlib import Path
 from shorts_pipeline.sources import _clean_summary, is_relevant, is_usable_source
 from shorts_pipeline.reddit import discover_reddit_topics, load_approved_reddit_topics
 from shorts_pipeline.config import load_settings
+from shorts_pipeline.render import _reddit_post_card
+from PIL import Image
 import shorts_pipeline.cli as cli
 
 
@@ -405,3 +407,21 @@ def test_batch_reports_feed_outage_before_claiming_topics_are_seen(monkeypatch):
         assert "RSS feeds may be unavailable" in str(exc)
     else:
         raise AssertionError("empty discovery did not report a feed outage")
+
+
+def test_reddit_card_generates_animated_award_loop(tmp_path):
+    package = ScriptPackage(
+        hook="A hook",
+        narration="Here's what happened: A coworker made an outrageous request. The useful part is what happened next.",
+        title="A coworker made an outrageous request",
+        description="Reddit attribution: u/example in r/test",
+        sources=["https://www.reddit.com/r/test/comments/example/"],
+        format_name="reddit_story",
+        category="Reddit Stories",
+    )
+    card = tmp_path / "reddit-card.png"
+    _reddit_post_card(package, card)
+    assert card.exists()
+    with Image.open(card.with_suffix(".gif")) as animated:
+        assert animated.size == (1080, 1920)
+        assert animated.n_frames == 8
