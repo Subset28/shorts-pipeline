@@ -4,7 +4,7 @@ from shorts_pipeline.captions import create_captions
 from shorts_pipeline.telemetry import record_event
 import json
 from shorts_pipeline.publish import fetch_tiktok_status, metadata
-from shorts_pipeline.seo import fallback_package, normalize_package
+from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.media import select_background, select_backgrounds
 from shorts_pipeline.analytics import build_report
 from shorts_pipeline.asset_library import load_asset_manifest
@@ -25,7 +25,7 @@ def test_fallback_package_preserves_source_url():
 def test_fallback_package_uses_only_supported_content_lanes():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     package = fallback_package(Topic("A breakthrough", "AI", (source,)))
-    assert package.format_name in {"news_breakdown", "fact_explainer", "myth_bust", "technical_joke"}
+    assert package.format_name in {"news_breakdown", "fact_explainer", "myth_bust", "technical_joke", "surprising_fact", "timeline", "question_answer", "prediction_watch"}
 
 
 def test_finance_topics_get_safe_source_linked_packaging():
@@ -72,7 +72,43 @@ def test_variants_rotate_content_lane_without_changing_source():
     assert first.sources == second.sources == [source.url]
     assert first.variant == 0
     assert second.variant == 1
-    assert first.format_name != second.format_name
+    assert first.format_name in eligible_formats(Topic("A breakthrough", "AI", (source,)))
+    assert second.format_name in eligible_formats(Topic("A breakthrough", "AI", (source,)))
+    assert len({fallback_package(Topic("A breakthrough", "AI", (source,)), variant=i).format_name for i in range(4)}) >= 2
+
+
+def test_unsupported_timeline_or_prediction_is_rejected_for_plain_source():
+    source = Source("A breakthrough", "https://example.test/source", "A useful finding with supporting details only.")
+    topic = Topic("A breakthrough", "AI", (source,))
+    assert "timeline" not in eligible_formats(topic)
+    assert "prediction_watch" not in eligible_formats(topic)
+    data = {"hook": "A hook", "narration": "This is a sufficiently long narration that explains the source-backed idea in plain language.", "title": "A title", "description": "An explanation.", "tags": [], "format_name": "timeline"}
+    try:
+        normalize_package(topic, data)
+    except ValueError as exc:
+        assert "unsupported format" in str(exc)
+    else:
+        raise AssertionError("ineligible timeline format was accepted")
+
+
+def test_specialized_lanes_require_a_real_source_signal():
+    source = Source(
+        "A first launch could change the market",
+        "https://example.test/story",
+        "The team announced a first launch and expects a 20% improvement after testing.",
+    )
+    topic = Topic("A first launch could change the market", "AI", (source,))
+    formats = eligible_formats(topic)
+    assert {"surprising_fact", "timeline", "prediction_watch"}.issubset(formats)
+    package = fallback_package(topic, variant=5)
+    assert package.format_name in formats
+    assert source.title.split()[0] in package.hook
+
+
+def test_plain_source_keeps_only_universal_watchable_lanes():
+    source = Source("A useful finding", "https://example.test/plain", "A useful finding with supporting details.")
+    formats = eligible_formats(Topic("A useful finding", "AI", (source,)))
+    assert formats == ("news_breakdown", "fact_explainer", "myth_bust", "technical_joke", "question_answer")
 
 
 def test_variant_publish_state_keys_are_isolated_but_legacy_default_survives():

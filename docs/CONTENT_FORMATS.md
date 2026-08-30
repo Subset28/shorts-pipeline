@@ -9,10 +9,18 @@ surprising technology stories told quickly.
    a concrete implication and an explicit caveat against overclaiming.
 3. **Technical joke / POV** — a relatable joke about debugging, AI agents,
    security, or ML culture, followed by a real fact so it is still on-topic.
-4. **Cleared clip commentary** — a bounded summit, interview, demo, or creator
+4. **Surprising fact** — foreground the counterintuitive detail supported by the
+   source, then explain why it matters.
+5. **Question / answer** — open with the question a general viewer would ask,
+   answer it from the source, and include the relevant caveat.
+6. **Timeline** — compress the source's sequence of events without inventing
+   dates or causality.
+7. **Prediction watch** — distinguish a claim or forecast from evidence and name
+   what future evidence would confirm or weaken it.
+8. **Cleared clip commentary** — a bounded summit, interview, demo, or creator
    clip selected through cliptool, with original narration/context and speaker
    colors when diarization is available.
-5. **Series** — split one cleared long-form clip into 2–4 independently useful
+9. **Series** — split one cleared long-form clip into 2–4 independently useful
    parts. Every part needs its own hook, `Part N of M` marker, source credit,
    and payoff; splitting alone is not transformation.
 
