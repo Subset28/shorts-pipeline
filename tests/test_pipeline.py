@@ -892,6 +892,7 @@ def test_background_reel_builds_long_sequence_instead_of_short_loop(tmp_path, mo
     assert command.count("-i") == 22
     filter_graph = command[command.index("-filter_complex") + 1]
     assert "xfade=transition=fade:duration=0.180" in filter_graph
+    assert "sin(2*PI*t/3.000)" in filter_graph
     assert command[command.index("-map") + 1] == "[x21]"
 
 

@@ -107,13 +107,17 @@ def build_background_reel(
     for index in range(segment_count):
         label = f"v{index}"
         # Every segment gets a different crop/offset even when the category
-        # has only one or two approved source videos.
+        # has only one or two approved source videos. Keep a safe margin so
+        # the small deterministic pan never asks crop for a negative offset.
         offset = ((seed >> (index * 5 % 24)) + index * 3) % 7
         x_bias = ((seed >> (index * 3 % 24)) % 5) / 10
         y_bias = ((seed >> (index * 4 % 24)) % 5) / 10
+        x_position = 0.1 + x_bias * 0.8
+        y_position = 0.1 + y_bias * 0.8
         filters.append(
             f"[{index}:v]trim=start={offset},setpts=PTS-STARTPTS,"
-            f"crop=iw*0.94:ih*0.94:x=(iw-ow)*{x_bias:.1f}:y=(ih-oh)*{y_bias:.1f},"
+            f"crop=iw*0.94:ih*0.94:x=(iw-ow)*({x_position:.3f}+0.04*sin(2*PI*t/{seconds_per_clip:.3f})):"
+            f"y=(ih-oh)*({y_position:.3f}+0.04*sin(2*PI*t/{seconds_per_clip:.3f}+PI/2)),"
             f"scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,"
             f"unsharp=5:5:0.35:5:5:0,"
             f"setsar=1,fps=30,trim=duration={seconds_per_clip},setpts=PTS-STARTPTS[{label}]"
