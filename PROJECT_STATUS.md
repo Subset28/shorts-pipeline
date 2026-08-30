@@ -30,6 +30,9 @@
 - Reddit story cards now preserve the complete post title independently from
   the shorter platform metadata title, so long hooks no longer end mid-sentence.
   The card itself is rendered as an 8-frame opening loop.
+- Final Reddit-story demo passed with generated narration, captions, a 1080x1920
+  H.264/AAC render, Minecraft motion footage, and the reference-style card.
+  The implementation lane is complete; publishing remains permission-gated.
 - Replaced the local Aerospire and Supkin background masters with fresh
   yt-dlp downloads: Aerospire is 1280x720/24fps (the source maximum), and
   Supkin is 1920x1080/60fps.
