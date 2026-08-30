@@ -24,6 +24,9 @@
 - Generated 20 muted 45-second candidate clips in
   `data/backgrounds/minecraft_parkour_chunks`; Reddit-story renders prefer
   this library through `REDDIT_BACKGROUND_DIR`.
+- Replaced the local Aerospire and Supkin background masters with fresh
+  yt-dlp downloads: Aerospire is 1280x720/24fps (the source maximum), and
+  Supkin is 1920x1080/60fps.
 - Creator attribution and the source URL remain recorded in
   `assets/user_backgrounds.json`; verify the current upload license again
   before commercial publishing.
