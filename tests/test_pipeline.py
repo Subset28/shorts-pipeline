@@ -508,19 +508,21 @@ def test_background_reel_selection_rotates_stably(tmp_path):
 
 
 def test_background_selection_maps_editorial_aliases_to_asset_categories(tmp_path):
-    for name in ("ai.mp4", "cyber.mp4", "rocket.mp4"):
+    for name in ("ai.mp4", "cyber.mp4", "general.mp4", "rocket.mp4"):
         (tmp_path / name).write_bytes(name.encode())
     manifest = tmp_path / "backgrounds.json"
     manifest.write_text(
         json.dumps({"assets": [
             {"filename": "ai.mp4", "category": "AI"},
             {"filename": "cyber.mp4", "category": "Cybersecurity"},
+            {"filename": "general.mp4", "category": "General"},
             {"filename": "rocket.mp4", "category": "Aerospace"},
         ]}),
         encoding="utf-8",
     )
     assert {path.name for path in select_backgrounds(tmp_path, "ai-key", category="AI News", manifest=manifest)} == {"ai.mp4"}
     assert {path.name for path in select_backgrounds(tmp_path, "cyber-key", category="Cyber", manifest=manifest)} == {"cyber.mp4"}
+    assert {path.name for path in select_backgrounds(tmp_path, "finance-key", category="Finance", manifest=manifest)} == {"general.mp4"}
 
 
 def test_reddit_background_directory_is_configurable(monkeypatch):
