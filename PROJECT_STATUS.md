@@ -33,6 +33,9 @@
 - Final Reddit-story demo passed with generated narration, captions, a 1080x1920
   H.264/AAC render, Minecraft motion footage, and the reference-style card.
   The implementation lane is complete; publishing remains permission-gated.
+- Reddit narration now explicitly reads the post title first and the source body
+  second. Caption sizing was increased for mobile readability. The final demo
+  script uses a CS/TalesFromTechSupport-style production incident.
 - Replaced the local Aerospire and Supkin background masters with fresh
   yt-dlp downloads: Aerospire is 1280x720/24fps (the source maximum), and
   Supkin is 1920x1080/60fps.
