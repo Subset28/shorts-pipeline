@@ -3,6 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
+import pytest
 from PIL import Image
 
 import shorts_pipeline.cli as cli
@@ -120,7 +121,8 @@ def test_model_output_is_normalized_and_rejects_unsupported_formats():
         topic,
         {
             "hook": "A strong hook",
-            "narration": "This is a sufficiently long narration that explains the source-backed idea in plain language.",
+            "narration": "This is a sufficiently long narration that explains the source-backed idea in plain language. "
+            * 8,
             "title": "A title",
             "description": "An original explanation.",
             "tags": ["AI", "science"],
@@ -161,6 +163,22 @@ def test_model_narration_clips_at_a_complete_sentence():
     )
     assert len(package.narration) <= 900
     assert package.narration.endswith("context.")
+
+
+def test_nonreddit_model_narration_rejects_thin_script():
+    source = Source("A breakthrough", "https://example.test/source", "A useful finding with supporting details.")
+    with pytest.raises(ValueError, match="too short"):
+        normalize_package(
+            Topic("A breakthrough", "AI", (source,)),
+            {
+                "hook": "A strong hook",
+                "narration": "A short script with too little substance.",
+                "title": "A title",
+                "description": "An explanation.",
+                "tags": ["AI"],
+                "format_name": "news_breakdown",
+            },
+        )
 
 
 def test_metadata_is_platform_neutral():
@@ -217,7 +235,8 @@ def test_unsupported_timeline_or_prediction_is_rejected_for_plain_source():
     assert "prediction_watch" not in eligible_formats(topic)
     data = {
         "hook": "A hook",
-        "narration": "This is a sufficiently long narration that explains the source-backed idea in plain language.",
+        "narration": "This is a sufficiently long narration that explains the source-backed idea in plain language. "
+        * 8,
         "title": "A title",
         "description": "An explanation.",
         "tags": [],
