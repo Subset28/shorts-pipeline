@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import unicodedata
+from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
@@ -14,6 +15,18 @@ from googleapiclient.http import MediaFileUpload
 from .models import ScriptPackage
 
 YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+
+
+def youtube_status(privacy: str, publish_at: str | None = None) -> dict:
+    if not publish_at:
+        return {"privacyStatus": privacy, "selfDeclaredMadeForKids": False}
+    try:
+        scheduled = datetime.fromisoformat(publish_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("publish_at must be RFC 3339 datetime") from exc
+    if scheduled.tzinfo is None or scheduled <= datetime.now(timezone.utc):
+        raise ValueError("publish_at must be a future timezone-aware datetime")
+    return {"privacyStatus": "private", "publishAt": publish_at, "selfDeclaredMadeForKids": False}
 
 
 def metadata(package: ScriptPackage) -> dict:
@@ -40,7 +53,7 @@ def save_manifest(package: ScriptPackage, video: Path, output_dir: Path, backgro
     return manifest
 
 
-def upload_youtube(video: Path, package: ScriptPackage, client_secrets: Path, token_file: Path, privacy: str) -> str:
+def upload_youtube(video: Path, package: ScriptPackage, client_secrets: Path, token_file: Path, privacy: str, publish_at: str | None = None) -> str:
     credentials = None
     if token_file.exists():
         credentials = Credentials.from_authorized_user_file(str(token_file), YOUTUBE_SCOPES)
@@ -55,7 +68,7 @@ def upload_youtube(video: Path, package: ScriptPackage, client_secrets: Path, to
     safe_metadata = metadata(package)
     request = youtube.videos().insert(
         part="snippet,status",
-        body={"snippet": {"title": safe_metadata["title"], "description": safe_metadata["description"], "tags": safe_metadata["tags"], "categoryId": "28"}, "status": {"privacyStatus": privacy, "selfDeclaredMadeForKids": False}},
+        body={"snippet": {"title": safe_metadata["title"], "description": safe_metadata["description"], "tags": safe_metadata["tags"], "categoryId": "28"}, "status": youtube_status(privacy, publish_at)},
         media_body=MediaFileUpload(str(video), mimetype="video/mp4", resumable=True),
     )
     return request.execute()["id"]

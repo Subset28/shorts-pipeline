@@ -3,7 +3,7 @@ from shorts_pipeline.history import load_publish_state, save_publish_state
 from shorts_pipeline.captions import create_captions
 from shorts_pipeline.telemetry import record_event
 import json
-from shorts_pipeline.publish import fetch_tiktok_status, metadata
+from shorts_pipeline.publish import fetch_tiktok_status, metadata, youtube_status
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.media import select_background, select_backgrounds
 from shorts_pipeline.analytics import build_report
@@ -77,6 +77,11 @@ def test_metadata_description_is_youtube_safe():
     assert metadata(package)["description"] == "Valid description cafe"
     package.description = "A *marked* > description"
     assert metadata(package)["description"] == "A marked  description"
+
+
+def test_scheduled_youtube_upload_is_private_until_publish_time():
+    status = youtube_status("public", "2099-01-02T15:04:05Z")
+    assert status == {"privacyStatus": "private", "publishAt": "2099-01-02T15:04:05Z", "selfDeclaredMadeForKids": False}
 
 
 def test_variants_rotate_content_lane_without_changing_source():

@@ -97,7 +97,7 @@ def run_worker(force_dry_run: bool = False, reddit_only: bool = False, private_d
                 time.sleep(retry_seconds)
 
 
-def run(force_dry_run: bool = False, topic_override=None, output_dir_override: Path | None = None, variant: int = 0, reddit_only: bool = False, private_drafts: bool = False, youtube_only: bool = False) -> int:
+def run(force_dry_run: bool = False, topic_override=None, output_dir_override: Path | None = None, variant: int = 0, reddit_only: bool = False, private_drafts: bool = False, youtube_only: bool = False, publish_at: str | None = None) -> int:
     settings = load_settings()
     dry_run = force_dry_run or (settings.dry_run and not private_drafts)
     topics = [topic_override] if topic_override else _discover_topics(settings, settings.topic_limit, reddit_only, private_drafts)
@@ -138,9 +138,9 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
         print("Dry run: YouTube and TikTok uploads skipped")
         return 0
     privacy = "private" if private_drafts else settings.youtube_privacy_status
-    youtube_id = published.get("youtube_id") or upload_youtube(video, package, settings.youtube_client_secrets, settings.youtube_token_file, privacy)
+    youtube_id = published.get("youtube_id") or upload_youtube(video, package, settings.youtube_client_secrets, settings.youtube_token_file, privacy, publish_at)
     save_publish_state(publish_path, state_key, youtube_id=youtube_id)
-    record_event(events_path, "youtube_published", source_url=source_url, category=package.category, format_name=package.format_name, variant=package.variant, platform_id=youtube_id)
+    record_event(events_path, "youtube_scheduled" if publish_at else "youtube_published", source_url=source_url, category=package.category, format_name=package.format_name, variant=package.variant, platform_id=youtube_id, publish_at=publish_at)
     if private_drafts:
         mark_seen(seen_path, source_url)
         print(f"Uploaded private YouTube draft: {youtube_id}")
@@ -198,6 +198,24 @@ def run_batch(count: int, force_dry_run: bool = False, variants: int = 1) -> int
     return 0
 
 
+def run_schedule(schedule_path: Path, force_dry_run: bool = False) -> int:
+    records = json.loads(schedule_path.read_text(encoding="utf-8"))
+    if not isinstance(records, list):
+        raise ValueError("Schedule file must contain a list")
+    settings = load_settings()
+    topics = {topic.sources[0].url: topic for topic in load_approved_reddit_topics(settings.reddit_approved_file)}
+    for record in records:
+        if not isinstance(record, dict):
+            raise ValueError("Schedule entries must be objects")
+        source_url = str(record.get("source_url", "")).strip()
+        publish_at = str(record.get("publish_at", "")).strip()
+        topic = topics.get(source_url)
+        if not topic:
+            raise ValueError(f"Schedule source is not approved: {source_url}")
+        run(force_dry_run=force_dry_run, topic_override=topic, youtube_only=True, publish_at=publish_at)
+    return 0
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
@@ -206,6 +224,7 @@ def main() -> None:
     run_parser.add_argument("--reddit-only", action="store_true")
     run_parser.add_argument("--private-drafts", action="store_true", help="Generate discovered Reddit stories and upload them privately to YouTube")
     run_parser.add_argument("--youtube-only", action="store_true", help="Upload to YouTube only; never upload to TikTok")
+    run_parser.add_argument("--publish-at", help="Schedule YouTube publication at a future RFC 3339 time")
     run_parser.add_argument("--daemon", action="store_true")
     run_parser.add_argument("--interval-hours", type=float, default=24.0)
     split_parser = sub.add_parser("split")
@@ -220,6 +239,9 @@ def main() -> None:
     report_parser.add_argument("--metrics", required=True, help="CSV export with source_url, platform, and views columns")
     report_parser.add_argument("--events", default="data/events.jsonl")
     report_parser.add_argument("--out", default="data/analytics_report.json")
+    schedule_parser = sub.add_parser("schedule")
+    schedule_parser.add_argument("--file", required=True)
+    schedule_parser.add_argument("--dry-run", action="store_true")
     assets_parser = sub.add_parser("backgrounds")
     assets_parser.add_argument("--manifest", default="assets/backgrounds.json")
     assets_parser.add_argument("--out", default="data/backgrounds")
@@ -238,6 +260,8 @@ def main() -> None:
         output = write_report(report, Path(args.out))
         print(f"Wrote {output} ({report['matched_rows']} matched rows, {report['unmatched_rows']} unmatched)")
         return
+    if args.command == "schedule":
+        raise SystemExit(run_schedule(Path(args.file), force_dry_run=args.dry_run))
     if args.command == "backgrounds":
         for path in sync_backgrounds(Path(args.manifest), Path(args.out)):
             print(path)
@@ -252,4 +276,4 @@ def main() -> None:
         return
     if args.daemon:
         raise SystemExit(run_worker(force_dry_run=args.dry_run, reddit_only=args.reddit_only, private_drafts=args.private_drafts, youtube_only=args.youtube_only, interval_hours=args.interval_hours))
-    raise SystemExit(run(force_dry_run=args.dry_run, reddit_only=args.reddit_only, private_drafts=args.private_drafts, youtube_only=args.youtube_only))
+    raise SystemExit(run(force_dry_run=args.dry_run, reddit_only=args.reddit_only, private_drafts=args.private_drafts, youtube_only=args.youtube_only, publish_at=args.publish_at))
