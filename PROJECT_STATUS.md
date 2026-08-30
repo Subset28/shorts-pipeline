@@ -7,6 +7,10 @@
 - The Synology NAS deployment was fully decommissioned on 2026-08-30. The
   Shorts Pipeline container, image, Compose network, and project directory were
   removed; the Mac mini is now the intended always-on runtime.
+- The Mac mini is provisioned over direct SSH with the project,
+  Python 3.13, FFmpeg-full, dependencies, Reddit assets, and Minecraft
+  backgrounds. A dry-run render passed there; automatic publishing remains off
+  until platform OAuth and permission-cleared Reddit records are configured.
 - Current work adds source-gated content lanes: news breakdown, fact explainer,
   myth bust, technical joke/POV, question/answer, and conditional surprising
   fact, timeline, and prediction watch.

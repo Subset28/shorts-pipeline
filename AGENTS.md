@@ -11,11 +11,15 @@ main FFmpeg or Whisper worker.
    `docs/ARCHITECTURE.md`, and `docs/STYLE_GUIDE.md`.
 2. Check `git status`, pull the latest `main`, and never overwrite local user
    changes without inspecting them first.
-3. Create a virtual environment and install `requirements.txt`; install the
-   optional captions extra when local `faster-whisper` is desired.
-4. Copy `.env.example` to `.env`, then configure secrets locally. Never commit
+3. Confirm Python 3.10+ is active before creating the virtual environment;
+   macOS system Python 3.9 is not supported. Install `requirements.txt` and
+   the optional captions extra when local `faster-whisper` is desired.
+4. On Apple Silicon, put `/opt/homebrew/opt/ffmpeg-full/bin` before
+   `/opt/homebrew/bin` in the worker's PATH; the regular Homebrew FFmpeg build
+   may not include the libass `subtitles` filter.
+5. Copy `.env.example` to `.env`, then configure secrets locally. Never commit
    `.env`, `keys.json`, OAuth tokens, client secrets, or API keys.
-5. Begin with `python -m shorts_pipeline run --dry-run` and inspect the MP4
+6. Begin with `python -m shorts_pipeline run --dry-run` and inspect the MP4
    before enabling any publishing.
 
 ## Runtime model
