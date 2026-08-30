@@ -10,17 +10,20 @@ from pathlib import Path
 import httpx
 
 
+def _video_candidates(directory: Path) -> list[Path]:
+    """Return only non-empty local video files usable by FFmpeg."""
+    if not directory.exists():
+        return []
+    return sorted(
+        path
+        for path in directory.glob("*")
+        if path.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"} and path.is_file() and path.stat().st_size > 0
+    )
+
+
 def select_background(directory: Path, key: str, fallback: Path | None = None) -> Path | None:
     """Choose a stable background from the locally approved footage library."""
-    candidates = (
-        sorted(
-            path
-            for path in directory.glob("*")
-            if path.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"} and path.is_file()
-        )
-        if directory.exists()
-        else []
-    )
+    candidates = _video_candidates(directory)
     if candidates:
         index = int(hashlib.sha256(key.encode("utf-8")).hexdigest()[:8], 16) % len(candidates)
         return candidates[index]
@@ -59,15 +62,7 @@ def select_backgrounds(
     Category matches are preferred when the manifest supplies them; if a
     category has no local matches, the full local library remains available.
     """
-    candidates = (
-        sorted(
-            path
-            for path in directory.glob("*")
-            if path.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"} and path.is_file()
-        )
-        if directory.exists()
-        else []
-    )
+    candidates = _video_candidates(directory)
     if not candidates:
         return []
     if category:
