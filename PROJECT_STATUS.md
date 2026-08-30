@@ -47,6 +47,10 @@
 - Updated script-generation guidance to target format-specific duration bands:
   18-33 seconds for quick entertainment, 40-55 for explainers/news, and
   42-58 for complete Reddit stories when the source supports them.
+- Reworked non-Reddit fallback hooks into short native Shorts headlines and
+  tightened LLM guidance to reject generic topics without a concrete payoff.
+- Strengthened the feed source gate so non-Reddit topics require a usable
+  summary, preventing headline-only items from becoming shallow scripts.
 - Added `user_orbital_capsule_earth.mp4` (Aerospace) and
   `user_computer_typing.mp4` (CS) at 1080p; source URLs and rights notes are
   recorded in the asset manifest.
