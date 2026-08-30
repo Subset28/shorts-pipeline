@@ -1,6 +1,6 @@
 from shorts_pipeline.models import Source, Topic, ScriptPackage
 from shorts_pipeline.history import load_publish_state, save_publish_state
-from shorts_pipeline.captions import create_captions
+from shorts_pipeline.captions import create_captions, write_speaker_ass
 from shorts_pipeline.telemetry import record_event
 import json
 from shorts_pipeline.publish import fetch_tiktok_status, metadata, youtube_status
@@ -73,6 +73,22 @@ def test_model_output_is_normalized_and_rejects_unsupported_formats():
         assert "unsupported format" in str(exc)
     else:
         raise AssertionError("unsupported format was accepted")
+
+
+def test_model_narration_clips_at_a_complete_sentence():
+    source = Source("A breakthrough in model safety", "https://example.test/source", "A useful finding with supporting details.")
+    topic = Topic(source.title, "AI", (source,))
+    long_narration = "First, the source reports a measured change. " + ("This sentence adds source-backed context. " * 30) + "The takeaway is to check the evidence."
+    package = normalize_package(topic, {
+        "hook": "A strong hook",
+        "narration": long_narration,
+        "title": "A title",
+        "description": "An original explanation.",
+        "tags": ["AI"],
+        "format_name": "news_breakdown",
+    })
+    assert len(package.narration) <= 900
+    assert package.narration.endswith("context.")
 
 
 def test_metadata_is_platform_neutral():
@@ -341,6 +357,31 @@ def test_captions_fallback_writes_srt_without_whisper(tmp_path, monkeypatch):
     output = create_captions("One two three four five six seven eight.", None, tmp_path / "captions.srt")
     assert output and output.exists()
     assert "00:00:00,000 -->" in output.read_text(encoding="utf-8-sig")
+
+
+def test_speaker_captions_assign_distinct_colors_and_readable_size(tmp_path):
+    output = write_speaker_ass([
+        {"start": 0, "end": 1, "text": "First speaker", "speaker": "SPEAKER_00"},
+        {"start": 1, "end": 2, "text": "Second speaker", "speaker": "SPEAKER_01"},
+    ], tmp_path / "captions.ass")
+    content = output.read_text(encoding="utf-8")
+    assert "Speaker0,Arial,68,&H0000D7FF" in content
+    assert "Speaker1,Arial,68,&H0000FF80" in content
+    assert "Speaker0,,0,0,0,,FIRST SPEAKER" in content
+    assert "Speaker1,,0,0,0,,SECOND SPEAKER" in content
+
+
+def test_create_captions_uses_opt_in_speaker_path(tmp_path, monkeypatch):
+    audio = tmp_path / "narration.mp3"
+    audio.write_bytes(b"audio")
+    monkeypatch.setenv("WHISPERX_DIARIZATION", "true")
+    monkeypatch.setattr("shorts_pipeline.captions._whisperx_speaker_segments", lambda *_args: [
+        {"start": 0, "end": 1, "text": "First speaker", "speaker": "SPEAKER_00"},
+        {"start": 1, "end": 2, "text": "Second speaker", "speaker": "SPEAKER_01"},
+    ])
+    output = create_captions("unused", audio, tmp_path / "captions.srt")
+    assert output and output.exists()
+    assert "Speaker1,Arial,68" in output.with_suffix(".ass").read_text(encoding="utf-8")
 
 
 def test_telemetry_is_append_only_and_secret_free(tmp_path):
