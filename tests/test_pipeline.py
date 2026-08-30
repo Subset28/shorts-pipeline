@@ -11,7 +11,14 @@ from shorts_pipeline.asset_library import load_asset_manifest
 from shorts_pipeline.asset_library import sync_backgrounds
 from shorts_pipeline.publish import save_manifest
 from pathlib import Path
-from shorts_pipeline.sources import _clean_summary, _has_narrative_quality, is_relevant, is_usable_source
+from shorts_pipeline.sources import (
+    _clean_summary,
+    _content_key,
+    _has_narrative_quality,
+    _is_content_mirror,
+    is_relevant,
+    is_usable_source,
+)
 from shorts_pipeline.reddit import _is_niche_relevant, _reddit_quality_score, discover_reddit_topics, load_approved_reddit_topics
 from shorts_pipeline.config import load_settings
 from shorts_pipeline.render import _reddit_post_card
@@ -580,6 +587,16 @@ def test_discovery_requires_lane_specific_narrative_quality():
     assert not _has_narrative_quality("Finance", thin_finance)
     assert not _has_narrative_quality("Aerospace", ceremony)
     assert _has_narrative_quality("Finance", useful_finance)
+
+
+def test_content_key_deduplicates_newsletter_and_article_mirrors():
+    first = Source("The Download: AI story", "https://example.test/newsletter", "The same story explains how agents changed their behavior during training. More context follows.")
+    mirror = Source("Inside the AI story", "https://example.test/article", "The same story explains how agents changed their behavior during training. More context follows.")
+    different = Source("A different AI story", "https://example.test/other", "A separate report describes a different model and a different result.")
+    assert _content_key(first) == _content_key(mirror)
+    assert _content_key(first) != _content_key(different)
+    assert _is_content_mirror(mirror, [first])
+    assert not _is_content_mirror(different, [first])
 
 
 def test_batch_reports_feed_outage_before_claiming_topics_are_seen(monkeypatch):

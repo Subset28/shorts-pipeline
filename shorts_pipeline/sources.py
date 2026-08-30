@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import re
+from difflib import SequenceMatcher
 from datetime import datetime, timezone
 
 import feedparser
@@ -120,8 +121,35 @@ def _has_narrative_quality(category: str, source: Source) -> bool:
     return True
 
 
+def _content_key(source: Source) -> str:
+    """Create a stable key for newsletter/article mirrors of one story."""
+    words = re.findall(r"[a-z0-9]+", source.summary.lower())
+    return " ".join(words[:80]) or source.url
+
+
+def _is_content_mirror(source: Source, previous: list[Source]) -> bool:
+    """Detect lightly edited newsletter/article mirrors without broad matching."""
+    title_words = set(re.findall(r"[a-z0-9]+", source.title.lower()))
+    source_text = " ".join(re.findall(r"[a-z0-9]+", source.summary.lower())[:100])
+    for candidate in previous:
+        candidate_title = set(re.findall(r"[a-z0-9]+", candidate.title.lower()))
+        shared_title = title_words & candidate_title
+        if len(shared_title) < 2:
+            continue
+        candidate_text = " ".join(re.findall(r"[a-z0-9]+", candidate.summary.lower())[:100])
+        similarity = max(
+            SequenceMatcher(None, source_text, candidate_text).ratio(),
+            SequenceMatcher(None, candidate_text, source_text).ratio(),
+        )
+        if similarity >= 0.59:
+            return True
+    return False
+
+
 def discover_topics(limit: int = 10) -> list[Topic]:
     by_category: dict[str, list[Topic]] = {category: [] for category in FEEDS}
+    seen_content: set[str] = set()
+    seen_sources: list[Source] = []
     now = datetime.now(timezone.utc)
     for category, url in FEEDS.items():
         feed = feedparser.parse(url)
@@ -155,6 +183,11 @@ def discover_topics(limit: int = 10) -> list[Topic]:
                 or "\ufffd" in raw_summary
             ):
                 continue
+            content_key = _content_key(source)
+            if content_key in seen_content or _is_content_mirror(source, seen_sources):
+                continue
+            seen_content.add(content_key)
+            seen_sources.append(source)
             # Prefer current, well-described entries. The exact popularity
             # signal comes later from channel analytics, not fake view counts.
             score = _source_score(source, published, now)
