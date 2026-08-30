@@ -16,7 +16,7 @@ YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 
 def metadata(package: ScriptPackage) -> dict:
-    return {"title": package.title, "description": package.description, "tags": package.tags, "sources": package.sources, "format_name": package.format_name, "category": package.category}
+    return {"title": package.title, "description": package.description, "tags": package.tags, "sources": package.sources, "format_name": package.format_name, "category": package.category, "variant": package.variant}
 
 
 def save_manifest(package: ScriptPackage, video: Path, output_dir: Path, background: Path | None = None, background_sources: list[Path] | None = None) -> Path:

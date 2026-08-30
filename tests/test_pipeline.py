@@ -52,8 +52,18 @@ def test_model_output_is_normalized_and_rejects_unsupported_formats():
 def test_metadata_is_platform_neutral():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     data = metadata(fallback_package(Topic("A breakthrough", "AI", (source,))))
-    assert set(data) == {"title", "description", "tags", "sources", "format_name", "category"}
+    assert set(data) == {"title", "description", "tags", "sources", "format_name", "category", "variant"}
     assert data["category"] == "AI"
+
+
+def test_variants_rotate_content_lane_without_changing_source():
+    source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
+    first = fallback_package(Topic("A breakthrough", "AI", (source,)), variant=0)
+    second = fallback_package(Topic("A breakthrough", "AI", (source,)), variant=1)
+    assert first.sources == second.sources == [source.url]
+    assert first.variant == 0
+    assert second.variant == 1
+    assert first.format_name != second.format_name
 
 
 def test_publish_state_resumes_each_platform_without_overwriting(tmp_path):
@@ -104,6 +114,22 @@ def test_analytics_joins_platform_metrics_to_experiment_metadata(tmp_path):
     assert report["unmatched_rows"] == 1
     assert report["rows"][0]["views"] == 1000
     assert report["rows"][0]["engagement_rate"] == 0.065
+
+
+def test_analytics_keeps_variants_separate(tmp_path):
+    events = tmp_path / "events.jsonl"
+    events.write_text(
+        "\n".join([
+            json.dumps({"event": "draft_created", "source_url": "https://example.test/source", "category": "AI", "format_name": "myth_bust", "variant": 0}),
+            json.dumps({"event": "draft_created", "source_url": "https://example.test/source", "category": "AI", "format_name": "technical_joke", "variant": 1}),
+        ]) + "\n",
+        encoding="utf-8",
+    )
+    metrics = tmp_path / "metrics.csv"
+    metrics.write_text("source_url,platform,variant,views\nhttps://example.test/source,youtube,0,100\nhttps://example.test/source,youtube,1,200\n", encoding="utf-8")
+    report = build_report(events, metrics)
+    assert report["matched_rows"] == 2
+    assert {row["variant"] for row in report["rows"]} == {0, 1}
 
 
 def test_background_manifest_requires_provenance_fields(tmp_path):

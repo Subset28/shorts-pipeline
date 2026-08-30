@@ -45,11 +45,16 @@ Generate a queue of distinct drafts with `python -m shorts_pipeline batch
 folder (with `item-NN` children; reruns allocate a new batch) and uses the
 source/format telemetry path.
 
+For controlled experiments, add `--variants 2` (or another small number) to
+generate multiple treatments per source. Each manifest and telemetry event
+records the variant so platform exports can be compared without losing the
+source/category relationship.
+
 Provision the tracked, rights-documented background library with
 `python -m shorts_pipeline backgrounds`. The command downloads only URLs in
 `assets/backgrounds.json` and skips files already present.
 
 After publishing, export platform metrics to a CSV containing `source_url`,
-`platform`, and `views` (optionally `likes`, `comments`, and `shares`), then
+`platform`, and `views` (optionally `variant`, `likes`, `comments`, and `shares`), then
 run `python -m shorts_pipeline report --metrics metrics.csv`. The report joins
 metrics to category/format telemetry so future batches can follow evidence.

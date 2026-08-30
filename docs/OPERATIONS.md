@@ -35,7 +35,9 @@ existing remote `.env`, and never transfers local credentials.
 ## Metrics feedback loop
 
 Export platform analytics to a CSV with `source_url`, `platform`, and `views`
-columns, plus optional `likes`, `comments`, and `shares`. Run:
+columns, plus optional `variant`, `likes`, `comments`, and `shares`. Include
+`variant` when comparing multiple treatments of one source; without it, rows
+are matched only when that source has a single known treatment. Run:
 
 ```powershell
 python -m shorts_pipeline report --metrics metrics.csv

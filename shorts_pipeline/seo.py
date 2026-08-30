@@ -5,10 +5,10 @@ from .models import ScriptPackage, Topic
 ALLOWED_FORMATS = ("news_breakdown", "fact_explainer", "myth_bust", "technical_joke")
 
 
-def fallback_package(topic: Topic) -> ScriptPackage:
+def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     source = topic.sources[0]
     title = topic.title[:85]
-    format_index = int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) % len(ALLOWED_FORMATS)
+    format_index = (int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) + max(0, variant)) % len(ALLOWED_FORMATS)
     format_name = ALLOWED_FORMATS[format_index]
     hooks = {
         "AI": (
@@ -59,7 +59,7 @@ def fallback_package(topic: Topic) -> ScriptPackage:
         "This is educational technology commentary, not professional advice."
     )
     tags = [topic.category, "technology", "science", "explained", "shorts"]
-    return ScriptPackage(hook, narration, title, description, tags, [source.url], format_name, topic.category)
+    return ScriptPackage(hook, narration, title, description, tags, [source.url], format_name, topic.category, max(0, variant))
 
 
 def normalize_package(topic: Topic, data: dict) -> ScriptPackage:

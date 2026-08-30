@@ -27,3 +27,4 @@ class ScriptPackage:
     sources: list[str] = field(default_factory=list)
     format_name: str = "explainer"
     category: str = ""
+    variant: int = 0

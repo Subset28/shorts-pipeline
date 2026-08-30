@@ -30,7 +30,7 @@ def _next_batch_dir(output_dir: Path) -> Path:
         index += 1
 
 
-def run(force_dry_run: bool = False, topic_override=None, output_dir_override: Path | None = None) -> int:
+def run(force_dry_run: bool = False, topic_override=None, output_dir_override: Path | None = None, variant: int = 0) -> int:
     settings = load_settings()
     dry_run = force_dry_run or settings.dry_run
     topics = [topic_override] if topic_override else discover_topics(settings.topic_limit)
@@ -44,7 +44,7 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
     source_url = topic.sources[0].url
     published = load_publish_state(publish_path).get(source_url, {})
     output_dir = output_dir_override or settings.output_dir
-    package = create_package(topic, settings.openai_api_key, settings.openai_model)
+    package = create_package(topic, settings.openai_api_key, settings.openai_model, variant)
     audio = synthesize(package.narration, settings, output_dir / "narration.mp3")
     captions = create_captions(package.narration, audio, output_dir / "captions.srt", settings.caption_model) if settings.captions_enabled else None
     fallback_background = ensure_background_video(settings.background_video_url, settings.background_video)
@@ -55,7 +55,7 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
         background = fallback_background
     video = render_video(package, output_dir, audio, captions, background)
     manifest = save_manifest(package, video, output_dir, background, background_sources)
-    record_event(events_path, "draft_created", source_url=source_url, category=package.category, format_name=package.format_name, title=package.title, video=str(video), dry_run=dry_run)
+    record_event(events_path, "draft_created", source_url=source_url, category=package.category, format_name=package.format_name, variant=package.variant, title=package.title, video=str(video), dry_run=dry_run)
     print(f"Created {manifest}")
     if dry_run:
         print("Dry run: YouTube and TikTok uploads skipped")
@@ -71,7 +71,7 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
     return 0
 
 
-def run_batch(count: int, force_dry_run: bool = False) -> int:
+def run_batch(count: int, force_dry_run: bool = False, variants: int = 1) -> int:
     settings = load_settings()
     topics = discover_topics(max(settings.topic_limit, count))
     if not topics:
@@ -90,7 +90,9 @@ def run_batch(count: int, force_dry_run: bool = False) -> int:
         raise RuntimeError(f"Only {len(unique)} unseen topics available; requested {count}")
     batch_dir = _next_batch_dir(settings.output_dir)
     for index, topic in enumerate(unique, 1):
-        run(force_dry_run=force_dry_run, topic_override=topic, output_dir_override=batch_dir / f"item-{index:02d}")
+        for variant in range(max(1, variants)):
+            suffix = f"-v{variant + 1:02d}" if variants > 1 else ""
+            run(force_dry_run=force_dry_run, topic_override=topic, output_dir_override=batch_dir / f"item-{index:02d}{suffix}", variant=variant)
     return 0
 
 
@@ -108,6 +110,7 @@ def main() -> None:
     batch_parser = sub.add_parser("batch")
     batch_parser.add_argument("--count", type=int, default=3)
     batch_parser.add_argument("--dry-run", action="store_true")
+    batch_parser.add_argument("--variants", type=int, default=1, help="Treatments per source for controlled hook/format experiments")
     report_parser = sub.add_parser("report")
     report_parser.add_argument("--metrics", required=True, help="CSV export with source_url, platform, and views columns")
     report_parser.add_argument("--events", default="data/events.jsonl")
@@ -121,7 +124,7 @@ def main() -> None:
             print(part)
         return
     if args.command == "batch":
-        raise SystemExit(run_batch(max(1, args.count), force_dry_run=args.dry_run))
+        raise SystemExit(run_batch(max(1, args.count), force_dry_run=args.dry_run, variants=max(1, args.variants)))
     if args.command == "report":
         report = build_report(Path(args.events), Path(args.metrics))
         output = write_report(report, Path(args.out))
