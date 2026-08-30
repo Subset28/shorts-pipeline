@@ -8,8 +8,6 @@ from dataclasses import replace
 from pathlib import Path
 
 from .analytics import archive_report, build_report, build_youtube_report, write_report
-from .captions import create_captions
-from .config import load_settings
 from .asset_library import sync_backgrounds
 from .captions import create_captions
 from .config import load_settings
