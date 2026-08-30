@@ -6,7 +6,7 @@ import json
 from shorts_pipeline.publish import fetch_tiktok_status, metadata, youtube_status
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.media import select_background, select_backgrounds
-from shorts_pipeline.analytics import archive_report, build_report, tuning_recommendations
+from shorts_pipeline.analytics import archive_report, build_youtube_report, build_report, tuning_recommendations
 from shorts_pipeline.asset_library import load_asset_manifest
 from shorts_pipeline.asset_library import sync_backgrounds
 from shorts_pipeline.publish import save_manifest
@@ -402,6 +402,15 @@ def test_archive_report_keeps_only_aggregate_tuning_data(tmp_path):
     output = archive_report({"rows": [{"category": "AI", "videos": 2}], "recommendations": ["Keep testing AI."]}, tmp_path / "weekly.json", "2026-08-30")
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload == {"week_of": "2026-08-30", "rows": [{"category": "AI", "videos": 2}], "recommendations": ["Keep testing AI."]}
+
+
+def test_build_youtube_report_uses_latest_snapshot_per_video():
+    report = build_youtube_report({"snapshots": [
+        {"video_id": "a", "category": "AI", "format_name": "fact_explainer", "collected_at": "2026-08-30T01:00:00+00:00", "metrics": {"views": 10, "likes": 1}},
+        {"video_id": "a", "category": "AI", "format_name": "fact_explainer", "collected_at": "2026-08-30T02:00:00+00:00", "metrics": {"views": 20, "likes": 2}},
+    ]})
+    assert report["rows"][0]["videos"] == 1
+    assert report["rows"][0]["views"] == 20
 
 
 def test_background_manifest_requires_provenance_fields(tmp_path):
