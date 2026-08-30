@@ -14,6 +14,12 @@
   `output/batch-13`.
 - A render now requires a non-empty narration audio file; TTS failure stops the
   run instead of creating a silent short.
+- Added two user-provided aerospace sources to the local library:
+  `user_aerospire_cockpit.mp4` and `user_supkin_aerospace_edit.mp4`. A local
+  aerospace render used both and produced a 1080x1920 H.264/AAC MP4.
+- Their creator names and pending-license status are recorded in
+  `assets/user_backgrounds.json`; original channel URLs still need to be added
+  before public publishing.
 - `pytest -q`: 27 passed. `git diff --check`: passed.
 
 ## Remaining work
