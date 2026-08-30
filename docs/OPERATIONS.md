@@ -68,3 +68,9 @@ uncataloged downloads to the publishing library.
 When at least two cataloged assets are available, each render builds a silent
 12-second reel from up to three sources with four-second cuts. The manifest
 records both the generated reel and its source files.
+
+User-provided background clips may be placed in `data/backgrounds` and are
+selected automatically, but must be listed in `assets/user_backgrounds.json`.
+Credit the original creator and include the original channel URL in the final
+upload description after verifying the source license; attribution by itself
+does not establish reuse permission.

@@ -40,7 +40,7 @@ def _card(package: ScriptPackage, path: Path, transparent: bool = False) -> None
     draw.rounded_rectangle((54, 100, 410, 180), radius=24, fill=(8, 14, 28, 210) if transparent else (8, 14, 28))
     draw.text((82, 122), "SIGNAL LAB", fill=(92, 220, 180), font=small)
     if transparent:
-        lines = textwrap.wrap(package.hook.upper(), width=42)[:3]
+        lines = textwrap.wrap(package.hook.upper(), width=30)[:3]
         draw.multiline_text((60, 230), "\n".join(lines), fill="white", font=font, spacing=8, stroke_width=2, stroke_fill=(0, 0, 0, 230))
     else:
         draw.rounded_rectangle((48, 450, 1032, 820), radius=34, fill=(5, 10, 22, 190) if transparent else (5, 10, 22))

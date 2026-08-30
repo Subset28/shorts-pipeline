@@ -77,6 +77,16 @@ def test_variants_rotate_content_lane_without_changing_source():
     assert len({fallback_package(Topic("A breakthrough", "AI", (source,)), variant=i).format_name for i in range(4)}) >= 2
 
 
+def test_fallback_hooks_match_the_source_headline():
+    source = Source("A breakthrough in model safety", "https://example.test/safety", "A useful finding with supporting details.")
+    topic = Topic(source.title, "AI", (source,))
+    for variant in range(4):
+        package = fallback_package(topic, variant=variant)
+        assert "breakthrough" in package.hook.lower()
+        assert "behind ai" not in package.hook.lower()
+        assert len(package.hook) <= 100
+
+
 def test_unsupported_timeline_or_prediction_is_rejected_for_plain_source():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding with supporting details only.")
     topic = Topic("A breakthrough", "AI", (source,))
@@ -256,6 +266,7 @@ def test_nas_deploy_script_preserves_remote_environment():
     assert "scp -O" in text
     assert "cp -n .env.example .env" in text
     assert "keys.json" not in text
+    assert 'Filter "user_*.mp4"' in text
 
 
 def test_feed_summary_removes_markup_urls_and_link_aggregator_boilerplate():

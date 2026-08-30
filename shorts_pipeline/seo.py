@@ -46,61 +46,21 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     formats = eligible_formats(topic)
     format_index = (int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) + max(0, variant)) % len(formats)
     format_name = formats[format_index]
-    hooks = {
-        "AI": (
-            "Can AI explain a prediction without leaking the answer?",
-            "The AI concept hiding in this headline",
-            "This AI claim needs a closer look",
-            "POV: you ask an AI model for one simple answer",
-        ),
-        "ML": (
-            "The hidden risk in machine-learning explanations",
-            "Machine learning in plain English",
-            "This machine-learning claim needs a closer look",
-            "POV: your model is confident for the wrong reason",
-        ),
-        "Aerospace": (
-            "A new space discovery is closer than it looks",
-            "The space idea hiding in this headline",
-            "The space headline is not the whole story",
-            "POV: the spacecraft sends back one more surprise",
-        ),
-        "Cyber": (
-            "This security flaw could affect millions",
-            "The security concept in plain English",
-            "The security detail hiding in the headline",
-            "POV: the bug report arrives five minutes before launch",
-        ),
-        "Finance": (
-            "The market story hiding behind the tech headline",
-            "The finance concept in plain English",
-            "This market claim needs a closer look",
-            "POV: the spreadsheet discovers a bug in your thesis",
-        ),
-    }
-    category_hooks = hooks.get(topic.category)
-    format_hooks = {
-        "surprising_fact": f"The surprising detail in this {topic.category.lower()} story",
-        "timeline": f"How this {topic.category.lower()} story got here",
-        "question_answer": f"The question this {topic.category.lower()} story raises",
-        "prediction_watch": f"The {topic.category.lower()} claim worth watching",
-    }
-    category_index = ALLOWED_FORMATS.index(format_name)
     headline = re.sub(r"\s+", " ", source.title).strip().rstrip(".")
-    headline = headline[:76].rsplit(" ", 1)[0] if len(headline) > 76 else headline
-    hook = (
-        category_hooks[category_index]
-        if category_hooks and category_index < len(category_hooks)
-        else format_hooks.get(format_name, f"The {format_name.replace('_', ' ')} behind {topic.category.lower()}")
-    )
-    if format_name == "surprising_fact":
-        hook = f"The detail in ‘{headline}’ that changes the story"
-    elif format_name == "question_answer":
-        hook = f"What does ‘{headline}’ actually mean?"
-    elif format_name == "timeline":
-        hook = f"How ‘{headline}’ got here"
-    elif format_name == "prediction_watch":
-        hook = f"Will ‘{headline}’ actually happen?"
+    # The source title remains in narration/metadata; the on-screen hook needs
+    # to stay scannable on a phone instead of becoming a tiny headline block.
+    headline = headline[:42].rsplit(" ", 1)[0] if len(headline) > 42 else headline
+    hook_templates = {
+        "news_breakdown": "What '{headline}' actually means",
+        "fact_explainer": "The simple explanation of '{headline}'",
+        "myth_bust": "What '{headline}' gets wrong",
+        "technical_joke": "POV: '{headline}' reaches production",
+        "surprising_fact": "The detail in '{headline}' that changes the story",
+        "question_answer": "What does '{headline}' actually mean?",
+        "timeline": "How '{headline}' got here",
+        "prediction_watch": "Will '{headline}' actually happen?",
+    }
+    hook = hook_templates[format_name].format(headline=headline)
     summary = " ".join(source.summary.split())
     if len(summary.split()) < 8:
         # Some RSS feeds, especially link aggregators, provide only URLs and

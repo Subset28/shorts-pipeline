@@ -22,6 +22,15 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Unable to copy deployment files" }
     scp -O -q -r @trackedDirectories $remote
     if ($LASTEXITCODE -ne 0) { throw "Unable to copy deployment directories" }
+    $userBackgrounds = Get-ChildItem -LiteralPath (Join-Path $repo "data\backgrounds") -Filter "user_*.mp4" -File -ErrorAction SilentlyContinue
+    if ($userBackgrounds) {
+        ssh -o BatchMode=yes $HostAlias "mkdir -p '$RemoteDir/data/backgrounds'"
+        if ($LASTEXITCODE -ne 0) { throw "Unable to prepare user background directory" }
+        foreach ($asset in $userBackgrounds) {
+            scp -O -q $asset.FullName "${remote}:$RemoteDir/data/backgrounds/"
+            if ($LASTEXITCODE -ne 0) { throw "Unable to copy user background $($asset.Name)" }
+        }
+    }
 }
 finally {
     Pop-Location
