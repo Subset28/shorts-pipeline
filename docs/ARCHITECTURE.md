@@ -6,6 +6,9 @@ helper; `render.py` produces a 9:16 MP4; and `publish.py` sends that asset to
 YouTube and TikTok through their official APIs. The manifest makes retries and
 future analytics joins deterministic.
 
+`media.py` provides an explicit yt-dlp adapter for rights-cleared source media.
+It is never part of topic discovery and never downloads playlists by default.
+
 The free path uses RSS, deterministic fallback copy, local Pillow rendering,
 FFmpeg, and silent audio. Optional LLM and TTS adapters improve quality without
 changing the pipeline contract.

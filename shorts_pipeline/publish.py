@@ -51,6 +51,14 @@ def upload_tiktok(video: Path, package: ScriptPackage, access_token: str, privac
         raise RuntimeError("TIKTOK_ACCESS_TOKEN is not configured")
     data = video.read_bytes()
     with httpx.Client(timeout=120) as client:
+        creator = client.post(
+            "https://open.tiktokapis.com/v2/post/publish/creator_info/query/",
+            headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
+        )
+        creator.raise_for_status()
+        allowed_privacy = creator.json().get("data", {}).get("privacy_level_options", [])
+        if privacy not in allowed_privacy:
+            raise RuntimeError(f"TikTok privacy level {privacy!r} is not available for this account")
         init = client.post(
             "https://open.tiktokapis.com/v2/post/publish/video/init/",
             headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
