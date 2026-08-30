@@ -24,6 +24,10 @@
 - Generated 20 muted 45-second candidate clips in
   `data/backgrounds/minecraft_parkour_chunks`; Reddit-story renders prefer
   this library through `REDDIT_BACKGROUND_DIR`.
+- Added the supplied Reddit avatar and verification graphics plus the public
+  Reddit award collection. Reddit cards now choose eight deterministic award
+  images per post and guarantee at least one animated award when available.
+  The card itself is rendered as an 8-frame opening loop.
 - Replaced the local Aerospire and Supkin background masters with fresh
   yt-dlp downloads: Aerospire is 1280x720/24fps (the source maximum), and
   Supkin is 1920x1080/60fps.
