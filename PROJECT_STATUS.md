@@ -65,6 +65,9 @@
   provide them, preserving the source-quality gate without starving the queue.
 - Hardened newsletter boilerplate removal for publisher HTML that inserts
   whitespace before punctuation.
+- Fixed editorial-to-asset category aliases so AI News selects AI footage and
+  Cyber selects cybersecurity footage instead of falling back to unrelated
+  aerospace or general visuals.
 - Added `user_orbital_capsule_earth.mp4` (Aerospace) and
   `user_computer_typing.mp4` (CS) at 1080p; source URLs and rights notes are
   recorded in the asset manifest.
