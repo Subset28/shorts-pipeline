@@ -718,7 +718,9 @@ def test_manifest_records_audio_and_caption_paths(tmp_path):
 
 def test_quality_gate_rejects_failed_render(tmp_path):
     manifest = tmp_path / "manifest.json"
-    manifest.write_text(json.dumps({"quality": {"passed": False, "issues": ["audio_video_duration_mismatch"]}}), encoding="utf-8")
+    manifest.write_text(
+        json.dumps({"quality": {"passed": False, "issues": ["audio_video_duration_mismatch"]}}), encoding="utf-8"
+    )
     try:
         quality_gate(manifest)
     except RuntimeError as exc:
