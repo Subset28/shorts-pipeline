@@ -1,5 +1,6 @@
 .venv/
 .env
+**/.env
 data/
 output/
 credentials*.json
