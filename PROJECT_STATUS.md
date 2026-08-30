@@ -54,6 +54,12 @@
   1080p for varied long-form background sampling.
 - Added `user_neon_city_drive.mp4` (CS) at 1080p; its source URL and rights
   note are recorded in the asset manifest.
+- Added local 4K train-ride and city-pan footage as General motion assets;
+  local placeholders are cataloged without attempting network downloads.
+- Added local hacker-typing and malicious-hacker visuals as Cybersecurity
+  assets; they are background-only footage and do not add operational content.
+- Added two local code-typing clips to the CS category, including the
+  MacBook typing clip just identified.
 - Added the supplied Reddit avatar and verification graphics plus the public
   Reddit award collection. Reddit cards now choose eight deterministic award
   images per post and guarantee at least one animated award when available.

@@ -1,6 +1,60 @@
 {
   "assets": [
     {
+      "name": "user_unreviewed_4974884",
+      "filename": "user_unreviewed_4974884.mp4",
+      "url": "local://user_unreviewed_4974884.mp4",
+      "source_page": "local file supplied by user",
+      "category": "CS",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_code_typing_hands_4k",
+      "filename": "user_code_typing_hands_4k.mp4",
+      "url": "local://user_code_typing_hands_4k.mp4",
+      "source_page": "local file supplied by user",
+      "category": "CS",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_hacker_typing_4k",
+      "filename": "user_hacker_typing_4k.mp4",
+      "url": "local://user_hacker_typing_4k.mp4",
+      "source_page": "local file supplied by user",
+      "category": "Cybersecurity",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_malicious_hacker_hd",
+      "filename": "user_malicious_hacker_hd.mp4",
+      "url": "local://user_malicious_hacker_hd.mp4",
+      "source_page": "local file supplied by user",
+      "category": "Cybersecurity",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_city_pan_sky_4k",
+      "filename": "user_city_pan_sky_4k.mp4",
+      "url": "local://user_city_pan_sky_4k.mp4",
+      "source_page": "local file supplied by user",
+      "category": "General",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_train_ride_4k",
+      "filename": "user_train_ride_4k.mp4",
+      "url": "local://user_train_ride_4k.mp4",
+      "source_page": "local file supplied by user",
+      "category": "General",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
       "name": "user_neon_city_drive",
       "filename": "user_neon_city_drive.mp4",
       "url": "https://www.youtube.com/watch?v=ff2zAkzX82s",
