@@ -51,6 +51,8 @@ def is_usable_source(source: Source) -> bool:
 
 def _clean_summary(value: str) -> str:
     value = html.unescape(value)
+    # Some feeds decode smart punctuation as the replacement character.
+    value = value.replace("\ufffd", "'")
     value = re.sub(r"<[^>]+>", " ", value)
     value = re.sub(r"https?://\S+", " ", value)
     value = re.sub(r"\b(?:article|comments?)\s+url\s*:\s*", " ", value, flags=re.IGNORECASE)
@@ -84,6 +86,10 @@ def discover_topics(limit: int = 10) -> list[Topic]:
                 published=published,
             )
             if not is_relevant(category, source) or not is_usable_source(source):
+                continue
+            # Do not turn RSS truncation markers into spoken cliffhangers.
+            summary_words = source.summary.split()
+            if len(summary_words) < 20 or source.summary.endswith(("...", "…")):
                 continue
             # Prefer current, well-described entries. The exact popularity
             # signal comes later from channel analytics, not fake view counts.
