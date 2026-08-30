@@ -12,7 +12,7 @@ from shorts_pipeline.history import load_publish_state, save_publish_state
 from shorts_pipeline.longform import create_longform_package, render_longform_video
 from shorts_pipeline.media import build_background_reel, select_background, select_backgrounds
 from shorts_pipeline.models import ScriptPackage, Source, Topic
-from shorts_pipeline.publish import fetch_tiktok_status, metadata, save_manifest, youtube_status
+from shorts_pipeline.publish import fetch_tiktok_status, metadata, quality_gate, save_manifest, youtube_status
 from shorts_pipeline.quality import assess_render
 from shorts_pipeline.reddit import (
     _is_niche_relevant,
@@ -714,6 +714,25 @@ def test_manifest_records_audio_and_caption_paths(tmp_path):
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     assert payload["audio"] == str(audio)
     assert payload["captions"] == str(captions)
+
+
+def test_quality_gate_rejects_failed_render(tmp_path):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps({"quality": {"passed": False, "issues": ["audio_video_duration_mismatch"]}}), encoding="utf-8"
+    )
+    try:
+        quality_gate(manifest)
+    except RuntimeError as exc:
+        assert "audio_video_duration_mismatch" in str(exc)
+    else:
+        raise AssertionError("failed render quality was accepted")
+
+
+def test_quality_gate_accepts_passing_render(tmp_path):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({"quality": {"passed": True, "issues": []}}), encoding="utf-8")
+    assert quality_gate(manifest)["passed"] is True
 
 
 def test_quality_report_records_sync_and_caption_coverage(tmp_path, monkeypatch):
