@@ -174,5 +174,7 @@
 
 - Continue improving the creative quality from retention evidence rather than
   assuming any lane will go viral.
+- Added a model source-fidelity gate that rejects generic non-Reddit drafts and
+  anchors accepted narration to the exact source headline before TTS.
 - Finish platform OAuth/configuration and perform a deliberate final-release
   review before deploying to the NAS.
