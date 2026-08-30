@@ -31,3 +31,6 @@ directory local and private.
 
 The visual defaults and footage/caption rules are documented in
 `docs/STYLE_GUIDE.md`.
+
+For a rights-cleared local clip, create bounded series parts with
+`python -m shorts_pipeline split --input path\to\clip.mp4 --parts 4`.

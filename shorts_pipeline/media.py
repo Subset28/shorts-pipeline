@@ -50,3 +50,24 @@ def ensure_background_video(url: str, path: Path) -> Path | None:
         print(f"Background footage unavailable; using generated card: {exc}")
         temporary.unlink(missing_ok=True)
         return None
+
+
+def split_authorized_clip(source: Path, output_dir: Path, parts: int = 4) -> list[Path]:
+    """Split a user-authorized clip into bounded, independently playable parts."""
+    if parts not in {2, 3, 4}:
+        raise ValueError("parts must be 2, 3, or 4")
+    if not source.exists():
+        raise FileNotFoundError(source)
+    if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
+        raise RuntimeError("ffmpeg and ffprobe are required")
+    probe = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(source)], check=True, capture_output=True, text=True, timeout=30)
+    duration = float(probe.stdout.strip())
+    output_dir.mkdir(parents=True, exist_ok=True)
+    result = []
+    for index in range(parts):
+        start = duration * index / parts
+        length = duration / parts
+        target = output_dir / f"part-{index + 1}-of-{parts}.mp4"
+        subprocess.run(["ffmpeg", "-y", "-ss", f"{start:.3f}", "-i", str(source), "-t", f"{length:.3f}", "-c:v", "libx264", "-c:a", "aac", "-movflags", "+faststart", str(target)], check=True, capture_output=True, text=True, timeout=300)
+        result.append(target)
+    return result

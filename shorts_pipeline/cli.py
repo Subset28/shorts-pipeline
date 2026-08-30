@@ -3,12 +3,13 @@ from __future__ import annotations
 import argparse
 import traceback
 import time
+from pathlib import Path
 
 from .config import load_settings
 from .captions import create_captions
 from .history import load_publish_state, load_seen, mark_seen, save_publish_state
 from .llm import create_package
-from .media import ensure_background_video
+from .media import ensure_background_video, split_authorized_clip
 from .publish import save_manifest, upload_tiktok, upload_youtube
 from .render import render_video
 from .sources import discover_topics
@@ -53,7 +54,15 @@ def main() -> None:
     run_parser.add_argument("--dry-run", action="store_true")
     run_parser.add_argument("--daemon", action="store_true")
     run_parser.add_argument("--interval-hours", type=float, default=24.0)
+    split_parser = sub.add_parser("split")
+    split_parser.add_argument("--input", required=True)
+    split_parser.add_argument("--out", default="output/series")
+    split_parser.add_argument("--parts", type=int, default=4)
     args = parser.parse_args()
+    if args.command == "split":
+        for part in split_authorized_clip(Path(args.input), Path(args.out), args.parts):
+            print(part)
+        return
     if args.daemon:
         while True:
             try:

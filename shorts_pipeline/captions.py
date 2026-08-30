@@ -73,6 +73,44 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     return output
 
 
+def write_speaker_ass(segments: list[dict], output: Path) -> Path | None:
+    """Write speaker-colored ASS events from diarization/WhisperX segments.
+
+    Each item needs ``start``, ``end``, ``text`` and may include ``speaker``.
+    This is intentionally separate from the one-narrator path: colors indicate
+    diarized speaker identity, never guessed sentence alternation.
+    """
+    usable = [(float(item["start"]), float(item["end"]), _clean(str(item["text"])), str(item.get("speaker", "SPEAKER_00"))) for item in segments if _clean(str(item.get("text", "")))]
+    if not usable:
+        return None
+    speakers = {speaker: index % 4 for index, speaker in enumerate(dict.fromkeys(item[3] for item in usable))}
+    colors = ["&H0000D7FF", "&H0000FF80", "&H00FFFF00", "&H00FF80FF"]
+    styles = "\n".join(
+        f"Style: Speaker{index},Arial,48,{colors[index]},&H00FFFFFF,&H00101010,&H99000000,-1,0,0,0,100,100,0,0,1,4,2,2,80,80,430,1"
+        for index in range(4)
+    )
+    header = f"""[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+{styles}
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+"""
+    events = []
+    for start, end, text, speaker in usable:
+        wrapped = "\\N".join(" ".join(text.upper().split()[i : i + 4]) for i in range(0, len(text.split()), 4))
+        events.append(f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Speaker{speakers[speaker]},,0,0,0,,{wrapped}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
+    return output
+
+
 def _audio_duration(audio: Path | None) -> float:
     if not audio or not audio.exists():
         return 10.0

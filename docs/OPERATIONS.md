@@ -7,6 +7,10 @@ secrets, and ElevenLabs `keys.json` outside Git.
 TTS prefers the local ElevenLabs rotator when configured, then falls back to
 the keyless `edge-tts` command using `EDGE_TTS_VOICE`.
 
+Use the `split` command only for clips whose reuse rights are already cleared;
+it creates independently playable 2–4-part files and does not publish them by
+itself.
+
 Captions are enabled by default. Install `pip install -e .[captions]` to use
 local `faster-whisper` audio alignment; without it, the free fallback creates
 timed captions from the generated narration. The first Whisper run may
