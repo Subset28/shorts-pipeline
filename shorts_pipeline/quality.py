@@ -4,7 +4,6 @@ import re
 import subprocess
 from pathlib import Path
 
-
 _SRT_TIMESTAMP = re.compile(
     r"\d+\n\d{2}:\d{2}:\d{2},\d{3}\s+-->\s+"
     r"(\d{2}:\d{2}:\d{2},\d{3})"
@@ -16,7 +15,16 @@ def probe_duration(path: Path | None) -> float | None:
         return None
     try:
         result = subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                str(path),
+            ],
             check=True,
             capture_output=True,
             text=True,
@@ -50,12 +58,16 @@ def assess_render(video: Path, audio: Path | None, captions: Path | None, backgr
         issues.append("video_duration_unavailable")
     if audio_duration is None:
         issues.append("audio_duration_unavailable")
-    av_delta = abs(video_duration - audio_duration) if video_duration is not None and audio_duration is not None else None
+    av_delta = (
+        abs(video_duration - audio_duration) if video_duration is not None and audio_duration is not None else None
+    )
     if av_delta is not None and av_delta > 0.25:
         issues.append("audio_video_duration_mismatch")
     if background_duration is not None and video_duration is not None and background_duration + 0.5 < video_duration:
         issues.append("background_shorter_than_video")
-    caption_coverage = last_caption / audio_duration if last_caption is not None and audio_duration and audio_duration > 0 else None
+    caption_coverage = (
+        last_caption / audio_duration if last_caption is not None and audio_duration and audio_duration > 0 else None
+    )
     if captions and caption_coverage is None:
         issues.append("caption_timing_unavailable")
     elif caption_coverage is not None and caption_coverage < 0.90:

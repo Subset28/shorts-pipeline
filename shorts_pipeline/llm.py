@@ -29,7 +29,15 @@ def create_package(topic: Topic, api_key: str, model: str, variant: int = 0) -> 
         response = httpx.post(
             "https://api.openai.com/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}"},
-            json={"model": model, "temperature": 0.4, "response_format": {"type": "json_object"}, "messages": [{"role": "system", "content": "You write concise source-backed vertical video scripts."}, {"role": "user", "content": json.dumps(prompt)}]},
+            json={
+                "model": model,
+                "temperature": 0.4,
+                "response_format": {"type": "json_object"},
+                "messages": [
+                    {"role": "system", "content": "You write concise source-backed vertical video scripts."},
+                    {"role": "user", "content": json.dumps(prompt)},
+                ],
+            },
             timeout=60,
         )
         response.raise_for_status()

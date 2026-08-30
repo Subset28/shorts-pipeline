@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dotenv import load_dotenv
+
 from .reddit import RANKED_STORY_SUBREDDITS
 
 
@@ -67,6 +68,10 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
         reddit_client_id=os.getenv("REDDIT_CLIENT_ID", ""),
         reddit_client_secret=os.getenv("REDDIT_CLIENT_SECRET", ""),
         reddit_user_agent=os.getenv("REDDIT_USER_AGENT", "shorts-pipeline/1.0"),
-        reddit_subreddits=tuple(item.strip() for item in os.getenv("REDDIT_SUBREDDITS", ",".join(RANKED_STORY_SUBREDDITS)).split(",") if item.strip()),
+        reddit_subreddits=tuple(
+            item.strip()
+            for item in os.getenv("REDDIT_SUBREDDITS", ",".join(RANKED_STORY_SUBREDDITS)).split(",")
+            if item.strip()
+        ),
         reddit_approved_file=Path(os.getenv("REDDIT_APPROVED_FILE", "data/reddit_candidates.json")),
     )

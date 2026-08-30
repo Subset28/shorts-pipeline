@@ -23,7 +23,9 @@ def eligible_formats(topic: Topic) -> tuple[str, ...]:
     formats = ["news_breakdown", "fact_explainer", "question_answer"]
     if topic.category in {"AI", "ML", "CS", "AI News", "Cyber"}:
         formats.insert(2, "technical_joke")
-    myth_signal = re.search(r"\b(myth|false|wrong|debunk|misconception|claim|actually|really|true|doesn['’]t|not)\b", text)
+    myth_signal = re.search(
+        r"\b(myth|false|wrong|debunk|misconception|claim|actually|really|true|doesn['’]t|not)\b", text
+    )
     if myth_signal:
         formats.insert(2, "myth_bust")
     surprise_signal = re.search(
@@ -89,7 +91,9 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         elif variant == 0 and "fact_explainer" in formats:
             format_name = "fact_explainer"
         else:
-            format_index = (int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) + max(0, variant)) % len(formats)
+            format_index = (
+                int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) + max(0, variant)
+            ) % len(formats)
             format_name = formats[format_index]
     headline = re.sub(r"\s+", " ", source.title).strip().rstrip(".")
     # The source title remains in narration/metadata; the on-screen hook needs
@@ -106,23 +110,30 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         # a resolution. Trim only at a complete sentence boundary.
         if len(summary) > 900:
             summary = summary[:900].rsplit(".", 1)[0].rstrip() + "."
-    elif len(summary) > (760 if format_name in {
-        "news_breakdown",
-        "fact_explainer",
-        "myth_bust",
-        "surprising_fact",
-        "timeline",
-        "question_answer",
-        "prediction_watch",
-    } else 560):
+    elif len(summary) > (
+        760
+        if format_name
+        in {
+            "news_breakdown",
+            "fact_explainer",
+            "myth_bust",
+            "surprising_fact",
+            "timeline",
+            "question_answer",
+            "prediction_watch",
+        }
+        else 560
+    ):
         # News and explainers need enough source context to earn their longer
         # runtime; quick entertainment formats stay compact. Both paths still
         # stop at a complete sentence, so a thin source is never padded.
-        bounded = summary[:760 if format_name != "technical_joke" else 560]
+        bounded = summary[: 760 if format_name != "technical_joke" else 560]
         sentences = re.split(r"(?<=[.!?])\s+", bounded)
         summary = " ".join(sentences[:-1]).strip() if len(sentences) > 1 else bounded.rsplit(" ", 1)[0]
     hook = _native_hook(headline, summary, topic.category, format_name)
-    category_label = {"AI News": "AI", "ML": "machine learning", "CS": "software", "Cyber": "cybersecurity"}.get(topic.category, topic.category.lower())
+    category_label = {"AI News": "AI", "ML": "machine learning", "CS": "software", "Cyber": "cybersecurity"}.get(
+        topic.category, topic.category.lower()
+    )
     if format_name == "technical_joke":
         narration = f"POV: you ask {topic.category} one simple question and get a twelve-page answer. The useful part is this: {summary} So the practical takeaway is to separate the demo from what actually works."
     elif format_name == "news_breakdown":
@@ -144,7 +155,11 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", summary) if part.strip()]
         ending = sentences[-1] if sentences else summary
         body = " ".join(sentences[:-1]).strip()
-        narration = f"{source.title}. Here's how it unfolded: {body} Then came the outcome: {ending}" if body else f"{source.title}. {ending}"
+        narration = (
+            f"{source.title}. Here's how it unfolded: {body} Then came the outcome: {ending}"
+            if body
+            else f"{source.title}. {ending}"
+        )
     elif format_name == "myth_bust":
         narration = f"This sounds like a bigger claim than it is. Here's what the evidence says: {summary} The honest takeaway is to separate the result from the hype."
     else:
@@ -153,15 +168,26 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     if topic.category == "Finance":
         disclaimer = "This is educational market commentary, not financial advice or an investment recommendation."
     attribution = ""
-    if source.author and source.community and source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")):
+    if (
+        source.author
+        and source.community
+        and source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/"))
+    ):
         attribution = f"\nReddit attribution: u/{source.author} in r/{source.community}"
     description = f"{narration}\n\nSource: {source.url}{attribution}\n{disclaimer}"
     tags = [topic.category, "technology", "science", "explained", "shorts"]
     if topic.category == "Finance":
         tags.extend(["markets", "business"])
     return ScriptPackage(
-        hook, narration, title, description, tags, [source.url], format_name,
-        topic.category, max(0, variant),
+        hook,
+        narration,
+        title,
+        description,
+        tags,
+        [source.url],
+        format_name,
+        topic.category,
+        max(0, variant),
         card_text=(f"{source.title}\n{summary}" if format_name == "reddit_story" else ""),
     )
 
@@ -202,7 +228,11 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     description = data["description"].strip()
     if source.url not in description:
         description += f"\n\nSource: {source.url}"
-    if source.author and source.community and source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")):
+    if (
+        source.author
+        and source.community
+        and source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/"))
+    ):
         attribution = f"Reddit attribution: u/{source.author} in r/{source.community}"
         if attribution not in description:
             description += f"\n{attribution}"
