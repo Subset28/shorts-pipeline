@@ -88,6 +88,8 @@
   narrated subject, on-screen hook, and platform title remain aligned.
 - Rebuilt background reels as 60-second sequences of varied, reframed shots,
   eliminating the former 8-second loop that repeated throughout longer shorts.
+- Tightened the non-Reddit reel cadence to three-second shots, increasing the
+  60-second assembly to 20 purposeful cuts for faster short-form pacing.
 - Extended substantive non-Reddit news/explainer fallback context to support
   the intended longer runtime while retaining sentence-boundary clipping and
   refusing to pad thin sources.
