@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv("/Users/abba/shorts-pipeline/.env")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+os.environ["PATH"] = "/opt/homebrew/opt/ffmpeg-full/bin:/opt/homebrew/bin:" + os.environ.get("PATH", "")
 os.environ.update(
     {
         "TOPIC_LIMIT": "20",
