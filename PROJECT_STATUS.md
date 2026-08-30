@@ -174,5 +174,8 @@
 
 - Continue improving the creative quality from retention evidence rather than
   assuming any lane will go viral.
+- Improved the no-Whisper caption fallback to break on natural punctuation and
+  allocate timing by phrase length plus pause weight, while preserving the
+  existing Whisper/WhisperX alignment paths.
 - Finish platform OAuth/configuration and perform a deliberate final-release
   review before deploying to the NAS.

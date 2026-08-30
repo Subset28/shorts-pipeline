@@ -8,7 +8,13 @@ from PIL import Image
 import shorts_pipeline.cli as cli
 from shorts_pipeline.analytics import archive_report, build_report, build_youtube_report, tuning_recommendations
 from shorts_pipeline.asset_library import load_asset_manifest, sync_backgrounds
-from shorts_pipeline.captions import _escape_ass_text, _write_ass, create_captions, write_speaker_ass
+from shorts_pipeline.captions import (
+    _escape_ass_text,
+    _fallback_segments,
+    _write_ass,
+    create_captions,
+    write_speaker_ass,
+)
 from shorts_pipeline.config import load_settings
 from shorts_pipeline.history import load_publish_state, save_publish_state
 from shorts_pipeline.longform import create_longform_package, render_longform_video
@@ -502,6 +508,19 @@ def test_captions_fallback_writes_srt_without_whisper(tmp_path, monkeypatch):
     output = create_captions("One two three four five six seven eight.", None, tmp_path / "captions.srt")
     assert output and output.exists()
     assert "00:00:00,000 -->" in output.read_text(encoding="utf-8-sig")
+
+
+def test_fallback_caption_timing_follows_phrase_weight_and_covers_audio():
+    segments = _fallback_segments("One two, three four five six. Seven eight nine ten eleven.", 10.0)
+
+    assert [segment[2] for segment in segments] == [
+        "One two,",
+        "three four five six.",
+        "Seven eight nine ten",
+        "eleven.",
+    ]
+    assert segments[-1][1] == 10.0
+    assert all(start <= end for start, end, _ in segments)
 
 
 def test_speaker_captions_assign_distinct_colors_and_readable_size(tmp_path):
