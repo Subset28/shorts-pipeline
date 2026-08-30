@@ -324,6 +324,15 @@ def render_video(
             "yuv420p",
             "-c:a",
             "aac",
+            "-af",
+            AUDIO_NORMALIZATION_FILTER,
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+            "-movflags",
+            "+faststart",
+>>>>>>> 0378803 (feat: optimize short mp4 startup)
             "-shortest",
             str(output),
         ]
@@ -349,6 +358,15 @@ def render_video(
             "yuv420p",
             "-c:a",
             "aac",
+            "-af",
+            AUDIO_NORMALIZATION_FILTER,
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
+            "-movflags",
+            "+faststart",
+>>>>>>> 0378803 (feat: optimize short mp4 startup)
             str(output),
         ]
     subprocess.run(command, check=True, capture_output=True, text=True)

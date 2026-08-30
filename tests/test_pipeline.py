@@ -433,6 +433,28 @@ def test_nonreddit_transparent_hook_card_has_high_contrast_opening(tmp_path):
     assert image.getpixel((75, 215))[3] > 0
 
 
+def test_short_render_normalizes_audio_and_sets_consistent_output_format(tmp_path, monkeypatch):
+    audio = tmp_path / "narration.mp3"
+    audio.write_bytes(b"audio")
+    captured = {}
+
+    monkeypatch.setattr("shorts_pipeline.render.shutil.which", lambda _: "ffmpeg")
+    monkeypatch.setattr("shorts_pipeline.render._render_duration", lambda *_args: 10.0)
+    monkeypatch.setattr("shorts_pipeline.render._card", lambda _package, path, **_kwargs: path.write_bytes(b"card"))
+    monkeypatch.setattr(
+        "shorts_pipeline.render.subprocess.run", lambda command, **_kwargs: captured.update(command=command)
+    )
+    package = fallback_package(
+        Topic("A breakthrough", "AI", (Source("A breakthrough", "https://example.test", "A useful finding."),))
+    )
+    render_video(package, tmp_path, audio)
+    command = captured["command"]
+    assert command[command.index("-af") + 1] == AUDIO_NORMALIZATION_FILTER
+    assert command[command.index("-ar") + 1] == "48000"
+    assert command[command.index("-ac") + 1] == "2"
+    assert command[command.index("-movflags") + 1] == "+faststart"
+
+
 def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
     path = tmp_path / "reddit.json"
     source = {
