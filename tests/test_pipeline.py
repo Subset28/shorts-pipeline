@@ -4,7 +4,7 @@ from shorts_pipeline.captions import create_captions
 from shorts_pipeline.telemetry import record_event
 import json
 from shorts_pipeline.publish import metadata
-from shorts_pipeline.seo import fallback_package
+from shorts_pipeline.seo import fallback_package, normalize_package
 from shorts_pipeline.media import select_background
 
 
@@ -15,10 +15,33 @@ def test_fallback_package_preserves_source_url():
     assert package.sources == [source.url]
 
 
+def test_model_output_is_normalized_and_rejects_unsupported_formats():
+    source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
+    topic = Topic("A breakthrough", "AI", (source,))
+    package = normalize_package(topic, {
+        "hook": "A strong hook",
+        "narration": "This is a sufficiently long narration that explains the source-backed idea in plain language.",
+        "title": "A title",
+        "description": "An original explanation.",
+        "tags": ["AI", "science"],
+        "format_name": "news_breakdown",
+    })
+    assert source.url in package.description
+    assert package.sources == [source.url]
+    invalid = dict(package.__dict__, format_name="unknown")
+    try:
+        normalize_package(topic, invalid)
+    except ValueError as exc:
+        assert "unsupported format" in str(exc)
+    else:
+        raise AssertionError("unsupported format was accepted")
+
+
 def test_metadata_is_platform_neutral():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     data = metadata(fallback_package(Topic("A breakthrough", "AI", (source,))))
-    assert set(data) == {"title", "description", "tags", "sources", "format_name"}
+    assert set(data) == {"title", "description", "tags", "sources", "format_name", "category"}
+    assert data["category"] == "AI"
 
 
 def test_publish_state_resumes_each_platform_without_overwriting(tmp_path):

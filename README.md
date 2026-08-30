@@ -37,4 +37,5 @@ For a rights-cleared local clip, create bounded series parts with
 
 Generate a queue of distinct drafts with `python -m shorts_pipeline batch
 --count 3 --dry-run`; each asset is written to its own `output/batch-NN`
-folder and uses the source/format telemetry path.
+folder (with `item-NN` children; reruns allocate a new batch) and uses the
+source/format telemetry path.

@@ -17,6 +17,17 @@ from .tts import synthesize
 from .telemetry import record_event
 
 
+def _next_batch_dir(output_dir: Path) -> Path:
+    """Allocate a non-destructive batch directory for experiment history."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    index = 1
+    while True:
+        candidate = output_dir / f"batch-{index:02d}"
+        if not candidate.exists():
+            return candidate
+        index += 1
+
+
 def run(force_dry_run: bool = False, topic_override=None, output_dir_override: Path | None = None) -> int:
     settings = load_settings()
     dry_run = force_dry_run or settings.dry_run
@@ -38,17 +49,17 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
     background = select_background(settings.background_dir, source_url, fallback_background)
     video = render_video(package, output_dir, audio, captions, background)
     manifest = save_manifest(package, video, output_dir)
-    record_event(events_path, "draft_created", source_url=source_url, format_name=package.format_name, title=package.title, video=str(video), dry_run=dry_run)
+    record_event(events_path, "draft_created", source_url=source_url, category=package.category, format_name=package.format_name, title=package.title, video=str(video), dry_run=dry_run)
     print(f"Created {manifest}")
     if dry_run:
         print("Dry run: YouTube and TikTok uploads skipped")
         return 0
     youtube_id = published.get("youtube_id") or upload_youtube(video, package, settings.youtube_client_secrets, settings.youtube_token_file, settings.youtube_privacy_status)
     save_publish_state(publish_path, source_url, youtube_id=youtube_id)
-    record_event(events_path, "youtube_published", source_url=source_url, format_name=package.format_name, platform_id=youtube_id)
+    record_event(events_path, "youtube_published", source_url=source_url, category=package.category, format_name=package.format_name, platform_id=youtube_id)
     tiktok_id = published.get("tiktok_id") or upload_tiktok(video, package, settings.tiktok_access_token, settings.tiktok_privacy_level)
     save_publish_state(publish_path, source_url, tiktok_id=tiktok_id)
-    record_event(events_path, "tiktok_published", source_url=source_url, format_name=package.format_name, platform_id=tiktok_id)
+    record_event(events_path, "tiktok_published", source_url=source_url, category=package.category, format_name=package.format_name, platform_id=tiktok_id)
     mark_seen(seen_path, source_url)
     print(f"Published YouTube={youtube_id} TikTok={tiktok_id}")
     return 0
@@ -69,8 +80,9 @@ def run_batch(count: int, force_dry_run: bool = False) -> int:
             break
     if len(unique) < count:
         raise RuntimeError(f"Only {len(unique)} unseen topics available; requested {count}")
+    batch_dir = _next_batch_dir(settings.output_dir)
     for index, topic in enumerate(unique, 1):
-        run(force_dry_run=force_dry_run, topic_override=topic, output_dir_override=settings.output_dir / f"batch-{index:02d}")
+        run(force_dry_run=force_dry_run, topic_override=topic, output_dir_override=batch_dir / f"item-{index:02d}")
     return 0
 
 

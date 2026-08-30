@@ -23,7 +23,7 @@ def _clean_summary(value: str) -> str:
 
 
 def discover_topics(limit: int = 10) -> list[Topic]:
-    topics: list[Topic] = []
+    by_category: dict[str, list[Topic]] = {category: [] for category in FEEDS}
     now = datetime.now(timezone.utc)
     for category, url in FEEDS.items():
         feed = feedparser.parse(url)
@@ -43,5 +43,22 @@ def discover_topics(limit: int = 10) -> list[Topic]:
             score = 1.0 if source.summary else 0.0
             if published and now.year >= 2020:
                 score += 0.1
-            topics.append(Topic(source.title, category, (source,), score))
-    return sorted(topics, key=lambda item: item.score, reverse=True)[:limit]
+            by_category[category].append(Topic(source.title, category, (source,), score))
+
+    # Keep a batch from being dominated by the first feed in the map. Within
+    # each category, retain the highest-quality entries, then interleave
+    # categories so the queue tests several audience lanes.
+    for category in by_category:
+        by_category[category].sort(key=lambda item: item.score, reverse=True)
+    topics: list[Topic] = []
+    while len(topics) < limit:
+        added = False
+        for category in FEEDS:
+            if by_category[category]:
+                topics.append(by_category[category].pop(0))
+                added = True
+                if len(topics) == limit:
+                    break
+        if not added:
+            break
+    return topics

@@ -26,3 +26,4 @@ class ScriptPackage:
     tags: list[str] = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
     format_name: str = "explainer"
+    category: str = ""

@@ -5,7 +5,7 @@ import json
 import httpx
 
 from .models import ScriptPackage, Topic
-from .seo import fallback_package
+from .seo import fallback_package, normalize_package
 
 
 def create_package(topic: Topic, api_key: str, model: str) -> ScriptPackage:
@@ -34,7 +34,7 @@ def create_package(topic: Topic, api_key: str, model: str) -> ScriptPackage:
         )
         response.raise_for_status()
         data = json.loads(response.json()["choices"][0]["message"]["content"])
-        return ScriptPackage(data["hook"], data["narration"], data["title"][:100], data["description"], data.get("tags", []), [source.url], data.get("format_name", "news_breakdown"))
+        return normalize_package(topic, data)
     except (httpx.HTTPError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         print(f"LLM unavailable; using source-backed fallback: {exc}")
         return fallback_package(topic)
