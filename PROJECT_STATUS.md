@@ -38,6 +38,19 @@
 - Removed the obsolete Moon-to-Earth background from the local and Mac
   runtimes and disabled its automatic download fallback. Replacement footage
   will be added only after it is selected and its provenance is recorded.
+- Added two user-selected YouTube background candidates at 1080p:
+  `user_earth_zoom_space.mp4` and `user_rocket_launch_stock.mp4`. Their source
+  URLs are recorded, but publication rights still need confirmation.
+- Added category-aware background selection and per-render segment variation:
+  sources are reordered, offset, subtly reframed, and concatenated so repeat
+  renders do not reuse the same opening frames.
+- Added `user_orbital_capsule_earth.mp4` (Aerospace) and
+  `user_computer_typing.mp4` (CS) at 1080p; source URLs and rights notes are
+  recorded in the asset manifest.
+- Added the approximately one-minute `user_technology_loop.mp4` (CS) at
+  1080p for varied long-form background sampling.
+- Added `user_neon_city_drive.mp4` (CS) at 1080p; its source URL and rights
+  note are recorded in the asset manifest.
 - Added the supplied Reddit avatar and verification graphics plus the public
   Reddit award collection. Reddit cards now choose eight deterministic award
   images per post and guarantee at least one animated award when available.

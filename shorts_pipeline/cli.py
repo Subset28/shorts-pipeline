@@ -65,9 +65,18 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
     captions = create_captions(package.narration, audio, output_dir / "captions.srt", settings.caption_model) if settings.captions_enabled else None
     fallback_background = ensure_background_video(settings.background_video_url, settings.background_video)
     background_dir = settings.reddit_background_dir if package.format_name == "reddit_story" and settings.reddit_background_dir.exists() else settings.background_dir
-    background_sources = select_backgrounds(background_dir, source_url)
+    background_sources = select_backgrounds(
+        background_dir,
+        f"{source_url}|{package.variant}",
+        category=package.category if background_dir == settings.background_dir else None,
+        manifest=Path("assets/backgrounds.json"),
+    )
     if background_sources:
-        background = build_background_reel(background_sources, output_dir / "background-reel.mp4")
+        background = build_background_reel(
+            background_sources,
+            output_dir / "background-reel.mp4",
+            variation_key=f"{source_url}|{package.variant}",
+        )
     else:
         background = fallback_background
     video = render_video(package, output_dir, audio, captions, background)
