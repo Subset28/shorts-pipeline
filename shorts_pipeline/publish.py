@@ -49,9 +49,10 @@ def upload_youtube(video: Path, package: ScriptPackage, client_secrets: Path, to
             credentials = flow.run_local_server(port=0)
         token_file.write_text(credentials.to_json(), encoding="utf-8")
     youtube = build("youtube", "v3", credentials=credentials)
+    safe_metadata = metadata(package)
     request = youtube.videos().insert(
         part="snippet,status",
-        body={"snippet": {"title": package.title, "description": package.description, "tags": package.tags, "categoryId": "28"}, "status": {"privacyStatus": privacy, "selfDeclaredMadeForKids": False}},
+        body={"snippet": {"title": safe_metadata["title"], "description": safe_metadata["description"], "tags": safe_metadata["tags"], "categoryId": "28"}, "status": {"privacyStatus": privacy, "selfDeclaredMadeForKids": False}},
         media_body=MediaFileUpload(str(video), mimetype="video/mp4", resumable=True),
     )
     return request.execute()["id"]
