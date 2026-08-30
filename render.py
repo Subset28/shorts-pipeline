@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import hashlib
+import os
+import re
 import shutil
 import subprocess
 import textwrap
-import re
-import os
-import hashlib
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -22,8 +22,20 @@ def _audio_duration(audio: Path | None) -> float | None:
         return None
     try:
         result = subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(audio)],
-            check=True, capture_output=True, text=True, timeout=20,
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                str(audio),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=20,
         )
         return max(float(result.stdout.strip()), 1.0)
     except (OSError, subprocess.SubprocessError, ValueError):
@@ -41,7 +53,11 @@ def _caption_filter(captions: Path, margin_v: int = 430) -> str:
 
 def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     names = ("arialbd.ttf", "C:/Windows/Fonts/arialbd.ttf") if bold else ("arial.ttf", "C:/Windows/Fonts/arial.ttf")
-    names += ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",)
+    names += (
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        if bold
+        else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    )
     for name in names:
         try:
             return ImageFont.truetype(name, size)
@@ -81,7 +97,17 @@ def _card(package: ScriptPackage, path: Path, transparent: bool = False, show_ho
         bbox = draw.multiline_textbbox((0, 0), text, font=font, spacing=4, stroke_width=2)
         height = bbox[3] - bbox[1] + 54
         draw.rounded_rectangle((30, top, 1050, top + height), radius=24, fill=(0, 0, 0, 175))
-        draw.multiline_text((540, top + 27), text, fill="white", font=font, spacing=4, stroke_width=2, stroke_fill=(0, 0, 0, 240), anchor="ma", align="center")
+        draw.multiline_text(
+            (540, top + 27),
+            text,
+            fill="white",
+            font=font,
+            spacing=4,
+            stroke_width=2,
+            stroke_fill=(0, 0, 0, 240),
+            anchor="ma",
+            align="center",
+        )
     elif not transparent:
         draw.rounded_rectangle((48, 450, 1032, 820), radius=34, fill=(5, 10, 22, 190) if transparent else (5, 10, 22))
         lines = textwrap.wrap(package.hook, width=29)[:4]
@@ -98,7 +124,6 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     asset_dir = Path(os.getenv("REDDIT_ASSETS_DIR", "assets/reddit"))
     attribution = re.search(r"Reddit attribution: u/([^ ]+) in r/([^\n]+)", package.description)
     username = attribution.group(1) if attribution else "story_author"
-    community = attribution.group(2).strip() if attribution else "redditstories"
     # Match the reference treatment: a compact post floating over the game,
     # rather than a full-width panel that dominates the opening frame.
     left, right = 35, 1045
@@ -115,7 +140,9 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     # Let the post card flow with the text. The old fixed 490px minimum left
     # conspicuous empty space when a post had a short title.
     bottom = max(top + 365, top + 150 + (len(lines) * 48) + 90)
-    draw.rounded_rectangle((left, top, right, bottom), radius=22, fill=(250, 250, 250, 252), outline=(215, 215, 215, 255), width=3)
+    draw.rounded_rectangle(
+        (left, top, right, bottom), radius=22, fill=(250, 250, 250, 252), outline=(215, 215, 215, 255), width=3
+    )
 
     # Compact Reddit-style header with a recognizable orange avatar and metadata.
     avatar = _asset(asset_dir / "avatar.png", (58, 58))
@@ -140,7 +167,9 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     award_files += sorted((asset_dir / "awards").glob("*.gif"))
     seed_bytes = hashlib.sha256((package.title + "|" + "|".join(package.sources)).encode("utf-8")).digest()
     seed = int.from_bytes(seed_bytes[:4], "big")
-    selected_awards = [award_files[(seed + (index * 17)) % len(award_files)] for index in range(8)] if award_files else []
+    selected_awards = (
+        [award_files[(seed + (index * 17)) % len(award_files)] for index in range(8)] if award_files else []
+    )
     animated_files = [award for award in award_files if award.suffix.lower() == ".gif"]
     if selected_awards and animated_files:
         # Keep motion present in every Reddit opening while varying which
@@ -150,7 +179,11 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     animated_awards: list[tuple[Path, int]] = []
     for index in range(8):
         color = fallback_badges[index % len(fallback_badges)]
-        badge = _asset(selected_awards[index], (25, 25)) if selected_awards else _asset(asset_dir / f"badge-{index + 1}.png", (25, 25))
+        badge = (
+            _asset(selected_awards[index], (25, 25))
+            if selected_awards
+            else _asset(asset_dir / f"badge-{index + 1}.png", (25, 25))
+        )
         if badge:
             image.alpha_composite(badge, (badge_x, top + 78))
         else:
@@ -175,12 +208,20 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
         # Small outline heart, matching the light-gray Reddit footer icon.
         draw.arc((left + 30, footer_y + 1, left + 40, footer_y + 11), 180, 360, fill=(145, 145, 145), width=2)
         draw.arc((left + 39, footer_y + 1, left + 49, footer_y + 11), 180, 360, fill=(145, 145, 145), width=2)
-        draw.line((left + 30, footer_y + 6, left + 40, footer_y + 18, left + 49, footer_y + 6), fill=(145, 145, 145), width=2)
+        draw.line(
+            (left + 30, footer_y + 6, left + 40, footer_y + 18, left + 49, footer_y + 6), fill=(145, 145, 145), width=2
+        )
     if comment_icon:
         image.alpha_composite(comment_icon, (left + 143, footer_y))
     else:
-        draw.rounded_rectangle((left + 143, footer_y + 1, left + 161, footer_y + 14), radius=5, outline=(145, 145, 145), width=2)
-        draw.line((left + 147, footer_y + 13, left + 145, footer_y + 18, left + 152, footer_y + 14), fill=(145, 145, 145), width=2)
+        draw.rounded_rectangle(
+            (left + 143, footer_y + 1, left + 161, footer_y + 14), radius=5, outline=(145, 145, 145), width=2
+        )
+        draw.line(
+            (left + 147, footer_y + 13, left + 145, footer_y + 18, left + 152, footer_y + 14),
+            fill=(145, 145, 145),
+            width=2,
+        )
     if share_icon:
         image.alpha_composite(share_icon, (right - 98, footer_y))
     else:
@@ -205,16 +246,29 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
                 except (OSError, EOFError):
                     continue
             frames.append(frame)
-        frames[0].save(path.with_suffix(".gif"), save_all=True, append_images=frames[1:], duration=120, loop=0, disposal=2)
+        frames[0].save(
+            path.with_suffix(".gif"), save_all=True, append_images=frames[1:], duration=120, loop=0, disposal=2
+        )
 
 
-def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = None, captions: Path | None = None, background: Path | None = None) -> Path:
+def render_video(
+    package: ScriptPackage,
+    output_dir: Path,
+    audio: Path | None = None,
+    captions: Path | None = None,
+    background: Path | None = None,
+) -> Path:
     if not shutil.which("ffmpeg"):
         raise RuntimeError("ffmpeg is required")
     output_dir.mkdir(parents=True, exist_ok=True)
     card = output_dir / "card.png"
     try:
-        _card(package, card, transparent=bool(background and background.exists()), show_hook=package.format_name != "reddit_story")
+        _card(
+            package,
+            card,
+            transparent=bool(background and background.exists()),
+            show_hook=package.format_name != "reddit_story",
+        )
     except OSError:
         # Windows installations can lack Arial; the video still renders with
         # a plain card rather than silently skipping the artifact.
@@ -242,12 +296,37 @@ def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = 
         # unsharp pass restores edge definition after that unavoidable resize.
         video_filter = "[0:v]scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,unsharp=5:5:0.35:5:5:0,eq=saturation=1.15:contrast=1.08:brightness=-0.04[bg];[bg][1:v]overlay=0:0"
         if package.format_name == "reddit_story":
-            video_filter = video_filter.replace("[bg][1:v]overlay=0:0", "[bg][1:v]overlay=0:0[base];[base][2:v]overlay=0:0:enable='between(t,0,4)'")
+            video_filter = video_filter.replace(
+                "[bg][1:v]overlay=0:0", "[bg][1:v]overlay=0:0[base];[base][2:v]overlay=0:0:enable='between(t,0,4)'"
+            )
         if captions and captions.exists():
             # Keep the proven narration-aligned timing. The opening card is a
             # visual layer and must not rewrite subtitle timestamps.
             video_filter += "," + _caption_filter(captions)
-        command += ["-filter_complex", video_filter + "[v]", "-map", "[v]", "-map", f"{audio_index}:a", "-t", str(duration), "-r", "30", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(output)]
+        command += [
+            "-filter_complex",
+            video_filter + "[v]",
+            "-map",
+            "[v]",
+            "-map",
+            f"{audio_index}:a",
+            "-t",
+            str(duration),
+            "-r",
+            "30",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "medium",
+            "-crf",
+            "18",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-shortest",
+            str(output),
+        ]
     else:
         command = ["ffmpeg", "-y", "-loop", "1", "-i", str(card)]
         if audio:
@@ -257,6 +336,20 @@ def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = 
         video_filter = "scale=1080:1920"
         if captions and captions.exists():
             video_filter += "," + _caption_filter(captions)
-        command += ["-vf", video_filter, "-r", "30", "-c:v", "libx264", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", str(output)]
+        command += [
+            "-vf",
+            video_filter,
+            "-r",
+            "30",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "medium",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            str(output),
+        ]
     subprocess.run(command, check=True, capture_output=True, text=True)
     return output

@@ -34,7 +34,10 @@ def _fallback_segments(text: str, duration: float) -> list[tuple[float, float, s
     # TTS often has a short lead-in before the first spoken phoneme. A small
     # delay makes fallback captions feel aligned instead of leading the voice.
     lead_in = 0.18
-    return [(0.0 if i == 0 else min(duration, i * step + lead_in), min(duration, (i + 1) * step + lead_in), " ".join(chunk)) for i, chunk in enumerate(chunks)]
+    return [
+        (0.0 if i == 0 else min(duration, i * step + lead_in), min(duration, (i + 1) * step + lead_in), " ".join(chunk))
+        for i, chunk in enumerate(chunks)
+    ]
 
 
 def _write_srt(segments: list[tuple[float, float, str]], output: Path) -> Path | None:
@@ -72,7 +75,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         wrapped = "\\N".join(" ".join(text.split()[i : i + 3]) for i in range(0, len(text.split()), 3))
         wrapped = wrapped.upper()
         animated = r"{\fad(70,50)\blur1\t(0,120,\fscx108\fscy108\blur0)}" + wrapped
-        events.append(f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Default,,0,0,0,,{animated}")
+        events.append(
+            f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Default,,0,0,0,,{animated}"
+        )
     output.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
     return output
 
@@ -84,7 +89,11 @@ def write_speaker_ass(segments: list[dict], output: Path) -> Path | None:
     This is intentionally separate from the one-narrator path: colors indicate
     diarized speaker identity, never guessed sentence alternation.
     """
-    usable = [(float(item["start"]), float(item["end"]), _clean(str(item["text"])), str(item.get("speaker", "SPEAKER_00"))) for item in segments if _clean(str(item.get("text", "")))]
+    usable = [
+        (float(item["start"]), float(item["end"]), _clean(str(item["text"])), str(item.get("speaker", "SPEAKER_00")))
+        for item in segments
+        if _clean(str(item.get("text", "")))
+    ]
     if not usable:
         return None
     speakers = {speaker: index % 4 for index, speaker in enumerate(dict.fromkeys(item[3] for item in usable))}
@@ -109,7 +118,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     events = []
     for start, end, text, speaker in usable:
         wrapped = "\\N".join(" ".join(text.upper().split()[i : i + 4]) for i in range(0, len(text.split()), 4))
-        events.append(f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Speaker{speakers[speaker]},,0,0,0,,{wrapped}")
+        events.append(
+            f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Speaker{speakers[speaker]},,0,0,0,,{wrapped}"
+        )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
     return output
@@ -120,8 +131,20 @@ def _audio_duration(audio: Path | None) -> float:
         return 10.0
     try:
         result = subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(audio)],
-            check=True, capture_output=True, text=True, timeout=20,
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                str(audio),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=20,
         )
         return max(float(result.stdout.strip()), 1.0)
     except (OSError, subprocess.SubprocessError, ValueError):

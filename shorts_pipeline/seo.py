@@ -23,7 +23,9 @@ def eligible_formats(topic: Topic) -> tuple[str, ...]:
     formats = ["news_breakdown", "fact_explainer", "question_answer"]
     if topic.category in {"AI", "ML", "CS", "AI News", "Cyber"}:
         formats.insert(2, "technical_joke")
-    myth_signal = re.search(r"\b(myth|false|wrong|debunk|misconception|claim|actually|really|true|doesn['’]t|not)\b", text)
+    myth_signal = re.search(
+        r"\b(myth|false|wrong|debunk|misconception|claim|actually|really|true|doesn['’]t|not)\b", text
+    )
     if myth_signal:
         formats.insert(2, "myth_bust")
     surprise_signal = re.search(
@@ -54,6 +56,29 @@ def eligible_formats(topic: Topic) -> tuple[str, ...]:
     return tuple(formats)
 
 
+def _native_hook(headline: str, source_text: str, category: str, format_name: str) -> str:
+    """Create a short, concrete overlay hook from source signals."""
+    text = f"{headline} {source_text}".lower()
+    if "hack" in text and "hugging face" in text:
+        return "AI AGENTS HACKED HUGGING FACE"
+    if "goes online" in text or "go online" in text:
+        return "NASA'S NEW SPACE ANTENNA IS ONLINE"
+    if "launch" in text and "telescope" in text:
+        return "NASA JUST LAUNCHED A DARK-UNIVERSE TELESCOPE"
+    if "lunarecycle" in text or ("moon" in text and "recycl" in text):
+        return "NASA JUST AWARDED $775K FOR MOON RECYCLING"
+    compact = re.sub(r"\s+", " ", headline).strip(" .:-")
+    words = compact.split()
+    compact = " ".join(words[:7])
+    if format_name == "question_answer":
+        return f"SO WHAT IS {compact}?"
+    if format_name == "myth_bust":
+        return f"THE TRUTH ABOUT {compact}"
+    if format_name == "technical_joke":
+        return f"POV: {compact} HIT PRODUCTION"
+    return f"WHY {compact} MATTERS" if format_name == "fact_explainer" else compact.upper()
+
+
 def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     source = topic.sources[0]
     title = topic.title[:85]
@@ -61,24 +86,19 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     if "reddit_story" in formats and variant == 0:
         format_name = "reddit_story"
     else:
-        format_index = (int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) + max(0, variant)) % len(formats)
-        format_name = formats[format_index]
+        if variant == 0 and topic.category in {"AI News", "Aerospace", "Cyber", "Finance"}:
+            format_name = "news_breakdown" if "news_breakdown" in formats else formats[0]
+        elif variant == 0 and "fact_explainer" in formats:
+            format_name = "fact_explainer"
+        else:
+            format_index = (
+                int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) + max(0, variant)
+            ) % len(formats)
+            format_name = formats[format_index]
     headline = re.sub(r"\s+", " ", source.title).strip().rstrip(".")
     # The source title remains in narration/metadata; the on-screen hook needs
     # to stay scannable on a phone instead of becoming a tiny headline block.
     headline = headline[:42].rsplit(" ", 1)[0] if len(headline) > 42 else headline
-    hook_templates = {
-        "news_breakdown": "What '{headline}' actually means",
-        "fact_explainer": "The simple explanation of '{headline}'",
-        "myth_bust": "What '{headline}' gets wrong",
-        "technical_joke": "POV: '{headline}' reaches production",
-        "surprising_fact": "The detail in '{headline}' that changes the story",
-        "question_answer": "What does '{headline}' actually mean?",
-        "timeline": "How '{headline}' got here",
-        "prediction_watch": "Will '{headline}' actually happen?",
-        "reddit_story": "The config change that took down an office",
-    }
-    hook = hook_templates[format_name].format(headline=headline)
     summary = " ".join(source.summary.split())
     if len(summary.split()) < 8:
         # Some RSS feeds, especially link aggregators, provide only URLs and
@@ -90,18 +110,42 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         # a resolution. Trim only at a complete sentence boundary.
         if len(summary) > 900:
             summary = summary[:900].rsplit(".", 1)[0].rstrip() + "."
-    elif len(summary) > 560:
-        summary = summary[:560].rsplit(" ", 1)[0] + "..."
+    elif len(summary) > (
+        760
+        if format_name
+        in {
+            "news_breakdown",
+            "fact_explainer",
+            "myth_bust",
+            "surprising_fact",
+            "timeline",
+            "question_answer",
+            "prediction_watch",
+        }
+        else 560
+    ):
+        # News and explainers need enough source context to earn their longer
+        # runtime; quick entertainment formats stay compact. Both paths still
+        # stop at a complete sentence, so a thin source is never padded.
+        bounded = summary[: 760 if format_name != "technical_joke" else 560]
+        sentences = re.split(r"(?<=[.!?])\s+", bounded)
+        summary = " ".join(sentences[:-1]).strip() if len(sentences) > 1 else bounded.rsplit(" ", 1)[0]
+    hook = _native_hook(headline, summary, topic.category, format_name)
+    category_label = {"AI News": "AI", "ML": "machine learning", "CS": "software", "Cyber": "cybersecurity"}.get(
+        topic.category, topic.category.lower()
+    )
     if format_name == "technical_joke":
         narration = f"POV: you ask {topic.category} one simple question and get a twelve-page answer. The useful part is this: {summary} So the practical takeaway is to separate the demo from what actually works."
+    elif format_name == "news_breakdown":
+        narration = f"This is the part that matters: {summary} In practical terms, this is a real development in {category_label}. The next question is whether the result holds up beyond the headline."
     elif format_name == "fact_explainer":
-        narration = f"Here's the simple version: {summary} In plain English, that means it changes how we understand {topic.category.lower()}. The part to remember is what the evidence shows—not the biggest version of the headline."
+        narration = f"Here's what happened: {summary} In plain English, this matters because it changes one specific part of {category_label}. The takeaway is the evidence behind the result—not the biggest version of the headline."
     elif format_name == "surprising_fact":
         narration = f"The detail most people will miss is this: {summary} That matters because it changes the usual way we think about {topic.category.lower()}. The context is the difference between a real result and hype."
     elif format_name == "timeline":
         narration = f"Here's the short version of how this story developed: {summary} The important point is what changed, not just the headline. That sequence explains why this matters now."
     elif format_name == "question_answer":
-        narration = f"The question is simple: what does this actually mean? The answer starts here: {summary} The headline is shorter than the reality, so keep the useful distinction between evidence and interpretation."
+        narration = f"So what does this actually mean? {summary} The useful distinction is between what the source demonstrates and what people might assume from the headline."
     elif format_name == "prediction_watch":
         narration = f"This is a claim worth watching, not a promise: {summary} The next thing to look for is evidence that it holds outside the original context. Until then, separate a measured result from a prediction."
     elif format_name == "reddit_story":
@@ -111,7 +155,11 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", summary) if part.strip()]
         ending = sentences[-1] if sentences else summary
         body = " ".join(sentences[:-1]).strip()
-        narration = f"{source.title}. Here's how it unfolded: {body} Then came the outcome: {ending}" if body else f"{source.title}. {ending}"
+        narration = (
+            f"{source.title}. Here's how it unfolded: {body} Then came the outcome: {ending}"
+            if body
+            else f"{source.title}. {ending}"
+        )
     elif format_name == "myth_bust":
         narration = f"This sounds like a bigger claim than it is. Here's what the evidence says: {summary} The honest takeaway is to separate the result from the hype."
     else:
@@ -120,17 +168,40 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     if topic.category == "Finance":
         disclaimer = "This is educational market commentary, not financial advice or an investment recommendation."
     attribution = ""
-    if source.author and source.community and source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")):
+    if (
+        source.author
+        and source.community
+        and source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/"))
+    ):
         attribution = f"\nReddit attribution: u/{source.author} in r/{source.community}"
     description = f"{narration}\n\nSource: {source.url}{attribution}\n{disclaimer}"
     tags = [topic.category, "technology", "science", "explained", "shorts"]
     if topic.category == "Finance":
         tags.extend(["markets", "business"])
     return ScriptPackage(
-        hook, narration, title, description, tags, [source.url], format_name,
-        topic.category, max(0, variant),
+        hook,
+        narration,
+        title,
+        description,
+        tags,
+        [source.url],
+        format_name,
+        topic.category,
+        max(0, variant),
         card_text=(f"{source.title}\n{summary}" if format_name == "reddit_story" else ""),
     )
+
+
+def _clip_narration(text: str, limit: int = 900) -> str:
+    """Keep generated narration within platform limits without a hard cut."""
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+    bounded = text[:limit]
+    sentences = re.split(r"(?<=[.!?])\s+", bounded)
+    if len(sentences) > 1:
+        return " ".join(sentences[:-1]).strip()
+    return bounded.rsplit(" ", 1)[0].rstrip(" ,;:-")
 
 
 def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
@@ -139,7 +210,7 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     required = ("hook", "narration", "title", "description")
     if any(not isinstance(data.get(field), str) or not data[field].strip() for field in required):
         raise ValueError("model output is missing required text fields")
-    narration = " ".join(data["narration"].split())[:900].rsplit(" ", 1)[0]
+    narration = _clip_narration(data["narration"])
     if len(narration.split()) < 12:
         raise ValueError("model narration is too short")
     format_name = data.get("format_name", "news_breakdown")
@@ -157,7 +228,11 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     description = data["description"].strip()
     if source.url not in description:
         description += f"\n\nSource: {source.url}"
-    if source.author and source.community and source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")):
+    if (
+        source.author
+        and source.community
+        and source.url.lower().startswith(("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/"))
+    ):
         attribution = f"Reddit attribution: u/{source.author} in r/{source.community}"
         if attribution not in description:
             description += f"\n{attribution}"

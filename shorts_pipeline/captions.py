@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -34,7 +35,10 @@ def _fallback_segments(text: str, duration: float) -> list[tuple[float, float, s
     # TTS often has a short lead-in before the first spoken phoneme. A small
     # delay makes fallback captions feel aligned instead of leading the voice.
     lead_in = 0.18
-    return [(0.0 if i == 0 else min(duration, i * step + lead_in), min(duration, (i + 1) * step + lead_in), " ".join(chunk)) for i, chunk in enumerate(chunks)]
+    return [
+        (0.0 if i == 0 else min(duration, i * step + lead_in), min(duration, (i + 1) * step + lead_in), " ".join(chunk))
+        for i, chunk in enumerate(chunks)
+    ]
 
 
 def _write_srt(segments: list[tuple[float, float, str]], output: Path) -> Path | None:
@@ -71,7 +75,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     for start, end, text in usable:
         wrapped = "\\N".join(" ".join(text.split()[i : i + 4]) for i in range(0, len(text.split()), 4))
         wrapped = wrapped.upper()
-        events.append(f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Default,,0,0,0,,{wrapped}")
+        events.append(
+            f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Default,,0,0,0,,{wrapped}"
+        )
     output.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
     return output
 
@@ -83,13 +89,17 @@ def write_speaker_ass(segments: list[dict], output: Path) -> Path | None:
     This is intentionally separate from the one-narrator path: colors indicate
     diarized speaker identity, never guessed sentence alternation.
     """
-    usable = [(float(item["start"]), float(item["end"]), _clean(str(item["text"])), str(item.get("speaker", "SPEAKER_00"))) for item in segments if _clean(str(item.get("text", "")))]
+    usable = [
+        (float(item["start"]), float(item["end"]), _clean(str(item["text"])), str(item.get("speaker", "SPEAKER_00")))
+        for item in segments
+        if _clean(str(item.get("text", "")))
+    ]
     if not usable:
         return None
     speakers = {speaker: index % 4 for index, speaker in enumerate(dict.fromkeys(item[3] for item in usable))}
     colors = ["&H0000D7FF", "&H0000FF80", "&H00FFFF00", "&H00FF80FF"]
     styles = "\n".join(
-        f"Style: Speaker{index},Arial,54,{colors[index]},&H00FFFFFF,&H00101010,&H99000000,-1,0,0,0,100,100,0,0,1,4,2,2,80,80,430,1"
+        f"Style: Speaker{index},Arial,68,{colors[index]},&H00FFFFFF,&H00101010,&H99000000,-1,0,0,0,100,100,0,0,1,5,2,2,65,65,430,1"
         for index in range(4)
     )
     header = f"""[Script Info]
@@ -108,10 +118,38 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     events = []
     for start, end, text, speaker in usable:
         wrapped = "\\N".join(" ".join(text.upper().split()[i : i + 4]) for i in range(0, len(text.split()), 4))
-        events.append(f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Speaker{speakers[speaker]},,0,0,0,,{wrapped}")
+        events.append(
+            f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(max(end, start + 0.2))},Speaker{speakers[speaker]},,0,0,0,,{wrapped}"
+        )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
     return output
+
+
+def _whisperx_speaker_segments(audio: Path, model_name: str) -> list[dict]:
+    """Transcribe and diarize audio when the optional WhisperX path is enabled."""
+    import whisperx
+
+    device = os.getenv("WHISPERX_DEVICE", "cpu")
+    compute_type = os.getenv("WHISPERX_COMPUTE_TYPE", "int8")
+    token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_TOKEN")
+    if not token:
+        raise RuntimeError("WHISPERX_DIARIZATION requires HF_TOKEN")
+    model = whisperx.load_model(model_name, device=device, compute_type=compute_type)
+    result = model.transcribe(str(audio))
+    diarize_model = whisperx.DiarizationPipeline(token, device=device)
+    diarize_segments = diarize_model(str(audio))
+    result = whisperx.assign_word_speakers(diarize_segments, result)
+    return [
+        {
+            "start": float(segment["start"]),
+            "end": float(segment["end"]),
+            "text": str(segment.get("text", "")),
+            "speaker": str(segment.get("speaker", "SPEAKER_00")),
+        }
+        for segment in result.get("segments", [])
+        if _clean(str(segment.get("text", "")))
+    ]
 
 
 def _audio_duration(audio: Path | None) -> float:
@@ -119,8 +157,20 @@ def _audio_duration(audio: Path | None) -> float:
         return 10.0
     try:
         result = subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(audio)],
-            check=True, capture_output=True, text=True, timeout=20,
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                str(audio),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=20,
         )
         return max(float(result.stdout.strip()), 1.0)
     except (OSError, subprocess.SubprocessError, ValueError):
@@ -141,6 +191,15 @@ def _write_caption_files(segments: list[tuple[float, float, str]], output: Path)
 def create_captions(text: str, audio: Path | None, output: Path, model_name: str = "base") -> Path | None:
     """Create SRT with local faster-whisper when available, otherwise time text."""
     if audio and audio.exists():
+        if os.getenv("WHISPERX_DIARIZATION", "").lower() in {"1", "true", "yes", "on"}:
+            try:
+                speaker_segments = _whisperx_speaker_segments(audio, model_name)
+                timed = [(item["start"], item["end"], item["text"]) for item in speaker_segments]
+                result = _write_srt(timed, output)
+                if result and write_speaker_ass(speaker_segments, output.with_suffix(".ass")):
+                    return result
+            except (ImportError, OSError, RuntimeError, TypeError, ValueError, KeyError) as exc:
+                print(f"WhisperX diarization unavailable; using regular captions: {exc}")
         try:
             from faster_whisper import WhisperModel
 

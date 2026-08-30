@@ -7,16 +7,28 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   python:
+    name: Python quality
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install package and test tools
-        run: python -m pip install --upgrade pip && pip install -e . pytest
+          cache: pip
+
+      - name: Install package and development tools
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+
       - name: Reject tracked runtime secrets
         shell: bash
         run: |
@@ -24,9 +36,17 @@ jobs:
             echo "Tracked runtime secret file detected" >&2
             exit 1
           fi
-      - name: Compile Python
-        run: python -m compileall -q shorts_pipeline
+      - name: Check formatting
+        run: python -m ruff format --check .
+
+      - name: Run lint checks
+        run: python -m ruff check .
+
+      - name: Compile Python sources
+        run: python -m compileall -q shorts_pipeline tests scripts
+
       - name: Check shell helpers
         run: for script in scripts/*.sh; do sh -n "$script"; done
+
       - name: Run tests
-        run: pytest -q
+        run: python -m pytest -q

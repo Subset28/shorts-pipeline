@@ -13,6 +13,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 from .models import ScriptPackage
+from .quality import assess_render
 
 YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
@@ -38,10 +39,26 @@ def metadata(package: ScriptPackage) -> dict:
     ).strip()
     description = " ".join(description.split())
     description = description.translate(str.maketrans("", "", ">*_<#"))
-    return {"title": package.title, "description": description[:5000], "tags": package.tags, "sources": package.sources, "format_name": package.format_name, "category": package.category, "variant": package.variant}
+    return {
+        "title": package.title,
+        "description": description[:5000],
+        "tags": package.tags,
+        "sources": package.sources,
+        "format_name": package.format_name,
+        "category": package.category,
+        "variant": package.variant,
+    }
 
 
-def save_manifest(package: ScriptPackage, video: Path, output_dir: Path, background: Path | None = None, background_sources: list[Path] | None = None, audio: Path | None = None, captions: Path | None = None) -> Path:
+def save_manifest(
+    package: ScriptPackage,
+    video: Path,
+    output_dir: Path,
+    background: Path | None = None,
+    background_sources: list[Path] | None = None,
+    audio: Path | None = None,
+    captions: Path | None = None,
+) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest = output_dir / "manifest.json"
     payload = {"video": str(video), **metadata(package)}
@@ -53,11 +70,19 @@ def save_manifest(package: ScriptPackage, video: Path, output_dir: Path, backgro
         payload["background"] = str(background)
     if background_sources:
         payload["background_sources"] = [str(path) for path in background_sources]
+    payload["quality"] = assess_render(video, audio, captions, background)
     manifest.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return manifest
 
 
-def upload_youtube(video: Path, package: ScriptPackage, client_secrets: Path, token_file: Path, privacy: str, publish_at: str | None = None) -> str:
+def upload_youtube(
+    video: Path,
+    package: ScriptPackage,
+    client_secrets: Path,
+    token_file: Path,
+    privacy: str,
+    publish_at: str | None = None,
+) -> str:
     credentials = None
     if token_file.exists():
         credentials = Credentials.from_authorized_user_file(str(token_file), YOUTUBE_SCOPES)
@@ -72,7 +97,15 @@ def upload_youtube(video: Path, package: ScriptPackage, client_secrets: Path, to
     safe_metadata = metadata(package)
     request = youtube.videos().insert(
         part="snippet,status",
-        body={"snippet": {"title": safe_metadata["title"], "description": safe_metadata["description"], "tags": safe_metadata["tags"], "categoryId": "28"}, "status": youtube_status(privacy, publish_at)},
+        body={
+            "snippet": {
+                "title": safe_metadata["title"],
+                "description": safe_metadata["description"],
+                "tags": safe_metadata["tags"],
+                "categoryId": "28",
+            },
+            "status": youtube_status(privacy, publish_at),
+        },
         media_body=MediaFileUpload(str(video), mimetype="video/mp4", resumable=True),
     )
     return request.execute()["id"]
@@ -94,11 +127,29 @@ def upload_tiktok(video: Path, package: ScriptPackage, access_token: str, privac
         init = client.post(
             "https://open.tiktokapis.com/v2/post/publish/video/init/",
             headers={"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"},
-            json={"post_info": {"title": f"{package.title} #shorts", "privacy_level": privacy, "disable_comment": False, "disable_duet": False, "disable_stitch": False}, "source_info": {"source": "FILE_UPLOAD", "video_size": len(data), "chunk_size": len(data), "total_chunk_count": 1}},
+            json={
+                "post_info": {
+                    "title": f"{package.title} #shorts",
+                    "privacy_level": privacy,
+                    "disable_comment": False,
+                    "disable_duet": False,
+                    "disable_stitch": False,
+                },
+                "source_info": {
+                    "source": "FILE_UPLOAD",
+                    "video_size": len(data),
+                    "chunk_size": len(data),
+                    "total_chunk_count": 1,
+                },
+            },
         )
         init.raise_for_status()
         payload = init.json()["data"]
-        response = client.put(payload["upload_url"], content=data, headers={"Content-Range": f"bytes 0-{len(data)-1}/{len(data)}", "Content-Type": "video/mp4"})
+        response = client.put(
+            payload["upload_url"],
+            content=data,
+            headers={"Content-Range": f"bytes 0-{len(data) - 1}/{len(data)}", "Content-Type": "video/mp4"},
+        )
         response.raise_for_status()
         return payload["publish_id"]
 

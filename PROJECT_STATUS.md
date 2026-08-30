@@ -47,6 +47,59 @@
 - Updated script-generation guidance to target format-specific duration bands:
   18-33 seconds for quick entertainment, 40-55 for explainers/news, and
   42-58 for complete Reddit stories when the source supports them.
+- Reworked non-Reddit fallback hooks into short native Shorts headlines and
+  tightened LLM guidance to reject generic topics without a concrete payoff.
+- Strengthened the feed source gate so non-Reddit topics require a usable
+  summary, preventing headline-only items from becoming shallow scripts.
+- Added a completeness gate for RSS summaries, rejecting short or ellipsis-
+  truncated feed text before it reaches narration or TTS.
+- Preserved trailing punctuation during feed cleanup and changed long-source
+  clipping to end at a complete sentence rather than speaking an ellipsis.
+- Reject malformed replacement-character tails in RSS summaries so encoding
+  corruption cannot become spoken narration.
+- Expanded truncation detection to catch RSS markers wrapped as `[…]` or
+  otherwise placed just before a closing bracket.
+- Applied truncation detection after HTML cleanup as well as to raw feed text,
+  covering ellipses followed by closing tags.
+- Prefer fuller RSS `content` fields over truncated summaries when publishers
+  provide them, preserving the source-quality gate without starving the queue.
+- Hardened newsletter boilerplate removal for publisher HTML that inserts
+  whitespace before punctuation.
+- Fixed editorial-to-asset category aliases so AI News selects AI footage and
+  Cyber selects cybersecurity footage instead of falling back to unrelated
+  aerospace or general visuals.
+- Mapped Finance explainers to neutral General motion footage when no
+  finance-specific assets exist, preventing misleading cross-topic visuals.
+- Tightened live source discovery with lane-specific minimum context and a
+  low-signal ceremony filter, removing thin finance snippets and weak
+  ribbon-cutting or honors entries before narration.
+- Made the ceremony filter require concrete signal in the source summary,
+  preventing generic title words such as “new” from bypassing it.
+- Added content-level deduplication so newsletter and article mirrors of the
+  same story do not consume separate non-Reddit queue slots.
+- Extended deduplication to conservative near-mirror matching using shared
+  title terms and high first-100-word similarity, covering lightly edited
+  newsletter/article versions without broad topic matching.
+- Calibrated the near-mirror threshold against the live Hugging Face
+  newsletter/article pair so that confirmed duplicates collapse in practice.
+- Made near-mirror comparison symmetric because lightly edited feed summaries
+  can produce different sequence ratios depending on ingestion order.
+- Narrowed multi-story “The Download” headlines to their lead story so the
+  narrated subject, on-screen hook, and platform title remain aligned.
+- Rebuilt background reels as 60-second sequences of varied, reframed shots,
+  eliminating the former 8-second loop that repeated throughout longer shorts.
+- Tightened the non-Reddit reel cadence to three-second shots, increasing the
+  60-second assembly to 20 purposeful cuts for faster short-form pacing.
+- Added a manifest quality report that records audio/video sync, background
+  coverage, caption coverage, and explicit failure reasons for every render.
+- Extended substantive non-Reddit news/explainer fallback context to support
+  the intended longer runtime while retaining sentence-boundary clipping and
+  refusing to pad thin sources.
+- Applied the same sentence-boundary narration clipping to model-generated
+  packages, preventing long non-Reddit scripts from ending mid-thought.
+- Added an opt-in WhisperX diarization path (`WHISPERX_DIARIZATION=true` plus
+  `HF_TOKEN`) that burns speaker-specific caption colors while preserving the
+  existing aligned Whisper fallback when diarization is unavailable.
 - Added `user_orbital_capsule_earth.mp4` (Aerospace) and
   `user_computer_typing.mp4` (CS) at 1080p; source URLs and rights notes are
   recorded in the asset manifest.

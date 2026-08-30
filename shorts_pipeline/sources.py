@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 import re
 from datetime import datetime, timezone
+from difflib import SequenceMatcher
 
 import feedparser
 
@@ -21,12 +22,58 @@ FEEDS = {
 _CATEGORY_TERMS = {
     "AI": ("artificial intelligence", " ai ", "llm", "language model", "neural", "agent", "generative"),
     "ML": ("machine learning", "deep learning", "neural", "model", "training", "inference", "dataset", "classifier"),
-    "CS": ("software", "programming", "developer", "code", "database", "browser", "linux", "computer", "open source", "api", "algorithm"),
+    "CS": (
+        "software",
+        "programming",
+        "developer",
+        "code",
+        "database",
+        "browser",
+        "linux",
+        "computer",
+        "open source",
+        "api",
+        "algorithm",
+    ),
     "AI News": ("artificial intelligence", " ai ", "llm", "robot", "neural", "model", "algorithm", "machine learning"),
-    "Aerospace": ("space", "rocket", "launch", "orbit", "satellite", "spacecraft", "nasa", "lunar", "mars", "astronaut"),
-    "Cyber": ("cve", "vulnerability", "security", "cyber", "malware", "ransomware", "exploit", "patch", "breach", "authentication"),
+    "Aerospace": (
+        "space",
+        "rocket",
+        "launch",
+        "orbit",
+        "satellite",
+        "spacecraft",
+        "nasa",
+        "lunar",
+        "mars",
+        "astronaut",
+    ),
+    "Cyber": (
+        "cve",
+        "vulnerability",
+        "security",
+        "cyber",
+        "malware",
+        "ransomware",
+        "exploit",
+        "patch",
+        "breach",
+        "authentication",
+    ),
     "Finance": ("finance", "market", "stock", "invest", "fund", "earnings", "bank", "economy", "revenue", "valuation"),
 }
+
+_HIGH_SIGNAL_TERMS = re.compile(
+    r"\b(launch(?:es|ed)?|new|first|breakthrough|hacked|hack|breach|"
+    r"vulnerability|discovers?|reveals?|goes online|deploy(?:s|ed)?|fails?|"
+    r"record|challenge|mission|test(?:s|ed)?|upgrade|change(?:s|d)?)\b",
+    re.IGNORECASE,
+)
+_LOW_SIGNAL_TERMS = re.compile(
+    r"\b(ribbon[- ]cutting|honors?|honour|ceremony|event|statement|"
+    r"congratulations?|remarks?|recognition)\b",
+    re.IGNORECASE,
+)
 
 
 def is_relevant(category: str, source: Source) -> bool:
@@ -43,11 +90,16 @@ def is_usable_source(source: Source) -> bool:
         return False
     title_words = re.findall(r"[a-z0-9]+", title)
     summary_words = re.findall(r"[a-z0-9]+", source.summary.lower())
-    return len(title_words) >= 4 or len(summary_words) >= 12
+    # A headline alone is not enough for a source-backed short: it produces
+    # the exact shallow, prematurely-ended narration the non-Reddit lane was
+    # generating. Require enough source text to explain a concrete result.
+    return len(title_words) >= 4 and len(summary_words) >= 5
 
 
 def _clean_summary(value: str) -> str:
     value = html.unescape(value)
+    # Some feeds decode smart punctuation as the replacement character.
+    value = value.replace("\ufffd", "'")
     value = re.sub(r"<[^>]+>", " ", value)
     value = re.sub(r"https?://\S+", " ", value)
     value = re.sub(r"\b(?:article|comments?)\s+url\s*:\s*", " ", value, flags=re.IGNORECASE)
@@ -56,7 +108,7 @@ def _clean_summary(value: str) -> str:
     # description to the actual item. It is not source-specific context and
     # sounds like an advertisement when sent to narration.
     value = re.sub(
-        r"^this is today[’']s edition of the download,.*?world of technology\.\s*",
+        r"^\s*this is today.*?world of technology\.\s*",
         "",
         value,
         flags=re.IGNORECASE,
@@ -64,8 +116,79 @@ def _clean_summary(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip(" .-")
 
 
+def _clean_title(value: str) -> str:
+    title = re.sub(r"\s+", " ", html.unescape(value).replace("\ufffd", "'")).strip()
+    if title.casefold().startswith("the download:"):
+        lead = title.split(":", 1)[1].strip()
+        lead = re.split(r",\s+(?:and|plus|with)\s+", lead, maxsplit=1, flags=re.IGNORECASE)[0].strip(" .,-")
+        if lead:
+            title = lead
+    return title
+
+
+def _source_score(source: Source, published: str, now: datetime) -> float:
+    """Score narrative potential, not popularity or expected views."""
+    score = 1.0 + min(len(source.summary.split()) / 120, 0.8)
+    if _HIGH_SIGNAL_TERMS.search(source.title):
+        score += 0.45
+    if _LOW_SIGNAL_TERMS.search(source.title):
+        score -= 0.45
+    if re.search(r"\b\d+(?:\.\d+)?(?:%|[- ]year|[- ]meter|[- ]month)?\b", source.title, re.IGNORECASE):
+        score += 0.2
+    if published and now.year >= 2020:
+        score += 0.1
+    return score
+
+
+def _has_truncation_marker(value: str) -> bool:
+    return bool(re.search(r"(?:\.\.\.|…|\[\s*(?:\.\.\.|…)\s*\])", value[-100:]))
+
+
+def _has_narrative_quality(category: str, source: Source) -> bool:
+    """Require enough context and signal for a watchable source-backed short."""
+    minimum_words = {
+        "Finance": 40,
+        "Cyber": 30,
+        "Aerospace": 30,
+    }.get(category, 25)
+    if len(re.findall(r"[a-z0-9]+", source.summary.lower())) < minimum_words:
+        return False
+    # Ceremonies and honors rarely explain a concrete development on their
+    # own. Keep them only when the accompanying text supplies a real change.
+    if _LOW_SIGNAL_TERMS.search(source.title) and not _HIGH_SIGNAL_TERMS.search(source.summary):
+        return False
+    return True
+
+
+def _content_key(source: Source) -> str:
+    """Create a stable key for newsletter/article mirrors of one story."""
+    words = re.findall(r"[a-z0-9]+", source.summary.lower())
+    return " ".join(words[:80]) or source.url
+
+
+def _is_content_mirror(source: Source, previous: list[Source]) -> bool:
+    """Detect lightly edited newsletter/article mirrors without broad matching."""
+    title_words = set(re.findall(r"[a-z0-9]+", source.title.lower()))
+    source_text = " ".join(re.findall(r"[a-z0-9]+", source.summary.lower())[:100])
+    for candidate in previous:
+        candidate_title = set(re.findall(r"[a-z0-9]+", candidate.title.lower()))
+        shared_title = title_words & candidate_title
+        if len(shared_title) < 2:
+            continue
+        candidate_text = " ".join(re.findall(r"[a-z0-9]+", candidate.summary.lower())[:100])
+        similarity = max(
+            SequenceMatcher(None, source_text, candidate_text).ratio(),
+            SequenceMatcher(None, candidate_text, source_text).ratio(),
+        )
+        if similarity >= 0.59:
+            return True
+    return False
+
+
 def discover_topics(limit: int = 10) -> list[Topic]:
     by_category: dict[str, list[Topic]] = {category: [] for category in FEEDS}
+    seen_content: set[str] = set()
+    seen_sources: list[Source] = []
     now = datetime.now(timezone.utc)
     for category, url in FEEDS.items():
         feed = feedparser.parse(url)
@@ -74,19 +197,38 @@ def discover_topics(limit: int = 10) -> list[Topic]:
             link = str(entry.get("link", "")).strip()
             if not link:
                 continue
+            raw_summary = str(entry.get("summary", entry.get("description", "")))
+            content_items = entry.get("content", []) or []
+            if content_items:
+                content_value = str(content_items[0].get("value", ""))
+                # Many publishers truncate `summary` but expose the complete
+                # article teaser in RSS `content`.
+                if len(content_value) > len(raw_summary):
+                    raw_summary = content_value
             source = Source(
-                title=str(entry.get("title", "Untitled")).strip(),
+                title=_clean_title(str(entry.get("title", "Untitled"))),
                 url=link,
-                summary=_clean_summary(str(entry.get("summary", entry.get("description", "")))),
+                summary=_clean_summary(raw_summary),
                 published=published,
             )
             if not is_relevant(category, source) or not is_usable_source(source):
                 continue
+            # Do not turn RSS truncation markers into spoken cliffhangers.
+            if (
+                not _has_narrative_quality(category, source)
+                or _has_truncation_marker(raw_summary)
+                or _has_truncation_marker(source.summary)
+                or "\ufffd" in raw_summary
+            ):
+                continue
+            content_key = _content_key(source)
+            if content_key in seen_content or _is_content_mirror(source, seen_sources):
+                continue
+            seen_content.add(content_key)
+            seen_sources.append(source)
             # Prefer current, well-described entries. The exact popularity
             # signal comes later from channel analytics, not fake view counts.
-            score = 1.0 if source.summary else 0.0
-            if published and now.year >= 2020:
-                score += 0.1
+            score = _source_score(source, published, now)
             by_category[category].append(Topic(source.title, category, (source,), score))
 
     # Keep a batch from being dominated by the first feed in the map. Within
