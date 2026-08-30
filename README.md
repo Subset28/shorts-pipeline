@@ -45,6 +45,13 @@ Generate a queue of distinct drafts with `python -m shorts_pipeline batch
 folder (with `item-NN` children; reruns allocate a new batch) and uses the
 source/format telemetry path.
 
+Collect candidate first-person industry stories through Reddit's official API
+with `python -m shorts_pipeline reddit --count 10`. Candidates are written to
+`data/reddit_candidates.json` with `reuse_permission=false`; set that field only
+after documenting permission with the author. Configure `REDDIT_APPROVED_FILE`
+to feed approved stories into normal runs. Candidate collection never grants
+publishing rights by itself.
+
 For controlled experiments, add `--variants 2` (or another small number) to
 generate multiple treatments per source. Each manifest and telemetry event
 records the variant so platform exports can be compared without losing the

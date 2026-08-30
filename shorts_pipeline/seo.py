@@ -58,8 +58,11 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     source = topic.sources[0]
     title = topic.title[:85]
     formats = eligible_formats(topic)
-    format_index = (int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) + max(0, variant)) % len(formats)
-    format_name = formats[format_index]
+    if "reddit_story" in formats and variant == 0:
+        format_name = "reddit_story"
+    else:
+        format_index = (int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) + max(0, variant)) % len(formats)
+        format_name = formats[format_index]
     headline = re.sub(r"\s+", " ", source.title).strip().rstrip(".")
     # The source title remains in narration/metadata; the on-screen hook needs
     # to stay scannable on a phone instead of becoming a tiny headline block.

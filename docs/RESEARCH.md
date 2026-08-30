@@ -47,6 +47,15 @@ URL, author, subreddit, and explicit reuse permission in the source record. The
 generated script adds original analysis and describes the post as one person's
 account; it does not claim the anecdote is independently verified.
 
+The initial source ranking is narrative-first: `TalesFromTechSupport`,
+`AskReddit`, `aviation`, `flying`, `sysadmin`, `AskEngineers`,
+`cscareerquestions`, `AerospaceEngineering`, `cybersecurity`, and
+`MachineLearning`, followed by `ExperiencedDevs`, `ProgrammerHumor`,
+`rocketry`, `SpaceX`, `aircraft`, `netsec`, `hacking`, `OSINT`, `techsupport`,
+and `ShittySysAdmin`. This is a starting hypothesis based on narrative
+potential, not a claim that any subreddit guarantees views; telemetry should
+eventually reorder it by usable-story rate and retention.
+
 - [Reddit Data API Terms](https://redditinc.com/policies/data-api-terms)
 - [Reddit Developer Terms](https://redditinc.com/policies/developer-terms)
 - [YouTube channel monetization policies](https://support.google.com/youtube/answer/1311392)

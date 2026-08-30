@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dotenv import load_dotenv
+from .reddit import RANKED_STORY_SUBREDDITS
 
 
 @dataclass(frozen=True)
@@ -24,10 +25,16 @@ class Settings:
     caption_model: str
     background_video: Path
     background_dir: Path
+    reddit_background_dir: Path
     background_video_url: str
     topic_limit: int
     output_dir: Path
     data_dir: Path
+    reddit_client_id: str
+    reddit_client_secret: str
+    reddit_user_agent: str
+    reddit_subreddits: tuple[str, ...]
+    reddit_approved_file: Path
 
 
 def load_settings(dotenv_path: str | None = None) -> Settings:
@@ -50,8 +57,14 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
         caption_model=os.getenv("CAPTION_MODEL", "base"),
         background_video=Path(os.getenv("BACKGROUND_VIDEO", "data/backgrounds/nasa_moon_to_earth.mp4")),
         background_dir=Path(os.getenv("BACKGROUND_VIDEO_DIR", "data/backgrounds")),
+        reddit_background_dir=Path(os.getenv("REDDIT_BACKGROUND_DIR", "data/backgrounds/minecraft_parkour_chunks")),
         background_video_url=os.getenv("BACKGROUND_VIDEO_URL", "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005039/moon_to_earth_1080p30.mp4"),
         topic_limit=int(os.getenv("TOPIC_LIMIT", "10")),
         output_dir=Path(os.getenv("OUTPUT_DIR", "output")),
         data_dir=Path(os.getenv("DATA_DIR", "data")),
+        reddit_client_id=os.getenv("REDDIT_CLIENT_ID", ""),
+        reddit_client_secret=os.getenv("REDDIT_CLIENT_SECRET", ""),
+        reddit_user_agent=os.getenv("REDDIT_USER_AGENT", "shorts-pipeline/1.0"),
+        reddit_subreddits=tuple(item.strip() for item in os.getenv("REDDIT_SUBREDDITS", ",".join(RANKED_STORY_SUBREDDITS)).split(",") if item.strip()),
+        reddit_approved_file=Path(os.getenv("REDDIT_APPROVED_FILE", "data/reddit_candidates.json")),
     )

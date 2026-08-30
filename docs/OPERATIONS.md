@@ -7,6 +7,13 @@ secrets, and ElevenLabs `keys.json` outside Git.
 TTS prefers the local ElevenLabs rotator when configured, then falls back to
 the keyless `edge-tts` command using `EDGE_TTS_VOICE`.
 
+To collect real professional anecdotes, configure Reddit OAuth credentials and
+run `python -m shorts_pipeline reddit --count 10`. This writes candidates only;
+each record starts with `reuse_permission=false`. Verify permission with the
+author and preserve the post URL, username, and subreddit before changing that
+field to `true`. Approved records in `REDDIT_APPROVED_FILE` are eligible for the
+dedicated Reddit-story lane, whose default treatment uses that lane directly.
+
 Use the `split` command only for clips whose reuse rights are already cleared;
 it creates independently playable 2–4-part files and does not publish them by
 itself.

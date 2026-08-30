@@ -12,6 +12,8 @@ from shorts_pipeline.asset_library import sync_backgrounds
 from shorts_pipeline.publish import save_manifest
 from pathlib import Path
 from shorts_pipeline.sources import _clean_summary, is_relevant, is_usable_source
+from shorts_pipeline.reddit import discover_reddit_topics, load_approved_reddit_topics
+from shorts_pipeline.config import load_settings
 import shorts_pipeline.cli as cli
 
 
@@ -139,6 +141,7 @@ def test_reddit_story_lane_requires_explicit_rights_and_attribution():
     )
     topic = Topic(source.title, "CS", (source,))
     assert "reddit_story" in eligible_formats(topic)
+    assert fallback_package(topic).format_name == "reddit_story"
     packages = [fallback_package(topic, variant=i) for i in range(len(eligible_formats(topic)))]
     package = next(item for item in packages if item.format_name == "reddit_story")
     assert "r/programming" in package.narration
@@ -147,6 +150,63 @@ def test_reddit_story_lane_requires_explicit_rights_and_attribution():
 
     unapproved = Source(source.title, source.url, source.summary, author="example_user", community="programming")
     assert "reddit_story" not in eligible_formats(Topic(unapproved.title, "CS", (unapproved,)))
+
+
+def test_reddit_discovery_candidates_are_not_automatically_cleared(monkeypatch):
+    class Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"access_token": "token"} if self.token else {"data": {"children": [{"data": {
+                "title": "A production incident",
+                "selftext": "A detailed account " + "with useful context " * 14,
+                "author": "story_author",
+                "permalink": "/r/programming/comments/abc/story/",
+                "subreddit": "programming",
+                "score": 123,
+            }}]}}
+
+        def __init__(self, token=False):
+            self.token = token
+
+    class Client:
+        def __init__(self, **kwargs):
+            self.headers = {}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def post(self, *args, **kwargs):
+            return Response(token=True)
+
+        def get(self, *args, **kwargs):
+            return Response()
+
+    monkeypatch.setattr("shorts_pipeline.reddit.httpx.Client", Client)
+    topics = discover_reddit_topics(("programming",), "id", "secret", "test-agent", 1)
+    source = topics[0].sources[0]
+    assert source.author == "story_author"
+    assert source.reuse_permission is False
+
+
+def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
+    path = tmp_path / "reddit.json"
+    source = {
+        "title": "A production incident",
+        "url": "https://www.reddit.com/r/programming/comments/abc/story/",
+        "summary": "A detailed account with useful context " * 12,
+        "author": "story_author",
+        "community": "programming",
+        "reuse_permission": False,
+    }
+    path.write_text(json.dumps([{"source": source}, {"source": {**source, "reuse_permission": True}}]), encoding="utf-8")
+    topics = load_approved_reddit_topics(path)
+    assert len(topics) == 1
+    assert topics[0].sources[0].reuse_permission is True
 
 
 def test_variant_publish_state_keys_are_isolated_but_legacy_default_survives():
@@ -281,6 +341,11 @@ def test_background_reel_selection_rotates_stably(tmp_path):
     assert len(selected) == 3
     assert selected == select_backgrounds(tmp_path, "https://example.test/topic")
     assert {path.name for path in selected} == {"a.mp4", "b.mp4", "c.mp4"}
+
+
+def test_reddit_background_directory_is_configurable(monkeypatch):
+    monkeypatch.setenv("REDDIT_BACKGROUND_DIR", "data/backgrounds/reddit")
+    assert load_settings().reddit_background_dir == Path("data/backgrounds/reddit")
 
 
 def test_dockerfile_copies_asset_manifest():

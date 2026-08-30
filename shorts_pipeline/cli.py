@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import traceback
 import time
 from pathlib import Path
@@ -17,6 +18,13 @@ from .render import render_video
 from .sources import discover_topics
 from .tts import synthesize
 from .telemetry import record_event
+from .reddit import discover_reddit_topics, load_approved_reddit_topics
+
+
+def _discover_topics(settings, limit: int):
+    topics = discover_topics(limit)
+    topics.extend(load_approved_reddit_topics(settings.reddit_approved_file))
+    return topics
 
 
 def _next_batch_dir(output_dir: Path) -> Path:
@@ -38,7 +46,7 @@ def _publish_state_key(source_url: str, variant: int) -> str:
 def run(force_dry_run: bool = False, topic_override=None, output_dir_override: Path | None = None, variant: int = 0) -> int:
     settings = load_settings()
     dry_run = force_dry_run or settings.dry_run
-    topics = [topic_override] if topic_override else discover_topics(settings.topic_limit)
+    topics = [topic_override] if topic_override else _discover_topics(settings, settings.topic_limit)
     if not topics:
         raise RuntimeError("No source-backed topics were discovered")
     seen_path = settings.data_dir / "seen_sources.json"
@@ -56,7 +64,8 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
         raise RuntimeError("TTS produced no audio; refusing to create a silent short")
     captions = create_captions(package.narration, audio, output_dir / "captions.srt", settings.caption_model) if settings.captions_enabled else None
     fallback_background = ensure_background_video(settings.background_video_url, settings.background_video)
-    background_sources = select_backgrounds(settings.background_dir, source_url)
+    background_dir = settings.reddit_background_dir if package.format_name == "reddit_story" and settings.reddit_background_dir.exists() else settings.background_dir
+    background_sources = select_backgrounds(background_dir, source_url)
     if background_sources:
         background = build_background_reel(background_sources, output_dir / "background-reel.mp4")
     else:
@@ -95,7 +104,7 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
 
 def run_batch(count: int, force_dry_run: bool = False, variants: int = 1) -> int:
     settings = load_settings()
-    topics = discover_topics(max(settings.topic_limit, count))
+    topics = _discover_topics(settings, max(settings.topic_limit, count))
     if not topics:
         raise RuntimeError("No source-backed topics were discovered; RSS feeds may be unavailable. Check network access and feed health before retrying.")
     seen = load_seen(settings.data_dir / "seen_sources.json")
@@ -140,6 +149,9 @@ def main() -> None:
     assets_parser = sub.add_parser("backgrounds")
     assets_parser.add_argument("--manifest", default="assets/backgrounds.json")
     assets_parser.add_argument("--out", default="data/backgrounds")
+    reddit_parser = sub.add_parser("reddit")
+    reddit_parser.add_argument("--out", default="data/reddit_candidates.json")
+    reddit_parser.add_argument("--count", type=int, default=10)
     args = parser.parse_args()
     if args.command == "split":
         for part in split_authorized_clip(Path(args.input), Path(args.out), args.parts):
@@ -155,6 +167,14 @@ def main() -> None:
     if args.command == "backgrounds":
         for path in sync_backgrounds(Path(args.manifest), Path(args.out)):
             print(path)
+        return
+    if args.command == "reddit":
+        settings = load_settings()
+        topics = discover_reddit_topics(settings.reddit_subreddits, settings.reddit_client_id, settings.reddit_client_secret, settings.reddit_user_agent, max(1, args.count))
+        output = Path(args.out)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps([{"title": topic.title, "source": topic.sources[0].__dict__, "score": topic.score} for topic in topics], indent=2), encoding="utf-8")
+        print(f"Wrote {output} ({len(topics)} candidates; none are cleared for publishing)")
         return
     if args.daemon:
         while True:

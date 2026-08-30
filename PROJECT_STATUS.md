@@ -17,9 +17,16 @@
 - Added two user-provided aerospace sources to the local library:
   `user_aerospire_cockpit.mp4` and `user_supkin_aerospace_edit.mp4`. A local
   aerospace render used both and produced a 1080x1920 H.264/AAC MP4.
-- Their creator names and pending-license status are recorded in
-  `assets/user_backgrounds.json`; original channel URLs still need to be added
-  before public publishing.
+- Verified the Minecraft parkour source as Creative Commons Attribution and
+  recorded Orbital - No Copyright Gameplay's channel URL in the asset record.
+  The local master is now downloaded at 1920x1080/60fps with the source audio
+  retained for archival use.
+- Generated 20 muted 45-second candidate clips in
+  `data/backgrounds/minecraft_parkour_chunks`; Reddit-story renders prefer
+  this library through `REDDIT_BACKGROUND_DIR`.
+- Creator attribution and the source URL remain recorded in
+  `assets/user_backgrounds.json`; verify the current upload license again
+  before commercial publishing.
 - Discovery now filters each feed by lane-specific relevance and rejects generic
   navigation titles or entries too thin to explain. Live discovery returned
   substantive AI, CS, aerospace, and finance topics after the filter.
@@ -28,7 +35,10 @@
 - Added a permission-gated `reddit_story` format. It supports real Reddit
   anecdotes only when author, subreddit, post URL, and explicit reuse permission
   are present; otherwise Reddit content cannot enter that lane.
-- `pytest -q`: 27 passed. `git diff --check`: passed.
+- Added a ranked narrative-first subreddit configuration led by
+  `TalesFromTechSupport`, `AskReddit`, aviation, sysadmin, and engineering
+  communities rather than research-heavy technical feeds.
+- `pytest -q`: 35 passed. `git diff --check`: passed.
 
 ## Remaining work
 
