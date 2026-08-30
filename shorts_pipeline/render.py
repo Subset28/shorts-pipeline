@@ -14,11 +14,11 @@ def _estimated_duration(text: str) -> float:
     return max(10.0, min(60.0, len(text.split()) / 2.5))
 
 
-def _caption_filter(captions: Path) -> str:
+def _caption_filter(captions: Path, margin_v: int = 430) -> str:
     ass_file = captions.with_suffix(".ass") if captions.suffix.lower() == ".srt" else captions
     caption_file = str(ass_file.resolve()).replace("\\", "/").replace(":", r"\:")
     if ass_file.exists():
-        return f"ass='{caption_file}'"
+        return f"subtitles='{caption_file}':force_style='MarginV={margin_v}'"
     style = "FontName=Arial,FontSize=48,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=1,Alignment=2,MarginL=80,MarginR=80,MarginV=430"
     return f"subtitles='{caption_file}':original_size=1080x1920:force_style='{style}'"
 
@@ -32,14 +32,14 @@ def _font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
-def _card(package: ScriptPackage, path: Path, transparent: bool = False) -> None:
+def _card(package: ScriptPackage, path: Path, transparent: bool = False, show_hook: bool = True) -> None:
     image = Image.new("RGBA" if transparent else "RGB", (1080, 1920), (0, 0, 0, 0) if transparent else (12, 20, 38))
     draw = ImageDraw.Draw(image)
     font = _font(40 if transparent else 54)
-    if transparent:
+    if transparent and show_hook:
         lines = textwrap.wrap(package.hook.upper(), width=30)[:3]
         draw.multiline_text((60, 230), "\n".join(lines), fill="white", font=font, spacing=8, stroke_width=2, stroke_fill=(0, 0, 0, 230))
-    else:
+    elif not transparent:
         draw.rounded_rectangle((48, 450, 1032, 820), radius=34, fill=(5, 10, 22, 190) if transparent else (5, 10, 22))
         lines = textwrap.wrap(package.hook, width=29)[:4]
         draw.multiline_text((86, 515), "\n".join(lines), fill="white", font=font, spacing=14)
@@ -52,7 +52,7 @@ def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = 
     output_dir.mkdir(parents=True, exist_ok=True)
     card = output_dir / "card.png"
     try:
-        _card(package, card, transparent=bool(background and background.exists()))
+        _card(package, card, transparent=bool(background and background.exists()), show_hook=package.format_name != "reddit_story")
     except OSError:
         # Windows installations can lack Arial; the video still renders with
         # a plain card rather than silently skipping the artifact.
@@ -67,8 +67,10 @@ def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = 
         else:
             command += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]
         video_filter = "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=saturation=1.15:contrast=1.08:brightness=-0.04[bg];[bg][1:v]overlay=0:0"
+        if package.format_name == "reddit_story":
+            video_filter = "[0:v]scale=1080:1350:force_original_aspect_ratio=increase,crop=1080:1350,eq=saturation=1.15:contrast=1.08:brightness=-0.04,pad=1080:1920:0:285:color=black[bg];[bg][1:v]overlay=0:0"
         if captions and captions.exists():
-            video_filter += "," + _caption_filter(captions)
+            video_filter += "," + _caption_filter(captions, 150 if package.format_name == "reddit_story" else 430)
         command += ["-filter_complex", video_filter + "[v]", "-map", "[v]", "-map", f"{audio_index}:a", "-t", str(duration), "-r", "30", "-c:v", "libx264", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(output)]
     else:
         command = ["ffmpeg", "-y", "-loop", "1", "-i", str(card)]
