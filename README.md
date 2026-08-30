@@ -57,6 +57,10 @@ generate multiple treatments per source. Each manifest and telemetry event
 records the variant so platform exports can be compared without losing the
 source/category relationship.
 
+Schedule approved Reddit stories with `python -m shorts_pipeline schedule
+--file data/reddit_next_week_schedule.json`. Scheduled YouTube uploads remain
+private until their RFC 3339 `publish_at` time and never invoke TikTok.
+
 Provision the tracked, rights-documented background library with
 `python -m shorts_pipeline backgrounds`. The command downloads only URLs in
 `assets/backgrounds.json` and skips files already present.
