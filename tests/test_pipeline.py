@@ -591,9 +591,17 @@ def test_tuning_recommendations_call_out_insufficient_sample_size():
 
 
 def test_archive_report_keeps_only_aggregate_tuning_data(tmp_path):
-    output = archive_report({"rows": [{"category": "AI", "videos": 2}], "recommendations": ["Keep testing AI."]}, tmp_path / "weekly.json", "2026-08-30")
+    output = archive_report(
+        {"rows": [{"category": "AI", "videos": 2}], "recommendations": ["Keep testing AI."]},
+        tmp_path / "weekly.json",
+        "2026-08-30",
+    )
     payload = json.loads(output.read_text(encoding="utf-8"))
-    assert payload == {"week_of": "2026-08-30", "rows": [{"category": "AI", "videos": 2}], "recommendations": ["Keep testing AI."]}
+    assert payload == {
+        "week_of": "2026-08-30",
+        "rows": [{"category": "AI", "videos": 2}],
+        "recommendations": ["Keep testing AI."],
+    }
 
 
 def test_background_manifest_requires_provenance_fields(tmp_path):

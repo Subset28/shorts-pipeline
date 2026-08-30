@@ -7,9 +7,7 @@ import traceback
 from dataclasses import replace
 from pathlib import Path
 
-from .analytics import build_report, write_report
-from .analytics import archive_report
-from .config import load_settings
+from .analytics import archive_report, build_report, write_report
 from .asset_library import sync_backgrounds
 from .captions import create_captions
 from .config import load_settings
