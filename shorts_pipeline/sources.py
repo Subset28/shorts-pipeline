@@ -28,6 +28,18 @@ _CATEGORY_TERMS = {
     "Finance": ("finance", "market", "stock", "invest", "fund", "earnings", "bank", "economy", "revenue", "valuation"),
 }
 
+_HIGH_SIGNAL_TERMS = re.compile(
+    r"\b(launch(?:es|ed)?|new|first|breakthrough|hacked|hack|breach|"
+    r"vulnerability|discovers?|reveals?|goes online|deploy(?:s|ed)?|fails?|"
+    r"record|challenge|mission|test(?:s|ed)?|upgrade|change(?:s|d)?)\b",
+    re.IGNORECASE,
+)
+_LOW_SIGNAL_TERMS = re.compile(
+    r"\b(ribbon[- ]cutting|honors?|honour|ceremony|event|statement|"
+    r"congratulations?|remarks?|recognition)\b",
+    re.IGNORECASE,
+)
+
 
 def is_relevant(category: str, source: Source) -> bool:
     """Keep a feed item only when its text supports the advertised lane."""
@@ -69,6 +81,24 @@ def _clean_summary(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip(" .-")
 
 
+def _clean_title(value: str) -> str:
+    return re.sub(r"\s+", " ", html.unescape(value).replace("\ufffd", "'")).strip()
+
+
+def _source_score(source: Source, published: str, now: datetime) -> float:
+    """Score narrative potential, not popularity or expected views."""
+    score = 1.0 + min(len(source.summary.split()) / 120, 0.8)
+    if _HIGH_SIGNAL_TERMS.search(source.title):
+        score += 0.45
+    if _LOW_SIGNAL_TERMS.search(source.title):
+        score -= 0.45
+    if re.search(r"\b\d+(?:\.\d+)?(?:%|[- ]year|[- ]meter|[- ]month)?\b", source.title, re.IGNORECASE):
+        score += 0.2
+    if published and now.year >= 2020:
+        score += 0.1
+    return score
+
+
 def discover_topics(limit: int = 10) -> list[Topic]:
     by_category: dict[str, list[Topic]] = {category: [] for category in FEEDS}
     now = datetime.now(timezone.utc)
@@ -80,7 +110,7 @@ def discover_topics(limit: int = 10) -> list[Topic]:
             if not link:
                 continue
             source = Source(
-                title=str(entry.get("title", "Untitled")).strip(),
+                title=_clean_title(str(entry.get("title", "Untitled"))),
                 url=link,
                 summary=_clean_summary(str(entry.get("summary", entry.get("description", "")))),
                 published=published,
@@ -93,9 +123,7 @@ def discover_topics(limit: int = 10) -> list[Topic]:
                 continue
             # Prefer current, well-described entries. The exact popularity
             # signal comes later from channel analytics, not fake view counts.
-            score = 1.0 if source.summary else 0.0
-            if published and now.year >= 2020:
-                score += 0.1
+            score = _source_score(source, published, now)
             by_category[category].append(Topic(source.title, category, (source,), score))
 
     # Keep a batch from being dominated by the first feed in the map. Within
