@@ -21,6 +21,7 @@ from .tts import synthesize
 from .telemetry import record_event
 from .reddit import discover_reddit_topics, load_approved_reddit_topics
 from .longform import create_longform_package, render_longform_video
+from .youtube_analytics import collect_due, write_weekly_report
 
 YOUTUBE_QUOTA_RETRY_HOURS = 24.0
 
@@ -237,6 +238,16 @@ def run_longform(source_url: str | None, output_dir: Path) -> int:
     return 0
 
 
+def run_analytics(authorize: bool = False, weekly: bool = False) -> int:
+    settings = load_settings()
+    snapshots = settings.data_dir / "youtube_analytics.json"
+    collected = collect_due(settings.data_dir / "events.jsonl", snapshots, settings.youtube_client_secrets, settings.youtube_analytics_token_file, authorize)
+    if weekly:
+        write_weekly_report(settings.data_dir / "events.jsonl", snapshots, settings.data_dir / "youtube_weekly_report.json")
+    print(f"Collected analytics for {len(collected)} due videos")
+    return 0
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
@@ -266,6 +277,9 @@ def main() -> None:
     longform_parser = sub.add_parser("longform")
     longform_parser.add_argument("--source-url")
     longform_parser.add_argument("--out", default="output/longform")
+    analytics_parser = sub.add_parser("analytics")
+    analytics_parser.add_argument("--authorize", action="store_true", help="Perform one-time read-only YouTube Analytics OAuth")
+    analytics_parser.add_argument("--weekly", action="store_true", help="Also write the current Monday-Sunday report")
     assets_parser = sub.add_parser("backgrounds")
     assets_parser.add_argument("--manifest", default="assets/backgrounds.json")
     assets_parser.add_argument("--out", default="data/backgrounds")
@@ -288,6 +302,8 @@ def main() -> None:
         raise SystemExit(run_schedule(Path(args.file), force_dry_run=args.dry_run))
     if args.command == "longform":
         raise SystemExit(run_longform(args.source_url, Path(args.out)))
+    if args.command == "analytics":
+        raise SystemExit(run_analytics(authorize=args.authorize, weekly=args.weekly))
     if args.command == "backgrounds":
         for path in sync_backgrounds(Path(args.manifest), Path(args.out)):
             print(path)

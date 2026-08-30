@@ -8,7 +8,7 @@ LOCAL_DIR=${ANALYTICS_LOCAL_DIR:-/Users/abba/shorts-pipeline/data}
 ssh -o BatchMode=yes "$REMOTE_HOST" "mkdir -p '$REMOTE_DIR'"
 
 files=""
-for name in analytics_report.json youtube_analytics.json tuning_log.md; do
+for name in analytics_report.json youtube_analytics.json youtube_weekly_report.json tuning_log.md; do
     path="$LOCAL_DIR/$name"
     if [ -f "$path" ]; then
         files="$files $path"

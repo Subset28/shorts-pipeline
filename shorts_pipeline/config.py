@@ -15,6 +15,7 @@ class Settings:
     youtube_privacy_status: str
     youtube_client_secrets: Path
     youtube_token_file: Path
+    youtube_analytics_token_file: Path
     tiktok_access_token: str
     tiktok_privacy_level: str
     elevenlabs_rotator_path: Path
@@ -47,6 +48,7 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
         youtube_privacy_status=os.getenv("YOUTUBE_PRIVACY_STATUS", "private"),
         youtube_client_secrets=Path(os.getenv("YOUTUBE_CLIENT_SECRETS", "client_secrets.json")),
         youtube_token_file=Path(os.getenv("YOUTUBE_TOKEN_FILE", "token.json")),
+        youtube_analytics_token_file=Path(os.getenv("YOUTUBE_ANALYTICS_TOKEN_FILE", "youtube_analytics_token.json")),
         tiktok_access_token=os.getenv("TIKTOK_ACCESS_TOKEN", ""),
         tiktok_privacy_level=os.getenv("TIKTOK_PRIVACY_LEVEL", "SELF_ONLY"),
         elevenlabs_rotator_path=Path(os.getenv("ELEVENLABS_ROTATOR_PATH", "")),
