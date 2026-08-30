@@ -21,7 +21,7 @@ from shorts_pipeline.reddit import (
     discover_reddit_topics,
     load_approved_reddit_topics,
 )
-from shorts_pipeline.render import _reddit_post_card, _render_duration
+from shorts_pipeline.render import _card, _reddit_post_card, _render_duration
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.sources import (
     _clean_summary,
@@ -400,6 +400,17 @@ def test_longform_render_writes_video_with_audio_and_captions(tmp_path, monkeypa
         section in package.narration for section in ("Context:", "What happened:", "Why it matters:", "Takeaway:")
     )
     assert source.url in package.description
+
+
+def test_nonreddit_transparent_hook_card_has_high_contrast_opening(tmp_path):
+    source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
+    package = fallback_package(Topic("A breakthrough", "AI", (source,)))
+    output = tmp_path / "card.png"
+    _card(package, output, transparent=True)
+    image = Image.open(output).convert("RGBA")
+    assert image.size == (1080, 1920)
+    assert image.getpixel((50, 180))[3] > 0
+    assert image.getpixel((75, 215))[3] > 0
 
 
 def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
