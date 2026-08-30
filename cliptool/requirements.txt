@@ -1,0 +1,14 @@
+requests>=2.31
+yt-dlp>=2024.8.6
+youtube-transcript-api>=0.6.2
+fastapi>=0.111
+uvicorn[standard]>=0.30
+pydantic>=2.7
+python-dotenv>=1.0
+click>=8.1
+
+# test-only, but kept in the main file so a fresh clone + `pip install -r
+# requirements.txt` + `pytest` works out of the box: newer Starlette's
+# TestClient (used by tests/test_config_api.py) requires httpx2, not httpx.
+httpx2>=2.0
+pytest>=8.0

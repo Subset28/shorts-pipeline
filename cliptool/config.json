@@ -1,0 +1,30 @@
+{
+  "min_clip_seconds": 8,
+  "max_clip_seconds": 90,
+  "max_candidates_per_source": 25,
+  "twitch_clip_window_days": 30,
+  "youtube_search_limit": 25,
+  "vod_chunk_seconds": 60,
+  "min_gap_between_selected_windows": 30,
+  "language_allowlist": ["en"],
+  "excluded_terms": [],
+  "include_shorts": true,
+  "youtube_daily_quota_cap": 9000,
+  "scoring_weights": {
+    "keyword_density": 1.0,
+    "title_keyword_match": 0.5,
+    "punctuation_excitement": 0.5,
+    "transcript_density_spike": 1.0,
+    "short_duration_preference": 0.3,
+    "recency": 0.2,
+    "popularity": 0.3
+  },
+  "safety": {
+    "flag_age_restricted": true,
+    "flagged_keywords": []
+  },
+  "platforms_enabled": {
+    "youtube": true,
+    "twitch": true
+  }
+}
