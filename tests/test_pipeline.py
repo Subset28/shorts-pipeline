@@ -9,6 +9,7 @@ from shorts_pipeline.media import select_background
 from shorts_pipeline.analytics import build_report
 from shorts_pipeline.asset_library import load_asset_manifest
 from shorts_pipeline.publish import save_manifest
+from pathlib import Path
 
 
 def test_fallback_package_preserves_source_url():
@@ -109,3 +110,8 @@ def test_manifest_records_selected_background(tmp_path):
     background.write_bytes(b"video")
     manifest = save_manifest(fallback_package(Topic("A breakthrough", "AI", (source,))), tmp_path / "short.mp4", tmp_path, background)
     assert json.loads(manifest.read_text(encoding="utf-8"))["background"] == str(background)
+
+
+def test_dockerfile_copies_asset_manifest():
+    dockerfile = Path(__file__).parents[1] / "Dockerfile"
+    assert "COPY assets ./assets" in dockerfile.read_text(encoding="utf-8")
