@@ -99,8 +99,10 @@ def build_background_reel(
     output.parent.mkdir(parents=True, exist_ok=True)
     filters = []
     labels = []
+    transition = min(0.18, max(0.0, seconds_per_clip / 4))
     seed = int(hashlib.sha256(variation_key.encode("utf-8")).hexdigest()[:8], 16) if variation_key else 0
-    segment_count = max(1, math.ceil(max(duration, seconds_per_clip) / seconds_per_clip))
+    usable_segment_length = max(seconds_per_clip - transition, 0.1)
+    segment_count = max(1, math.ceil(max(duration, seconds_per_clip) / usable_segment_length))
     start_index = seed % len(sources)
     for index in range(segment_count):
         label = f"v{index}"
@@ -117,7 +119,19 @@ def build_background_reel(
             f"setsar=1,fps=30,trim=duration={seconds_per_clip},setpts=PTS-STARTPTS[{label}]"
         )
         labels.append(f"[{label}]")
-    filters.append("".join(labels) + f"concat=n={segment_count}:v=1:a=0[v]")
+    if transition:
+        current = labels[0]
+        for index in range(1, segment_count):
+            next_label = f"[x{index}]"
+            offset = index * usable_segment_length
+            filters.append(
+                f"{current}{labels[index]}xfade=transition=fade:duration={transition:.3f}:offset={offset:.3f}{next_label}"
+            )
+            current = next_label
+        final_label = current
+    else:
+        filters.append("".join(labels) + f"concat=n={segment_count}:v=1:a=0[v]")
+        final_label = "[v]"
     command = ["ffmpeg", "-y"]
     selected_sources = [sources[(start_index + index) % len(sources)] for index in range(segment_count)]
     for source in selected_sources:
@@ -126,7 +140,7 @@ def build_background_reel(
         "-filter_complex",
         ";".join(filters),
         "-map",
-        "[v]",
+        final_label,
         "-an",
         "-c:v",
         "libx264",
