@@ -7,6 +7,6 @@ token*.json
 keys.json
 key_state.json
 __pycache__/
-.egg-info/
+*.egg-info/
 .pytest_cache/
 *.pyc
