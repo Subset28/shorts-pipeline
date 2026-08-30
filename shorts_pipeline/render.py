@@ -72,17 +72,17 @@ def _card(package: ScriptPackage, path: Path, transparent: bool = False, show_ho
 def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     image = Image.new("RGBA", (1080, 1920), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    body_font = _font(35, bold=True)
-    username_font = _font(25, bold=True)
-    small = _font(21)
+    body_font = _font(40, bold=True)
+    username_font = _font(28, bold=True)
+    small = _font(22)
     asset_dir = Path(os.getenv("REDDIT_ASSETS_DIR", "assets/reddit"))
     attribution = re.search(r"Reddit attribution: u/([^ ]+) in r/([^\n]+)", package.description)
     username = attribution.group(1) if attribution else "story_author"
     community = attribution.group(2).strip() if attribution else "redditstories"
     # Match the reference treatment: a compact post floating over the game,
     # rather than a full-width panel that dominates the opening frame.
-    left, right = 150, 930
-    top = 700
+    left, right = 35, 1045
+    top = 650
     story = package.title.strip()
     if len(story.split()) < 12:
         story_match = re.search(r"Here's what happened:\s*(.*?)(?:\s+The useful part|\Z)", package.narration, re.S)
@@ -91,8 +91,8 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
         first_sentence = re.split(r"(?<=[.!?])\s+", narrated_story, maxsplit=1)[0]
         story = first_sentence or story
     story = re.sub(r"^\[FICTIONAL REVIEW DEMO\]\s*", "", story)
-    lines = textwrap.wrap(story, width=31)[:5]
-    bottom = top + 112 + (len(lines) * 43) + 80
+    lines = textwrap.wrap(story, width=45)[:6]
+    bottom = max(top + 490, top + 150 + (len(lines) * 48) + 90)
     draw.rounded_rectangle((left, top, right, bottom), radius=22, fill=(250, 250, 250, 252), outline=(215, 215, 215, 255), width=3)
 
     # Compact Reddit-style header with a recognizable orange avatar and metadata.
@@ -100,34 +100,34 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     if avatar:
         _paste_circle(image, avatar, (left + 28, top + 28, left + 86, top + 86))
     else:
-        draw.ellipse((left + 28, top + 28, left + 86, top + 86), fill=(255, 69, 0, 255))
-        draw.ellipse((left + 45, top + 48, left + 51, top + 54), fill=(255, 255, 255, 255))
-        draw.ellipse((left + 65, top + 48, left + 71, top + 54), fill=(255, 255, 255, 255))
-        draw.arc((left + 46, top + 44, left + 70, top + 70), 15, 165, fill=(255, 255, 255, 255), width=3)
-    name_x = left + 103
-    draw.text((name_x, top + 34), f"u/{username}", fill=(35, 35, 35), font=username_font)
-    name_width = int(draw.textlength(f"u/{username}", font=username_font))
+        draw.ellipse((left + 24, top + 22, left + 88, top + 86), fill=(255, 69, 0, 255))
+        draw.ellipse((left + 42, top + 44, left + 48, top + 50), fill=(255, 255, 255, 255))
+        draw.ellipse((left + 64, top + 44, left + 70, top + 50), fill=(255, 255, 255, 255))
+        draw.arc((left + 43, top + 40, left + 69, top + 68), 15, 165, fill=(255, 255, 255, 255), width=3)
+    name_x = left + 100
+    draw.text((name_x, top + 25), username, fill=(35, 35, 35), font=username_font)
+    name_width = int(draw.textlength(username, font=username_font))
     verified = _asset(asset_dir / "verified.png", (17, 17))
     if verified:
-        image.alpha_composite(verified, (name_x + name_width + 10, top + 40))
+        image.alpha_composite(verified, (name_x + name_width + 10, top + 32))
     else:
-        draw.ellipse((name_x + name_width + 10, top + 40, name_x + name_width + 27, top + 57), fill=(38, 132, 255, 255))
-    badge_x = name_x + name_width + 42
+        draw.ellipse((name_x + name_width + 10, top + 32, name_x + name_width + 27, top + 49), fill=(38, 132, 255, 255))
+    badge_x = name_x
     fallback_badges = ((255, 69, 0, 255), (255, 190, 0, 255), (76, 175, 80, 255), (145, 95, 220, 255))
     for index, color in enumerate(fallback_badges, 1):
-        badge = _asset(asset_dir / f"badge-{index}.png", (17, 17))
+        badge = _asset(asset_dir / f"badge-{index}.png", (25, 25))
         if badge:
-            image.alpha_composite(badge, (badge_x, top + 40))
+            image.alpha_composite(badge, (badge_x, top + 78))
         else:
-            draw.ellipse((badge_x, top + 40, badge_x + 17, top + 57), fill=color)
-        badge_x += 25
-    draw.text((right - 50, top + 38), "···", fill=(100, 100, 100), font=username_font)
+            draw.ellipse((badge_x, top + 78, badge_x + 25, top + 103), fill=color)
+        badge_x += 34
+    draw.text((right - 52, top + 32), "···", fill=(100, 100, 100), font=username_font)
 
     # The narration contains the complete story summary. The description is
     # deliberately shorter metadata, so using it here can leave the card
     # with only a headline and a large empty body area.
-    draw.multiline_text((left + 28, top + 112), "\n".join(lines), fill=(20, 20, 20), font=body_font, spacing=4)
-    draw.line((left + 28, bottom - 66, right - 28, bottom - 66), fill=(225, 225, 225), width=2)
+    draw.multiline_text((left + 28, top + 135), "\n".join(lines), fill=(20, 20, 20), font=body_font, spacing=4)
+    draw.line((left + 28, bottom - 72, right - 28, bottom - 72), fill=(225, 225, 225), width=2)
     footer_y = bottom - 51
     like_icon = _asset(asset_dir / "like.png", (20, 20))
     comment_icon = _asset(asset_dir / "comment.png", (20, 20))
