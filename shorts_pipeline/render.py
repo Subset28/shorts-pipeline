@@ -68,9 +68,16 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     draw.text((180, top + 37), f"u/{username}", fill=(35, 35, 35), font=username_font)
     draw.ellipse((180 + int(draw.textlength(f"u/{username}", font=username_font)) + 14, top + 43, 180 + int(draw.textlength(f"u/{username}", font=username_font)) + 34, top + 63), fill=(38, 132, 255, 255))
     draw.text((180, top + 73), f"r/{community}  ·  6h", fill=(120, 120, 120), font=small)
+    badge_x = 180
+    for color in ((255, 69, 0, 255), (255, 190, 0, 255), (76, 175, 80, 255), (145, 95, 220, 255)):
+        draw.ellipse((badge_x, top + 108, badge_x + 18, top + 126), fill=color)
+        badge_x += 27
     draw.text((940, top + 48), "···", fill=(100, 100, 100), font=username_font)
 
-    story_match = re.search(r"described this experience:\s*(.*?)(?:\s+The useful part|\Z)", package.description, re.S)
+    # The narration contains the complete story summary. The description is
+    # deliberately shorter metadata, so using it here can leave the card
+    # with only a headline and a large empty body area.
+    story_match = re.search(r"Here's what happened:\s*(.*?)(?:\s+The useful part|\Z)", package.narration, re.S)
     story = story_match.group(1).strip() if story_match else package.title
     story = re.sub(r"^\[FICTIONAL REVIEW DEMO\]\s*", "", story)
     lines = textwrap.wrap(story, width=44)[:5]
