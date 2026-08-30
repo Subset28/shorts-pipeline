@@ -254,7 +254,17 @@ def test_specialized_lanes_require_a_real_source_signal():
 def test_plain_source_keeps_only_universal_watchable_lanes():
     source = Source("A useful finding", "https://example.test/plain", "A useful finding with supporting details.")
     formats = eligible_formats(Topic("A useful finding", "AI", (source,)))
-    assert formats == ("news_breakdown", "fact_explainer", "technical_joke", "question_answer")
+    assert formats == ("news_breakdown", "fact_explainer", "question_answer")
+
+
+def test_joke_lane_requires_explicit_humor_or_technical_culture_signal():
+    source = Source(
+        "A funny developer life production incident",
+        "https://example.test/joke",
+        "A ridiculous debugging nightmare became a lesson in deployment safety.",
+    )
+    formats = eligible_formats(Topic(source.title, "CS", (source,)))
+    assert "technical_joke" in formats
 
 
 def test_joke_lane_is_limited_to_audiences_where_it_fits_naturally():
