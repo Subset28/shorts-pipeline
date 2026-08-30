@@ -90,6 +90,8 @@
   eliminating the former 8-second loop that repeated throughout longer shorts.
 - Tightened the non-Reddit reel cadence to three-second shots, increasing the
   60-second assembly to 20 purposeful cuts for faster short-form pacing.
+- Added a manifest quality report that records audio/video sync, background
+  coverage, caption coverage, and explicit failure reasons for every render.
 - Extended substantive non-Reddit news/explainer fallback context to support
   the intended longer runtime while retaining sentence-boundary clipping and
   refusing to pad thin sources.

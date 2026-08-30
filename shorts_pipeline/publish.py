@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
+from .quality import assess_render
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -53,6 +54,7 @@ def save_manifest(package: ScriptPackage, video: Path, output_dir: Path, backgro
         payload["background"] = str(background)
     if background_sources:
         payload["background_sources"] = [str(path) for path in background_sources]
+    payload["quality"] = assess_render(video, audio, captions, background)
     manifest.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return manifest
 
