@@ -27,6 +27,11 @@ restarts after process failures and keeps `data/` and `output/` on the host.
 Use `DRY_RUN=true` for the first deployment; switch it only after both platform
 credentials have been tested with private uploads.
 
+On the configured Windows host, `.\scripts\deploy-nas.ps1` performs the
+same deployment using the `synology` SSH alias. It uses legacy SCP for the
+Synology SSH server, creates the project directories if needed, preserves an
+existing remote `.env`, and never transfers local credentials.
+
 ## Metrics feedback loop
 
 Export platform analytics to a CSV with `source_url`, `platform`, and `views`

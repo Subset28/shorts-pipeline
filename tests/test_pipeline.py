@@ -115,3 +115,11 @@ def test_manifest_records_selected_background(tmp_path):
 def test_dockerfile_copies_asset_manifest():
     dockerfile = Path(__file__).parents[1] / "Dockerfile"
     assert "COPY assets ./assets" in dockerfile.read_text(encoding="utf-8")
+
+
+def test_nas_deploy_script_preserves_remote_environment():
+    script = Path(__file__).parents[1] / "scripts" / "deploy-nas.ps1"
+    text = script.read_text(encoding="utf-8")
+    assert "scp -O" in text
+    assert "cp -n .env.example .env" in text
+    assert "keys.json" not in text

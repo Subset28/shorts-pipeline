@@ -29,6 +29,11 @@ The included `Dockerfile` and `docker-compose.yml` provide a restart-on-failure
 runtime for a NAS or other always-on host. Keep `.env` and the mounted `secrets`
 directory local and private.
 
+From Windows, repeat the Synology deployment with
+`.\scripts\deploy-nas.ps1`. It uses the configured `synology` SSH alias,
+legacy SCP compatibility, preserves an existing remote `.env`, and never copies
+local credentials.
+
 The visual defaults and footage/caption rules are documented in
 `docs/STYLE_GUIDE.md`.
 
