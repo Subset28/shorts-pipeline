@@ -127,6 +127,7 @@ def discover_topics(limit: int = 10) -> list[Topic]:
             if (
                 len(summary_words) < 20
                 or _has_truncation_marker(raw_summary)
+                or _has_truncation_marker(source.summary)
                 or "\ufffd" in raw_summary
             ):
                 continue
