@@ -2,32 +2,36 @@ import hashlib
 
 from .models import ScriptPackage, Topic
 
-ALLOWED_FORMATS = ("news_breakdown", "myth_bust", "technical_joke")
+ALLOWED_FORMATS = ("news_breakdown", "fact_explainer", "myth_bust", "technical_joke")
 
 
 def fallback_package(topic: Topic) -> ScriptPackage:
     source = topic.sources[0]
     title = topic.title[:85]
-    format_index = int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) % 3
+    format_index = int(hashlib.sha256(source.url.encode("utf-8")).hexdigest()[:2], 16) % len(ALLOWED_FORMATS)
     format_name = ALLOWED_FORMATS[format_index]
     hooks = {
         "AI": (
             "Can AI explain a prediction without leaking the answer?",
-            "The AI detail most headlines skip",
+            "The AI concept hiding in this headline",
+            "This AI claim needs a closer look",
             "POV: you ask an AI model for one simple answer",
         ),
         "ML": (
             "The hidden risk in machine-learning explanations",
+            "Machine learning in plain English",
             "This machine-learning claim needs a closer look",
             "POV: your model is confident for the wrong reason",
         ),
         "Aerospace": (
             "A new space discovery is closer than it looks",
+            "The space idea hiding in this headline",
             "The space headline is not the whole story",
             "POV: the spacecraft sends back one more surprise",
         ),
         "Cyber": (
             "This security flaw could affect millions",
+            "The security concept in plain English",
             "The security detail hiding in the headline",
             "POV: the bug report arrives five minutes before launch",
         ),
@@ -44,6 +48,8 @@ def fallback_package(topic: Topic) -> ScriptPackage:
         summary = summary[:560].rsplit(" ", 1)[0] + "..."
     if format_name == "technical_joke":
         narration = f"POV: you ask {topic.category} to explain itself and it sends you a twelve-page PDF. The useful version is this: {summary} The takeaway is to check the original source before trusting a headline."
+    elif format_name == "fact_explainer":
+        narration = f"Here is the one-minute version of the idea: {summary} In plain English, that means the result matters because it changes how we understand {topic.category.lower()}. The important caveat is to read the original source before turning a finding into a fact."
     elif format_name == "myth_bust":
         narration = f"This sounds like a bigger claim than it is. Here is what the source actually says: {summary} So the honest takeaway is to separate the result from the hype and verify the original source."
     else:

@@ -5,12 +5,14 @@ surprising technology stories told quickly.
 
 1. **News breakdown** — one current source, one surprising claim, a plain-English
    explanation, and a concrete “why it matters” payoff.
-2. **Technical joke / POV** — a relatable joke about debugging, AI agents,
+2. **Fact explainer** — one technical idea translated into plain English, with
+   a concrete implication and an explicit caveat against overclaiming.
+3. **Technical joke / POV** — a relatable joke about debugging, AI agents,
    security, or ML culture, followed by a real fact so it is still on-topic.
-3. **Cleared clip commentary** — a bounded summit, interview, demo, or creator
+4. **Cleared clip commentary** — a bounded summit, interview, demo, or creator
    clip selected through cliptool, with original narration/context and speaker
    colors when diarization is available.
-4. **Series** — split one cleared long-form clip into 2–4 independently useful
+5. **Series** — split one cleared long-form clip into 2–4 independently useful
    parts. Every part needs its own hook, `Part N of M` marker, source credit,
    and payoff; splitting alone is not transformation.
 

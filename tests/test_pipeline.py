@@ -11,6 +11,7 @@ from shorts_pipeline.asset_library import load_asset_manifest
 from shorts_pipeline.publish import save_manifest
 from pathlib import Path
 from shorts_pipeline.sources import _clean_summary
+import shorts_pipeline.cli as cli
 
 
 def test_fallback_package_preserves_source_url():
@@ -18,6 +19,12 @@ def test_fallback_package_preserves_source_url():
     package = fallback_package(Topic("A breakthrough", "AI", (source,)))
     assert source.url in package.description
     assert package.sources == [source.url]
+
+
+def test_fallback_package_uses_only_supported_content_lanes():
+    source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
+    package = fallback_package(Topic("A breakthrough", "AI", (source,)))
+    assert package.format_name in {"news_breakdown", "fact_explainer", "myth_bust", "technical_joke"}
 
 
 def test_model_output_is_normalized_and_rejects_unsupported_formats():
@@ -145,3 +152,13 @@ def test_fallback_narration_uses_title_when_summary_is_feed_boilerplate():
     package = fallback_package(Topic("A useful machine-learning discovery", "ML", (source,)))
     assert "A useful machine-learning discovery" in package.narration
     assert "https://" not in package.narration
+
+
+def test_batch_reports_feed_outage_before_claiming_topics_are_seen(monkeypatch):
+    monkeypatch.setattr(cli, "discover_topics", lambda limit: [])
+    try:
+        cli.run_batch(1, force_dry_run=True)
+    except RuntimeError as exc:
+        assert "RSS feeds may be unavailable" in str(exc)
+    else:
+        raise AssertionError("empty discovery did not report a feed outage")

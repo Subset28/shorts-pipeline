@@ -74,6 +74,8 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
 def run_batch(count: int, force_dry_run: bool = False) -> int:
     settings = load_settings()
     topics = discover_topics(max(settings.topic_limit, count))
+    if not topics:
+        raise RuntimeError("No source-backed topics were discovered; RSS feeds may be unavailable. Check network access and feed health before retrying.")
     seen = load_seen(settings.data_dir / "seen_sources.json")
     unique = []
     selected_urls = set()
