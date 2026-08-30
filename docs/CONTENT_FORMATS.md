@@ -29,6 +29,10 @@ view-count exports joinable without sending viewer data to the pipeline.
 from unseen source URLs. Each run gets a new batch directory, which preserves
 experiments for later comparison before enabling platform publishing.
 
+`batch --count N --variants M --dry-run` generates M deterministic treatments
+per selected source. Variants rotate the content lane while retaining the same
+source URL, and manifests/events record the variant for later measurement.
+
 The multipart helper requires an explicit local input path and is not connected
 to discovery. This prevents arbitrary downloads from silently becoming uploads;
 the operator must establish that each clip is public-domain, licensed, or
