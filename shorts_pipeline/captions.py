@@ -26,9 +26,16 @@ def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _escape_ass_text(text: str) -> str:
+    """Escape dialogue characters that ASS interprets as override markup."""
+    return text.replace("\\", "\\\\").replace("{", "\\{").replace("}", "\\}")
+
+
 def _animated_caption_text(text: str) -> str:
     """Add a short readable entrance animation without changing timings."""
-    wrapped = "\\N".join(" ".join(text.upper().split()[i : i + 3]) for i in range(0, len(text.split()), 3))
+    wrapped = "\\N".join(
+        _escape_ass_text(" ".join(text.upper().split()[i : i + 3])) for i in range(0, len(text.split()), 3)
+    )
     # A brief blur-to-sharp and scale settle gives captions energy while
     # keeping the text legible on fast-moving vertical footage.
     return r"{\fad(70,45)\blur1\t(0,120,\blur0)\t(0,100,\fscx106\fscy106)\t(100,200,\fscx100\fscy100)}" + wrapped
