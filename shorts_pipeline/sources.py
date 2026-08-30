@@ -4,6 +4,7 @@ import html
 import re
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
+from email.utils import parsedate_to_datetime
 
 import feedparser
 
@@ -126,6 +127,26 @@ def _clean_title(value: str) -> str:
     return title
 
 
+def _recency_score(published: str, now: datetime) -> float:
+    """Give a small, bounded bonus to genuinely recent feed items."""
+    if not published:
+        return 0.0
+    try:
+        timestamp = parsedate_to_datetime(published)
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        age_days = max(0.0, (now.astimezone(timezone.utc) - timestamp.astimezone(timezone.utc)).total_seconds() / 86400)
+    except (TypeError, ValueError, OverflowError):
+        return 0.0
+    if age_days <= 2:
+        return 0.3
+    if age_days <= 7:
+        return 0.2
+    if age_days <= 30:
+        return 0.1
+    return 0.0
+
+
 def _source_score(source: Source, published: str, now: datetime) -> float:
     """Score narrative potential, not popularity or expected views."""
     score = 1.0 + min(len(source.summary.split()) / 120, 0.8)
@@ -135,9 +156,7 @@ def _source_score(source: Source, published: str, now: datetime) -> float:
         score -= 0.45
     if re.search(r"\b\d+(?:\.\d+)?(?:%|[- ]year|[- ]meter|[- ]month)?\b", source.title, re.IGNORECASE):
         score += 0.2
-    if published and now.year >= 2020:
-        score += 0.1
-    return score
+    return score + _recency_score(published, now)
 
 
 def _has_truncation_marker(value: str) -> bool:

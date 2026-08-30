@@ -31,6 +31,8 @@ from shorts_pipeline.sources import (
     _content_key,
     _has_narrative_quality,
     _is_content_mirror,
+    _recency_score,
+    _source_score,
     is_relevant,
     is_usable_source,
 )
@@ -44,6 +46,18 @@ def test_fallback_package_preserves_source_url():
     assert source.url in package.description
     assert package.sources == [source.url]
     assert "one-minute version" not in package.narration
+
+
+def test_nonreddit_source_recency_bonus_tracks_actual_age():
+    from datetime import datetime, timezone
+
+    now = datetime(2026, 8, 30, 12, tzinfo=timezone.utc)
+    assert _recency_score("Sun, 30 Aug 2026 10:00:00 GMT", now) == 0.3
+    assert _recency_score("Sun, 1 Jun 2025 10:00:00 GMT", now) == 0.0
+    source = Source("A new breakthrough", "https://example.test/source", "A useful finding with supporting details.")
+    assert _source_score(source, "Sun, 30 Aug 2026 10:00:00 GMT", now) > _source_score(
+        source, "Sun, 1 Jun 2025 10:00:00 GMT", now
+    )
 
 
 def test_nonreddit_fallback_opens_with_source_headline_and_lane_takeaway():
