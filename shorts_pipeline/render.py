@@ -12,6 +12,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 from .models import ScriptPackage
 
+AUDIO_NORMALIZATION_FILTER = "loudnorm=I=-16:TP=-1.5:LRA=11"
+
 
 def _estimated_duration(text: str) -> float:
     return max(10.0, min(60.0, len(text.split()) / 2.5))
@@ -324,6 +326,12 @@ def render_video(
             "yuv420p",
             "-c:a",
             "aac",
+            "-af",
+            AUDIO_NORMALIZATION_FILTER,
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
             "-shortest",
             str(output),
         ]
@@ -349,6 +357,12 @@ def render_video(
             "yuv420p",
             "-c:a",
             "aac",
+            "-af",
+            AUDIO_NORMALIZATION_FILTER,
+            "-ar",
+            "48000",
+            "-ac",
+            "2",
             str(output),
         ]
     subprocess.run(command, check=True, capture_output=True, text=True)
