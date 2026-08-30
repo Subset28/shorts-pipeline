@@ -11,7 +11,7 @@ from .analytics import build_report, write_report
 from .asset_library import sync_backgrounds
 from .history import load_publish_state, load_seen, mark_seen, save_publish_state
 from .llm import create_package
-from .media import build_background_reel, ensure_background_video, select_background, select_backgrounds, split_authorized_clip
+from .media import build_background_reel, ensure_background_video, select_backgrounds, split_authorized_clip
 from .publish import save_manifest, upload_tiktok, upload_youtube
 from .render import render_video
 from .sources import discover_topics
