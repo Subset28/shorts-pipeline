@@ -61,6 +61,10 @@
   otherwise placed just before a closing bracket.
 - Applied truncation detection after HTML cleanup as well as to raw feed text,
   covering ellipses followed by closing tags.
+- Prefer fuller RSS `content` fields over truncated summaries when publishers
+  provide them, preserving the source-quality gate without starving the queue.
+- Hardened newsletter boilerplate removal for publisher HTML that inserts
+  whitespace before punctuation.
 - Added `user_orbital_capsule_earth.mp4` (Aerospace) and
   `user_computer_typing.mp4` (CS) at 1080p; source URLs and rights notes are
   recorded in the asset manifest.
