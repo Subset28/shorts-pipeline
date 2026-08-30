@@ -28,6 +28,17 @@ def test_fallback_package_preserves_source_url():
     assert "one-minute version" not in package.narration
 
 
+def test_long_form_non_reddit_fallback_keeps_enough_context_for_explainers():
+    source = Source(
+        "A breakthrough in model safety",
+        "https://example.test/safety",
+        " ".join(f"Evidence point {index} changes how the model is evaluated." for index in range(30)),
+    )
+    package = fallback_package(Topic(source.title, "AI News", (source,)))
+    assert package.format_name == "news_breakdown"
+    assert len(package.narration.split()) >= 100
+
+
 def test_fallback_package_uses_only_supported_content_lanes():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     package = fallback_package(Topic("A breakthrough", "AI", (source,)))
