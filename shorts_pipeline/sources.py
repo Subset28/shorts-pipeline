@@ -73,7 +73,7 @@ def _clean_summary(value: str) -> str:
     # description to the actual item. It is not source-specific context and
     # sounds like an advertisement when sent to narration.
     value = re.sub(
-        r"^this is today[’']s edition of the download,.*?world of technology\.\s*",
+        r"^\s*this is today.*?world of technology\.\s*",
         "",
         value,
         flags=re.IGNORECASE,
@@ -114,6 +114,13 @@ def discover_topics(limit: int = 10) -> list[Topic]:
             if not link:
                 continue
             raw_summary = str(entry.get("summary", entry.get("description", "")))
+            content_items = entry.get("content", []) or []
+            if content_items:
+                content_value = str(content_items[0].get("value", ""))
+                # Many publishers truncate `summary` but expose the complete
+                # article teaser in RSS `content`.
+                if len(content_value) > len(raw_summary):
+                    raw_summary = content_value
             source = Source(
                 title=_clean_title(str(entry.get("title", "Untitled"))),
                 url=link,
