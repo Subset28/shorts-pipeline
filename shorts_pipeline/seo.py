@@ -108,7 +108,10 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         # Match the reference format: read the post title first, then the
         # author's body. Attribution, permission, and the disclaimer stay in
         # metadata so the narration keeps a direct story rhythm.
-        narration = f"{source.title}. {summary}"
+        sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", summary) if part.strip()]
+        ending = sentences[-1] if sentences else summary
+        body = " ".join(sentences[:-1]).strip()
+        narration = f"{source.title}. Here's how it unfolded: {body} Then came the outcome: {ending}" if body else f"{source.title}. {ending}"
     elif format_name == "myth_bust":
         narration = f"This sounds like a bigger claim than it is. Here's what the evidence says: {summary} The honest takeaway is to separate the result from the hype."
     else:
@@ -126,7 +129,7 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     return ScriptPackage(
         hook, narration, title, description, tags, [source.url], format_name,
         topic.category, max(0, variant),
-        card_text=source.title if format_name == "reddit_story" else "",
+        card_text=(f"{source.title}\n{summary}" if format_name == "reddit_story" else ""),
     )
 
 
@@ -143,8 +146,8 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     if format_name not in eligible_formats(topic):
         raise ValueError(f"unsupported format: {format_name!r}")
     if format_name == "reddit_story":
-        # Keep model-generated Reddit treatments consistent with fallback:
-        # title first, followed by the source post body.
+        # Keep model-generated Reddit treatments source-faithful: exact title,
+        # then the original body. The fallback adds the narrative transitions.
         body = " ".join(source.summary.split())
         narration = f"{source.title}. {body}"[:900].rsplit(" ", 1)[0]
     tags = data.get("tags", [])
@@ -167,5 +170,5 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
         [source.url],
         format_name,
         topic.category,
-        card_text=source.title if format_name == "reddit_story" else "",
+        card_text=(f"{source.title}\n{source.summary}" if format_name == "reddit_story" else ""),
     )

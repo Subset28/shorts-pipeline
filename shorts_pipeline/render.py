@@ -92,8 +92,10 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
         first_sentence = re.split(r"(?<=[.!?])\s+", narrated_story, maxsplit=1)[0]
         story = first_sentence or story
     story = re.sub(r"^\[FICTIONAL REVIEW DEMO\]\s*", "", story)
-    lines = textwrap.wrap(story, width=45)[:6]
-    bottom = max(top + 490, top + 150 + (len(lines) * 48) + 90)
+    lines = textwrap.wrap(story, width=45)[:9]
+    # Let the post card flow with the text. The old fixed 490px minimum left
+    # conspicuous empty space when a post had a short title.
+    bottom = max(top + 365, top + 150 + (len(lines) * 48) + 90)
     draw.rounded_rectangle((left, top, right, bottom), radius=22, fill=(250, 250, 250, 252), outline=(215, 215, 215, 255), width=3)
 
     # Compact Reddit-style header with a recognizable orange avatar and metadata.

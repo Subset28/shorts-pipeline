@@ -45,6 +45,10 @@
 - The review demo now uses a complete CS incident arc and renders at about
   45 seconds, establishing the first watch-time experiment band rather than
   treating a short 10–15 second sample as the finished story format.
+- Reddit fallback treatments now add source-faithful narrative transitions,
+  preserve the final source sentence as the outcome, and render a flowing
+  title-plus-body card with no fixed dead-space minimum. The latest demo is
+  about 46 seconds.
 - Replaced the local Aerospire and Supkin background masters with fresh
   yt-dlp downloads: Aerospire is 1280x720/24fps (the source maximum), and
   Supkin is 1920x1080/60fps.

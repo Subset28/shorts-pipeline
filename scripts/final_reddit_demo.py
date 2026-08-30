@@ -16,7 +16,7 @@ def main() -> None:
         hook="I accidentally took down our company's production database.",
         narration=(
             "I accidentally took down our company's production database. "
-            "I was cleaning up an old staging environment during an overnight "
+            "Here's how it unfolded: I was cleaning up an old staging environment during an overnight "
             "maintenance window, and the first few commands looked completely "
             "normal. Then the script matched the production hostname too. Within "
             "seconds, our customer dashboard started timing out and the on-call "
@@ -29,14 +29,20 @@ def main() -> None:
             "safeguard has prevented a repeat."
         ),
         title="I accidentally took down our company's production database.",
-        card_text="I accidentally took down our company's production database.",
+        card_text=(
+            "I accidentally took down our company's production database.\n"
+            "I was cleaning up an old staging environment when the script matched "
+            "the production hostname too. The site went down for eleven minutes. "
+            "The team separated the accounts, added a dry-run requirement, and "
+            "made a second person approve destructive commands."
+        ),
         description=(
             "Reddit attribution: u/demo_story in r/TalesFromTechSupport\n"
             "Local layout demo only; not for publishing."
         ),
         sources=["https://www.reddit.com/r/TalesFromTechSupport/comments/demo/"],
         format_name="reddit_story",
-        category="Reddit Stories",
+        category="CS",
     )
     audio = synthesize(package.narration, settings, output / "narration.mp3")
     if not audio or not audio.exists() or audio.stat().st_size == 0:
