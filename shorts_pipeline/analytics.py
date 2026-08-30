@@ -84,7 +84,25 @@ def build_report(events_path: Path, metrics_path: Path) -> dict[str, Any]:
             "avg_views": round(views / values["videos"], 2) if values["videos"] else 0,
             "engagement_rate": round((values["likes"] + values["comments"] + values["shares"]) / views, 4) if views else 0,
         })
-    return {"rows": rows, "matched_rows": sum(row["videos"] for row in rows), "unmatched_rows": unmatched}
+    report = {"rows": rows, "matched_rows": sum(row["videos"] for row in rows), "unmatched_rows": unmatched}
+    report["recommendations"] = tuning_recommendations(report)
+    return report
+
+
+def tuning_recommendations(report: dict[str, Any], min_videos: int = 2) -> list[str]:
+    """Translate repeated lane performance into conservative next actions."""
+    rows = [row for row in report.get("rows", []) if int(row.get("videos", 0)) >= min_videos]
+    if not rows:
+        return ["Collect at least two videos per lane before changing the content mix."]
+    by_views = max(rows, key=lambda row: float(row.get("avg_views", 0)))
+    by_engagement = max(rows, key=lambda row: float(row.get("engagement_rate", 0)))
+    recommendations = [
+        f"Keep testing {by_views['category']} / {by_views['format_name']}; it leads repeated lanes by average views.",
+        f"Study the hook and pacing of {by_engagement['category']} / {by_engagement['format_name']}; it leads repeated lanes by engagement rate.",
+    ]
+    if by_views["category"] != by_engagement["category"] or by_views["format_name"] != by_engagement["format_name"]:
+        recommendations.append("Views and engagement favor different lanes; keep both in rotation instead of optimizing for one metric.")
+    return recommendations
 
 
 def write_report(report: dict[str, Any], output: Path) -> Path:
