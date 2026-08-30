@@ -31,7 +31,10 @@ def _fallback_segments(text: str, duration: float) -> list[tuple[float, float, s
         return []
     chunks = [words[i : i + 6] for i in range(0, len(words), 6)]
     step = max(duration, 1.0) / len(chunks)
-    return [(i * step, min(duration, (i + 1) * step), " ".join(chunk)) for i, chunk in enumerate(chunks)]
+    # TTS often has a short lead-in before the first spoken phoneme. A small
+    # delay makes fallback captions feel aligned instead of leading the voice.
+    lead_in = 0.18
+    return [(0.0 if i == 0 else min(duration, i * step + lead_in), min(duration, (i + 1) * step + lead_in), " ".join(chunk)) for i, chunk in enumerate(chunks)]
 
 
 def _write_srt(segments: list[tuple[float, float, str]], output: Path) -> Path | None:
@@ -59,7 +62,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,Arial,48,&H0000D7FF,&H0000D7FF,&H00101010,&H99000000,-1,0,0,0,100,100,0,0,1,4,2,2,80,80,430,1
+    Style: Default,Arial,42,&H0000D7FF,&H0000D7FF,&H00101010,&H99000000,-1,0,0,0,100,100,0,0,1,4,2,2,80,80,430,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -146,8 +149,14 @@ def create_captions(text: str, audio: Path | None, output: Path, model_name: str
             whisper_segments = []
             for segment in segments:
                 words = getattr(segment, "words", None) or []
-                caption_text = " ".join(word.word.strip() for word in words).strip() or segment.text
-                whisper_segments.append((float(segment.start), float(segment.end), caption_text))
+                if words:
+                    for index in range(0, len(words), 4):
+                        group = words[index : index + 4]
+                        caption_text = " ".join(word.word.strip() for word in group).strip()
+                        if caption_text:
+                            whisper_segments.append((float(group[0].start), float(group[-1].end), caption_text))
+                else:
+                    whisper_segments.append((float(segment.start), float(segment.end), segment.text))
             result = _write_caption_files(whisper_segments, output)
             if result:
                 return result

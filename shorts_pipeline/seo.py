@@ -76,7 +76,7 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         "question_answer": "What does '{headline}' actually mean?",
         "timeline": "How '{headline}' got here",
         "prediction_watch": "Will '{headline}' actually happen?",
-        "reddit_story": "The industry story behind '{headline}'",
+        "reddit_story": "The config change that took down an office",
     }
     hook = hook_templates[format_name].format(headline=headline)
     summary = " ".join(source.summary.split())
@@ -100,7 +100,7 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     elif format_name == "prediction_watch":
         narration = f"This is a claim worth watching, not a promise: {summary} The next thing to look for is evidence that it holds outside the original context. Until then, separate a measured result from a prediction."
     elif format_name == "reddit_story":
-        narration = f"A Reddit user in r/{source.community} described this experience: {summary} The useful part is the industry lesson, not the outrage. Treat this as one person's account and compare it with primary evidence before drawing a wider conclusion."
+        narration = f"A Reddit user from the {source.community} community described this experience: {summary} The useful part is the industry lesson, not the outrage. Treat this as one person's account and compare it with primary evidence before drawing a wider conclusion."
     elif format_name == "myth_bust":
         narration = f"This sounds like a bigger claim than it is. Here's what the evidence says: {summary} The honest takeaway is to separate the result from the hype."
     else:
