@@ -174,5 +174,7 @@
 
 - Continue improving the creative quality from retention evidence rather than
   assuming any lane will go viral.
+- Added a caption-density quality gate that rejects caption files which reach
+  the end of the audio but contain too few words to represent the narration.
 - Finish platform OAuth/configuration and perform a deliberate final-release
   review before deploying to the NAS.
