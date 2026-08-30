@@ -57,6 +57,13 @@ YouTube publishing is configured locally for the confirmed queue; TikTok stays
 disabled. Keep all durable progress in
 `PROJECT_STATUS.md`, not in private transcripts.
 
+## Multi-agent coordination
+
+All Codex/Claude agents must work on feature branches and communicate changes
+through pull requests. Do not push directly to `main`, force-push, or merge
+another agent's branch automatically. Before opening a PR, include tests,
+runtime impact, publishing/privacy impact, and any required manual review.
+
 ## Useful commands
 
 ```bash
