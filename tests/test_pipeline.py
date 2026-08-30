@@ -6,7 +6,7 @@ import json
 from shorts_pipeline.publish import fetch_tiktok_status, metadata, youtube_status
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.media import select_background, select_backgrounds
-from shorts_pipeline.analytics import build_report
+from shorts_pipeline.analytics import build_report, tuning_recommendations
 from shorts_pipeline.asset_library import load_asset_manifest
 from shorts_pipeline.asset_library import sync_backgrounds
 from shorts_pipeline.publish import save_manifest
@@ -382,6 +382,20 @@ def test_analytics_keeps_variants_separate(tmp_path):
     report = build_report(events, metrics)
     assert report["matched_rows"] == 2
     assert {row["variant"] for row in report["rows"]} == {0, 1}
+
+
+def test_tuning_recommendations_require_repeated_evidence():
+    report = {"rows": [
+        {"category": "AI", "format_name": "fact_explainer", "videos": 3, "avg_views": 1000, "engagement_rate": 0.02},
+        {"category": "Cyber", "format_name": "news_breakdown", "videos": 1, "avg_views": 5000, "engagement_rate": 0.09},
+    ]}
+    recommendations = tuning_recommendations(report)
+    assert any("AI" in item and "fact_explainer" in item for item in recommendations)
+    assert all("Cyber" not in item for item in recommendations)
+
+
+def test_tuning_recommendations_call_out_insufficient_sample_size():
+    assert tuning_recommendations({"rows": []}) == ["Collect at least two videos per lane before changing the content mix."]
 
 
 def test_background_manifest_requires_provenance_fields(tmp_path):
