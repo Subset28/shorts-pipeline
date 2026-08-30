@@ -7,6 +7,8 @@ from shorts_pipeline.publish import metadata
 from shorts_pipeline.seo import fallback_package, normalize_package
 from shorts_pipeline.media import select_background
 from shorts_pipeline.analytics import build_report
+from shorts_pipeline.asset_library import load_asset_manifest
+from shorts_pipeline.publish import save_manifest
 
 
 def test_fallback_package_preserves_source_url():
@@ -93,3 +95,17 @@ def test_analytics_joins_platform_metrics_to_experiment_metadata(tmp_path):
     assert report["unmatched_rows"] == 1
     assert report["rows"][0]["views"] == 1000
     assert report["rows"][0]["engagement_rate"] == 0.065
+
+
+def test_background_manifest_requires_provenance_fields(tmp_path):
+    manifest = tmp_path / "backgrounds.json"
+    manifest.write_text(json.dumps({"assets": [{"name": "x", "filename": "x.mp4", "url": "https://example.test/x.mp4", "source_page": "https://example.test", "attribution": "Example", "rights_note": "authorized"}]}), encoding="utf-8")
+    assert load_asset_manifest(manifest)[0]["name"] == "x"
+
+
+def test_manifest_records_selected_background(tmp_path):
+    source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
+    background = tmp_path / "background.mp4"
+    background.write_bytes(b"video")
+    manifest = save_manifest(fallback_package(Topic("A breakthrough", "AI", (source,))), tmp_path / "short.mp4", tmp_path, background)
+    assert json.loads(manifest.read_text(encoding="utf-8"))["background"] == str(background)

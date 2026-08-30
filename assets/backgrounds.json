@@ -1,0 +1,28 @@
+{
+  "assets": [
+    {
+      "name": "moon_to_earth",
+      "filename": "nasa_moon_to_earth.mp4",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005039/moon_to_earth_1080p30.mp4",
+      "source_page": "https://svs.gsfc.nasa.gov/5039",
+      "attribution": "NASA/Goddard Space Flight Center Scientific Visualization Studio",
+      "rights_note": "NASA SVS visualization; verify page-specific credits before commercial use"
+    },
+    {
+      "name": "earth_zoom",
+      "filename": "nasa_earth_zoom.mp4",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a002200/a002255/a002255.mp4",
+      "source_page": "https://svs.gsfc.nasa.gov/2255",
+      "attribution": "NASA/Goddard Space Flight Center Scientific Visualization Studio",
+      "rights_note": "NASA SVS visualization; verify page-specific credits before commercial use"
+    },
+    {
+      "name": "osiris_apex_earth_flyby",
+      "filename": "nasa_osiris_apex_earth_flyby.mp4",
+      "url": "https://svs.gsfc.nasa.gov/vis/a000000/a005500/a005582/osiris_apex_092025_ega_top-down_1080p60.mp4",
+      "source_page": "https://svs.gsfc.nasa.gov/5582",
+      "attribution": "NASA/Goddard Space Flight Center Scientific Visualization Studio",
+      "rights_note": "NASA SVS visualization; verify page-specific credits before commercial use"
+    }
+  ]
+}

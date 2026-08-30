@@ -40,6 +40,10 @@ Generate a queue of distinct drafts with `python -m shorts_pipeline batch
 folder (with `item-NN` children; reruns allocate a new batch) and uses the
 source/format telemetry path.
 
+Provision the tracked, rights-documented background library with
+`python -m shorts_pipeline backgrounds`. The command downloads only URLs in
+`assets/backgrounds.json` and skips files already present.
+
 After publishing, export platform metrics to a CSV containing `source_url`,
 `platform`, and `views` (optionally `likes`, `comments`, and `shares`), then
 run `python -m shorts_pipeline report --metrics metrics.csv`. The report joins

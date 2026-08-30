@@ -8,6 +8,7 @@ from pathlib import Path
 from .config import load_settings
 from .captions import create_captions
 from .analytics import build_report, write_report
+from .asset_library import sync_backgrounds
 from .history import load_publish_state, load_seen, mark_seen, save_publish_state
 from .llm import create_package
 from .media import ensure_background_video, select_background, split_authorized_clip
@@ -49,7 +50,7 @@ def run(force_dry_run: bool = False, topic_override=None, output_dir_override: P
     fallback_background = ensure_background_video(settings.background_video_url, settings.background_video)
     background = select_background(settings.background_dir, source_url, fallback_background)
     video = render_video(package, output_dir, audio, captions, background)
-    manifest = save_manifest(package, video, output_dir)
+    manifest = save_manifest(package, video, output_dir, background)
     record_event(events_path, "draft_created", source_url=source_url, category=package.category, format_name=package.format_name, title=package.title, video=str(video), dry_run=dry_run)
     print(f"Created {manifest}")
     if dry_run:
@@ -105,6 +106,9 @@ def main() -> None:
     report_parser.add_argument("--metrics", required=True, help="CSV export with source_url, platform, and views columns")
     report_parser.add_argument("--events", default="data/events.jsonl")
     report_parser.add_argument("--out", default="data/analytics_report.json")
+    assets_parser = sub.add_parser("backgrounds")
+    assets_parser.add_argument("--manifest", default="assets/backgrounds.json")
+    assets_parser.add_argument("--out", default="data/backgrounds")
     args = parser.parse_args()
     if args.command == "split":
         for part in split_authorized_clip(Path(args.input), Path(args.out), args.parts):
@@ -116,6 +120,10 @@ def main() -> None:
         report = build_report(Path(args.events), Path(args.metrics))
         output = write_report(report, Path(args.out))
         print(f"Wrote {output} ({report['matched_rows']} matched rows, {report['unmatched_rows']} unmatched)")
+        return
+    if args.command == "backgrounds":
+        for path in sync_backgrounds(Path(args.manifest), Path(args.out)):
+            print(path)
         return
     if args.daemon:
         while True:

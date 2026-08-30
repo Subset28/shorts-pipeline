@@ -39,3 +39,10 @@ python -m shorts_pipeline report --metrics metrics.csv
 The command writes `data/analytics_report.json` and groups matched videos by
 category, format, and platform. It never fabricates view counts; unmatched
 rows are reported separately for cleanup.
+
+## Background library
+
+Run `python -m shorts_pipeline backgrounds` on a new host to provision the
+cataloged motion footage into `data/backgrounds`. Each entry records its source
+page, attribution, and rights note in `assets/backgrounds.json`; do not add
+uncataloged downloads to the publishing library.
