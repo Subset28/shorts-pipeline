@@ -128,8 +128,23 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     # with only a headline and a large empty body area.
     draw.multiline_text((left + 28, top + 112), "\n".join(lines), fill=(20, 20, 20), font=body_font, spacing=4)
     draw.line((left + 28, bottom - 66, right - 28, bottom - 66), fill=(225, 225, 225), width=2)
-    draw.text((left + 34, bottom - 48), "99+", fill=(120, 120, 120), font=small)
-    draw.text((left + 145, bottom - 48), "99+", fill=(120, 120, 120), font=small)
+    footer_y = bottom - 51
+    like_icon = _asset(asset_dir / "like.png", (20, 20))
+    comment_icon = _asset(asset_dir / "comment.png", (20, 20))
+    if like_icon:
+        image.alpha_composite(like_icon, (left + 30, footer_y))
+    else:
+        # Small outline heart, matching the light-gray Reddit footer icon.
+        draw.arc((left + 30, footer_y + 1, left + 40, footer_y + 11), 180, 360, fill=(145, 145, 145), width=2)
+        draw.arc((left + 39, footer_y + 1, left + 49, footer_y + 11), 180, 360, fill=(145, 145, 145), width=2)
+        draw.line((left + 30, footer_y + 6, left + 40, footer_y + 18, left + 49, footer_y + 6), fill=(145, 145, 145), width=2)
+    if comment_icon:
+        image.alpha_composite(comment_icon, (left + 143, footer_y))
+    else:
+        draw.rounded_rectangle((left + 143, footer_y + 1, left + 161, footer_y + 14), radius=5, outline=(145, 145, 145), width=2)
+        draw.line((left + 147, footer_y + 13, left + 145, footer_y + 18, left + 152, footer_y + 14), fill=(145, 145, 145), width=2)
+    draw.text((left + 56, bottom - 48), "99+", fill=(120, 120, 120), font=small)
+    draw.text((left + 169, bottom - 48), "99+", fill=(120, 120, 120), font=small)
     image.save(path)
 
 
