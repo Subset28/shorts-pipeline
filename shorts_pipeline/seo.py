@@ -166,13 +166,25 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     )
 
 
+def _clip_narration(text: str, limit: int = 900) -> str:
+    """Keep generated narration within platform limits without a hard cut."""
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+    bounded = text[:limit]
+    sentences = re.split(r"(?<=[.!?])\s+", bounded)
+    if len(sentences) > 1:
+        return " ".join(sentences[:-1]).strip()
+    return bounded.rsplit(" ", 1)[0].rstrip(" ,;:-")
+
+
 def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     """Validate model output before it reaches TTS, rendering, or publishing."""
     source = topic.sources[0]
     required = ("hook", "narration", "title", "description")
     if any(not isinstance(data.get(field), str) or not data[field].strip() for field in required):
         raise ValueError("model output is missing required text fields")
-    narration = " ".join(data["narration"].split())[:900].rsplit(" ", 1)[0]
+    narration = _clip_narration(data["narration"])
     if len(narration.split()) < 12:
         raise ValueError("model narration is too short")
     format_name = data.get("format_name", "news_breakdown")
