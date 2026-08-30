@@ -100,10 +100,10 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     elif format_name == "prediction_watch":
         narration = f"This is a claim worth watching, not a promise: {summary} The next thing to look for is evidence that it holds outside the original context. Until then, separate a measured result from a prediction."
     elif format_name == "reddit_story":
-        # Reddit-story treatment reads the post itself. Attribution,
-        # permission, and the educational disclaimer stay in the metadata so
-        # the narration keeps the same direct rhythm as the reference format.
-        narration = summary
+        # Match the reference format: read the post title first, then the
+        # author's body. Attribution, permission, and the disclaimer stay in
+        # metadata so the narration keeps a direct story rhythm.
+        narration = f"{source.title}. {summary}"
     elif format_name == "myth_bust":
         narration = f"This sounds like a bigger claim than it is. Here's what the evidence says: {summary} The honest takeaway is to separate the result from the hype."
     else:
@@ -137,6 +137,11 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     format_name = data.get("format_name", "news_breakdown")
     if format_name not in eligible_formats(topic):
         raise ValueError(f"unsupported format: {format_name!r}")
+    if format_name == "reddit_story":
+        # Keep model-generated Reddit treatments consistent with fallback:
+        # title first, followed by the source post body.
+        body = " ".join(source.summary.split())
+        narration = f"{source.title}. {body}"[:900].rsplit(" ", 1)[0]
     tags = data.get("tags", [])
     if not isinstance(tags, list):
         raise ValueError("model tags must be a list")
