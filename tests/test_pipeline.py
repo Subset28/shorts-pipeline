@@ -5,6 +5,7 @@ from shorts_pipeline.telemetry import record_event
 import json
 from shorts_pipeline.publish import metadata
 from shorts_pipeline.seo import fallback_package
+from shorts_pipeline.media import select_background
 
 
 def test_fallback_package_preserves_source_url():
@@ -41,3 +42,18 @@ def test_telemetry_is_append_only_and_secret_free(tmp_path):
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
     assert [row["event"] for row in rows] == ["draft_created", "youtube_published"]
     assert "api_key" not in rows[0]
+
+
+def test_background_selection_is_stable_and_uses_fallback(tmp_path):
+    first = tmp_path / "first.mp4"
+    second = tmp_path / "second.mp4"
+    first.write_bytes(b"first")
+    second.write_bytes(b"second")
+    chosen = select_background(tmp_path, "https://example.test/topic")
+    assert chosen in {first, second}
+    assert select_background(tmp_path, "https://example.test/topic") == chosen
+
+    empty = tmp_path / "empty"
+    fallback = tmp_path / "fallback.mp4"
+    fallback.write_bytes(b"fallback")
+    assert select_background(empty, "topic", fallback) == fallback

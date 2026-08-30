@@ -1,10 +1,22 @@
 from __future__ import annotations
 
+import hashlib
 import shutil
 import subprocess
 from pathlib import Path
 
 import httpx
+
+
+def select_background(directory: Path, key: str, fallback: Path | None = None) -> Path | None:
+    """Choose a stable background from the locally approved footage library."""
+    candidates = sorted(
+        path for path in directory.glob("*") if path.suffix.lower() in {".mp4", ".mov", ".webm", ".mkv"} and path.is_file()
+    ) if directory.exists() else []
+    if candidates:
+        index = int(hashlib.sha256(key.encode("utf-8")).hexdigest()[:8], 16) % len(candidates)
+        return candidates[index]
+    return fallback if fallback and fallback.exists() else None
 
 
 def download_rights_cleared_source(url: str, output_dir: Path) -> Path:

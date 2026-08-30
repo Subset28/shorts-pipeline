@@ -34,3 +34,7 @@ The visual defaults and footage/caption rules are documented in
 
 For a rights-cleared local clip, create bounded series parts with
 `python -m shorts_pipeline split --input path\to\clip.mp4 --parts 4`.
+
+Generate a queue of distinct drafts with `python -m shorts_pipeline batch
+--count 3 --dry-run`; each asset is written to its own `output/batch-NN`
+folder and uses the source/format telemetry path.

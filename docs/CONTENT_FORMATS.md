@@ -23,6 +23,10 @@ Each draft appends a local `data/events.jsonl` record containing its source,
 format, title, and platform IDs when available. This makes later retention and
 view-count exports joinable without sending viewer data to the pipeline.
 
+`batch --count N --dry-run` generates a distinct queue from unseen source URLs,
+which is the recommended way to prepare a week of candidates before enabling
+platform publishing.
+
 The multipart helper requires an explicit local input path and is not connected
 to discovery. This prevents arbitrary downloads from silently becoming uploads;
 the operator must establish that each clip is public-domain, licensed, or

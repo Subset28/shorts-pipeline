@@ -23,6 +23,7 @@ class Settings:
     captions_enabled: bool
     caption_model: str
     background_video: Path
+    background_dir: Path
     background_video_url: str
     topic_limit: int
     output_dir: Path
@@ -48,6 +49,7 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
         captions_enabled=os.getenv("CAPTIONS_ENABLED", "true").lower() in {"1", "true", "yes"},
         caption_model=os.getenv("CAPTION_MODEL", "base"),
         background_video=Path(os.getenv("BACKGROUND_VIDEO", "data/backgrounds/nasa_moon_to_earth.mp4")),
+        background_dir=Path(os.getenv("BACKGROUND_VIDEO_DIR", "data/backgrounds")),
         background_video_url=os.getenv("BACKGROUND_VIDEO_URL", "https://svs.gsfc.nasa.gov/vis/a000000/a005000/a005039/moon_to_earth_1080p30.mp4"),
         topic_limit=int(os.getenv("TOPIC_LIMIT", "10")),
         output_dir=Path(os.getenv("OUTPUT_DIR", "output")),
