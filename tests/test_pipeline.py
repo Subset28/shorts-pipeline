@@ -1002,13 +1002,14 @@ def test_quality_report_records_sync_and_caption_coverage(tmp_path, monkeypatch)
     captions = tmp_path / "captions.srt"
     for path in (video, audio, background):
         path.write_bytes(b"media")
-    captions.write_text("1\n00:00:00,000 --> 00:00:09,500\nWORDS\n", encoding="utf-8")
+    captions.write_text("1\n00:00:00,000 --> 00:00:09,500\nONE TWO THREE FOUR FIVE SIX\n", encoding="utf-8")
     durations = {video: 10.0, audio: 10.0, background: 60.0}
     monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda path: durations.get(path))
     report = assess_render(video, audio, captions, background)
     assert report["passed"] is True
     assert report["audio_video_delta_seconds"] == 0.0
     assert report["caption_coverage"] == 0.95
+    assert report["caption_word_count"] == 6
 
 
 def test_quality_report_flags_background_and_caption_failures(tmp_path, monkeypatch):
@@ -1072,6 +1073,22 @@ def test_quality_report_rejects_caption_overrun(tmp_path, monkeypatch):
     assert report["passed"] is False
     assert report["issues"] == ["captions_end_too_late"]
     assert report["caption_coverage"] == 1.1
+
+
+def test_quality_report_rejects_sparse_caption_track(tmp_path, monkeypatch):
+    video = tmp_path / "short.mp4"
+    audio = tmp_path / "narration.mp3"
+    captions = tmp_path / "captions.srt"
+    for path in (video, audio):
+        path.write_bytes(b"media")
+    captions.write_text("1\n00:00:00,000 --> 00:00:10,000\nONE TWO\n", encoding="utf-8")
+    monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda path: 10.0)
+
+    report = assess_render(video, audio, captions, None)
+
+    assert report["passed"] is False
+    assert report["caption_word_count"] == 2
+    assert "captions_too_sparse" in report["issues"]
 
 
 def test_background_reel_selection_rotates_stably(tmp_path):

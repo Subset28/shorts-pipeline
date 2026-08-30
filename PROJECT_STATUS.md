@@ -184,5 +184,7 @@
   anchors accepted narration to the exact source headline before TTS.
 - Extended source anchoring to repair generic model hooks and platform titles
   from the source instead of allowing ungrounded metadata into publishing.
+- Added a caption-density quality gate that rejects caption files which reach
+   the end of the audio but contain too few words to represent the narration.
 - Finish platform OAuth/configuration and perform a deliberate final-release
   review before deploying to the NAS.
