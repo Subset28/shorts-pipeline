@@ -60,6 +60,10 @@
   assets; they are background-only footage and do not add operational content.
 - Added two local code-typing clips to the CS category, including the
   MacBook typing clip just identified.
+- Added the local high-end multi-monitor AI development setup clip to the AI
+  category.
+- Added the local robot clip to the AI category for robotics and future-tech
+  stories.
 - Added the supplied Reddit avatar and verification graphics plus the public
   Reddit award collection. Reddit cards now choose eight deterministic award
   images per post and guarantee at least one animated award when available.

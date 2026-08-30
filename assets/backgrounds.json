@@ -1,6 +1,24 @@
 {
   "assets": [
     {
+      "name": "user_robot_ai_4k",
+      "filename": "user_robot_ai_4k.mp4",
+      "url": "local://user_robot_ai_4k.mp4",
+      "source_page": "local file supplied by user",
+      "category": "AI",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
+      "name": "user_ai_dev_setup_4k",
+      "filename": "user_ai_dev_setup_4k.mp4",
+      "url": "local://user_ai_dev_setup_4k.mp4",
+      "source_page": "local file supplied by user",
+      "category": "AI",
+      "attribution": "User-supplied local footage; creator attribution to be confirmed",
+      "rights_note": "Confirm the source license before commercial publication"
+    },
+    {
       "name": "user_unreviewed_4974884",
       "filename": "user_unreviewed_4974884.mp4",
       "url": "local://user_unreviewed_4974884.mp4",
