@@ -55,6 +55,8 @@ def discover_reddit_topics(
                 f"https://oauth.reddit.com/r/{quote(subreddit.strip(), safe='')}/top",
                 params={"t": "week", "limit": min(max(limit, 1), 100), "raw_json": 1},
             )
+            if getattr(response, "status_code", None) == 404:
+                continue
             response.raise_for_status()
             children = response.json().get("data", {}).get("children", [])
             for child in children:
@@ -78,6 +80,8 @@ def discover_reddit_topics(
                 if not prompt_thread or not post_id:
                     continue
                 comments = client.get(f"https://oauth.reddit.com/comments/{quote(post_id, safe='')}", params={"limit": 20, "raw_json": 1})
+                if getattr(comments, "status_code", None) == 404:
+                    continue
                 comments.raise_for_status()
                 listings = comments.json()
                 if not isinstance(listings, list) or len(listings) < 2:
