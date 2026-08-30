@@ -15,6 +15,7 @@ FEEDS = {
     "AI News": "https://www.technologyreview.com/feed/",
     "Aerospace": "https://www.nasa.gov/rss/dyn/breaking_news.rss",
     "Cyber": "https://nvd.nist.gov/feeds/xml/cve/mva.xml",
+    "Finance": "https://news.google.com/rss/search?q=technology%20finance%20markets%20AI&hl=en-US&gl=US&ceid=US:en",
 }
 
 

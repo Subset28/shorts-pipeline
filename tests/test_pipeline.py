@@ -27,6 +27,14 @@ def test_fallback_package_uses_only_supported_content_lanes():
     assert package.format_name in {"news_breakdown", "fact_explainer", "myth_bust", "technical_joke"}
 
 
+def test_finance_topics_get_safe_source_linked_packaging():
+    source = Source("A technology market update", "https://example.test/finance", "A company reported a new technology investment.")
+    package = fallback_package(Topic("A technology market update", "Finance", (source,)))
+    assert package.category == "Finance"
+    assert "financial advice" in package.description
+    assert source.url in package.description
+
+
 def test_model_output_is_normalized_and_rejects_unsupported_formats():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     topic = Topic("A breakthrough", "AI", (source,))

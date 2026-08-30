@@ -35,6 +35,12 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
             "The security detail hiding in the headline",
             "POV: the bug report arrives five minutes before launch",
         ),
+        "Finance": (
+            "The market story hiding behind the tech headline",
+            "The finance concept in plain English",
+            "This market claim needs a closer look",
+            "POV: the spreadsheet discovers a bug in your thesis",
+        ),
     }
     category_hooks = hooks.get(topic.category)
     hook = category_hooks[format_index] if category_hooks else f"The {format_name.replace('_', ' ')} behind {topic.category.lower()}"
@@ -54,11 +60,13 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         narration = f"This sounds like a bigger claim than it is. Here is what the source actually says: {summary} So the honest takeaway is to separate the result from the hype and verify the original source."
     else:
         narration = f"Here is the signal behind the headline: {summary} Why does it matter? It changes how we think about {topic.category.lower()}, but the original source is still the thing to check before repeating the claim."
-    description = (
-        f"{narration}\n\nSource: {source.url}\n"
-        "This is educational technology commentary, not professional advice."
-    )
+    disclaimer = "This is educational technology commentary, not professional advice."
+    if topic.category == "Finance":
+        disclaimer = "This is educational market commentary, not financial advice or an investment recommendation."
+    description = f"{narration}\n\nSource: {source.url}\n{disclaimer}"
     tags = [topic.category, "technology", "science", "explained", "shorts"]
+    if topic.category == "Finance":
+        tags.extend(["markets", "business"])
     return ScriptPackage(hook, narration, title, description, tags, [source.url], format_name, topic.category, max(0, variant))
 
 

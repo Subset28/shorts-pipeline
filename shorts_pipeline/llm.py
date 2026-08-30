@@ -23,7 +23,7 @@ def create_package(topic: Topic, api_key: str, model: str, variant: int = 0) -> 
         "source_title": source.title,
         "source_summary": source.summary,
         "source_url": source.url,
-        "requirements": "Return JSON with hook, narration, title, description, tags, and format_name. Use one format_name from news_breakdown, fact_explainer, myth_bust, technical_joke. Be accurate, original, entertaining, educational, and do not give financial or cyber instructions.",
+        "requirements": "Return JSON with hook, narration, title, description, tags, and format_name. Use one format_name from news_breakdown, fact_explainer, myth_bust, technical_joke. Be accurate, original, entertaining, educational, and do not give financial advice, investment recommendations, or cyber instructions.",
     }
     try:
         response = httpx.post(
