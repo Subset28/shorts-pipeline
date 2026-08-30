@@ -53,6 +53,8 @@
   summary, preventing headline-only items from becoming shallow scripts.
 - Added a completeness gate for RSS summaries, rejecting short or ellipsis-
   truncated feed text before it reaches narration or TTS.
+- Preserved trailing punctuation during feed cleanup and changed long-source
+  clipping to end at a complete sentence rather than speaking an ellipsis.
 - Added `user_orbital_capsule_earth.mp4` (Aerospace) and
   `user_computer_typing.mp4` (CS) at 1080p; source URLs and rights notes are
   recorded in the asset manifest.
