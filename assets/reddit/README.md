@@ -14,3 +14,6 @@ These files are local production assets and are not downloaded automatically.
 
 The bundled award PNGs were sourced from the public
 `androiddevnotes/reddit-awards` collection supplied for this project.
+Review that collection's current licensing and Reddit's brand/award usage
+rules before monetized publication; local inclusion here is not a commercial
+rights clearance.
