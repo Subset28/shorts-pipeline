@@ -74,6 +74,11 @@ def test_variants_rotate_content_lane_without_changing_source():
     assert first.format_name != second.format_name
 
 
+def test_variant_publish_state_keys_are_isolated_but_legacy_default_survives():
+    assert cli._publish_state_key("https://example.test/source", 0) == "https://example.test/source"
+    assert cli._publish_state_key("https://example.test/source", 1) == "https://example.test/source#variant=1"
+
+
 def test_publish_state_resumes_each_platform_without_overwriting(tmp_path):
     path = tmp_path / "publish_state.json"
     save_publish_state(path, "https://example.test/source", youtube_id="yt123")

@@ -28,6 +28,11 @@ endpoint on the next run. It marks the source seen only after
 `PUBLISH_COMPLETE`; a reported failure stops the run instead of claiming a
 successful post.
 
+When variants are enabled, platform retry state is keyed by source plus
+variant (`source_url#variant=N`); the default variant retains the legacy
+source-only key. This prevents one treatment from reusing another treatment's
+upload IDs.
+
 For an always-on host, run `docker compose up -d --build`. The container
 restarts after process failures and keeps `data/` and `output/` on the host.
 Use `DRY_RUN=true` for the first deployment; switch it only after both platform
