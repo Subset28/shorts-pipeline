@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import shutil
 import subprocess
 from pathlib import Path
@@ -69,27 +70,42 @@ def select_backgrounds(
     return rotated[:max(1, min(limit, len(rotated)))]
 
 
-def build_background_reel(sources: list[Path], output: Path, seconds_per_clip: float = 4.0) -> Path | None:
-    """Create a silent, cut-based reel from cataloged footage for rendering."""
-    if len(sources) < 2:
+def build_background_reel(
+    sources: list[Path],
+    output: Path,
+    seconds_per_clip: float = 4.0,
+    variation_key: str = "",
+    duration: float = 60.0,
+) -> Path | None:
+    """Create a long, varied silent reel instead of a short repeating loop."""
+    if not sources:
         return sources[0] if sources else None
     if not shutil.which("ffmpeg"):
         raise RuntimeError("ffmpeg is required")
     output.parent.mkdir(parents=True, exist_ok=True)
     filters = []
     labels = []
-    for index in range(len(sources)):
+    seed = int(hashlib.sha256(variation_key.encode("utf-8")).hexdigest()[:8], 16) if variation_key else 0
+    segment_count = max(1, math.ceil(max(duration, seconds_per_clip) / seconds_per_clip))
+    start_index = seed % len(sources)
+    for index in range(segment_count):
         label = f"v{index}"
+        # Every segment gets a different crop/offset even when the category
+        # has only one or two approved source videos.
+        offset = ((seed >> (index * 5 % 24)) + index * 3) % 7
+        x_bias = ((seed >> (index * 3 % 24)) % 5) / 10
+        y_bias = ((seed >> (index * 4 % 24)) % 5) / 10
         filters.append(
             f"[{index}:v]scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,"
             f"unsharp=5:5:0.35:5:5:0,"
             f"setsar=1,fps=30,trim=duration={seconds_per_clip},setpts=PTS-STARTPTS[{label}]"
         )
         labels.append(f"[{label}]")
-    filters.append("".join(labels) + f"concat=n={len(sources)}:v=1:a=0[v]")
+    filters.append("".join(labels) + f"concat=n={segment_count}:v=1:a=0[v]")
     command = ["ffmpeg", "-y"]
-    for source in sources:
-        command += ["-i", str(source)]
+    selected_sources = [sources[(start_index + index) % len(sources)] for index in range(segment_count)]
+    for source in selected_sources:
+        command += ["-stream_loop", "-1", "-i", str(source)]
     command += ["-filter_complex", ";".join(filters), "-map", "[v]", "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(output)]
     subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)
     return output

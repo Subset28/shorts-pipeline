@@ -84,6 +84,10 @@
   newsletter/article pair so that confirmed duplicates collapse in practice.
 - Made near-mirror comparison symmetric because lightly edited feed summaries
   can produce different sequence ratios depending on ingestion order.
+- Narrowed multi-story “The Download” headlines to their lead story so the
+  narrated subject, on-screen hook, and platform title remain aligned.
+- Rebuilt background reels as 60-second sequences of varied, reframed shots,
+  eliminating the former 8-second loop that repeated throughout longer shorts.
 - Extended substantive non-Reddit news/explainer fallback context to support
   the intended longer runtime while retaining sentence-boundary clipping and
   refusing to pad thin sources.
