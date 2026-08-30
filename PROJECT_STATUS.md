@@ -68,6 +68,8 @@
 - Fixed editorial-to-asset category aliases so AI News selects AI footage and
   Cyber selects cybersecurity footage instead of falling back to unrelated
   aerospace or general visuals.
+- Mapped Finance explainers to neutral General motion footage when no
+  finance-specific assets exist, preventing misleading cross-topic visuals.
 - Extended substantive non-Reddit news/explainer fallback context to support
   the intended longer runtime while retaining sentence-boundary clipping and
   refusing to pad thin sources.
