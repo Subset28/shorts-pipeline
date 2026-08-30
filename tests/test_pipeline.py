@@ -10,6 +10,7 @@ from shorts_pipeline.analytics import build_report, tuning_recommendations
 from shorts_pipeline.asset_library import load_asset_manifest
 from shorts_pipeline.asset_library import sync_backgrounds
 from shorts_pipeline.publish import save_manifest
+from shorts_pipeline.quality import assess_render
 from pathlib import Path
 from shorts_pipeline.sources import (
     _clean_summary,
@@ -498,6 +499,37 @@ def test_manifest_records_audio_and_caption_paths(tmp_path):
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     assert payload["audio"] == str(audio)
     assert payload["captions"] == str(captions)
+
+
+def test_quality_report_records_sync_and_caption_coverage(tmp_path, monkeypatch):
+    video = tmp_path / "short.mp4"
+    audio = tmp_path / "narration.mp3"
+    background = tmp_path / "background.mp4"
+    captions = tmp_path / "captions.srt"
+    for path in (video, audio, background):
+        path.write_bytes(b"media")
+    captions.write_text("1\n00:00:00,000 --> 00:00:09,500\nWORDS\n", encoding="utf-8")
+    durations = {video: 10.0, audio: 10.0, background: 60.0}
+    monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda path: durations.get(path))
+    report = assess_render(video, audio, captions, background)
+    assert report["passed"] is True
+    assert report["audio_video_delta_seconds"] == 0.0
+    assert report["caption_coverage"] == 0.95
+
+
+def test_quality_report_flags_background_and_caption_failures(tmp_path, monkeypatch):
+    video = tmp_path / "short.mp4"
+    audio = tmp_path / "narration.mp3"
+    background = tmp_path / "background.mp4"
+    captions = tmp_path / "captions.srt"
+    for path in (video, audio, background):
+        path.write_bytes(b"media")
+    captions.write_text("1\n00:00:00,000 --> 00:00:02,000\nWORDS\n", encoding="utf-8")
+    durations = {video: 10.0, audio: 10.5, background: 8.0}
+    monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda path: durations.get(path))
+    report = assess_render(video, audio, captions, background)
+    assert report["passed"] is False
+    assert {"audio_video_duration_mismatch", "background_shorter_than_video", "captions_end_too_early"}.issubset(report["issues"])
 
 
 def test_background_reel_selection_rotates_stably(tmp_path):
