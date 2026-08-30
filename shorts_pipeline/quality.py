@@ -70,8 +70,11 @@ def assess_render(video: Path, audio: Path | None, captions: Path | None, backgr
     )
     if captions and caption_coverage is None:
         issues.append("caption_timing_unavailable")
-    elif caption_coverage is not None and caption_coverage < 0.90:
-        issues.append("captions_end_too_early")
+    elif caption_coverage is not None:
+        if caption_coverage < 0.90:
+            issues.append("captions_end_too_early")
+        if caption_coverage > 1.05:
+            issues.append("captions_end_too_late")
     return {
         "passed": not issues,
         "video_duration_seconds": round(video_duration, 3) if video_duration is not None else None,

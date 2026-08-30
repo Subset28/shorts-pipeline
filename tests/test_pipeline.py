@@ -865,6 +865,20 @@ def test_quality_report_flags_background_and_caption_failures(tmp_path, monkeypa
     )
 
 
+def test_quality_report_rejects_caption_overrun(tmp_path, monkeypatch):
+    video = tmp_path / "short.mp4"
+    audio = tmp_path / "narration.mp3"
+    captions = tmp_path / "captions.srt"
+    video.write_bytes(b"video")
+    audio.write_bytes(b"audio")
+    captions.write_text("1\n00:00:00,000 --> 00:00:11,000\nWORDS\n", encoding="utf-8")
+    monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda _path: 10.0)
+    report = assess_render(video, audio, captions, None)
+    assert report["passed"] is False
+    assert report["issues"] == ["captions_end_too_late"]
+    assert report["caption_coverage"] == 1.1
+
+
 def test_background_reel_selection_rotates_stably(tmp_path):
     for name in ("a.mp4", "b.mp4", "c.mp4"):
         (tmp_path / name).write_bytes(name.encode())
