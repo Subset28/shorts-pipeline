@@ -43,7 +43,10 @@ def is_usable_source(source: Source) -> bool:
         return False
     title_words = re.findall(r"[a-z0-9]+", title)
     summary_words = re.findall(r"[a-z0-9]+", source.summary.lower())
-    return len(title_words) >= 4 or len(summary_words) >= 12
+    # A headline alone is not enough for a source-backed short: it produces
+    # the exact shallow, prematurely-ended narration the non-Reddit lane was
+    # generating. Require enough source text to explain a concrete result.
+    return len(title_words) >= 4 and len(summary_words) >= 5
 
 
 def _clean_summary(value: str) -> str:
