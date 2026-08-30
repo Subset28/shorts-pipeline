@@ -143,7 +143,9 @@ def build_youtube_report(weekly: dict[str, Any]) -> dict[str, Any]:
             latest[video_id] = snapshot
     buckets: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for snapshot in latest.values():
-        buckets[(str(snapshot.get("category", "unknown")), str(snapshot.get("format_name", "unknown")))].append(snapshot)
+        buckets[(str(snapshot.get("category", "unknown")), str(snapshot.get("format_name", "unknown")))].append(
+            snapshot
+        )
     rows = []
     for (category, format_name), snapshots in sorted(buckets.items()):
         metrics = [item.get("metrics", {}) for item in snapshots]
@@ -151,7 +153,18 @@ def build_youtube_report(weekly: dict[str, Any]) -> dict[str, Any]:
         likes = sum(_number({"value": str(metric.get("likes", 0))}, "value") for metric in metrics)
         comments = sum(_number({"value": str(metric.get("comments", 0))}, "value") for metric in metrics)
         shares = sum(_number({"value": str(metric.get("shares", 0))}, "value") for metric in metrics)
-        rows.append({"category": category, "format_name": format_name, "platform": "youtube", "variant": 0, "videos": len(snapshots), "views": int(views), "avg_views": round(views / len(snapshots), 2), "engagement_rate": round((likes + comments + shares) / views, 4) if views else 0})
+        rows.append(
+            {
+                "category": category,
+                "format_name": format_name,
+                "platform": "youtube",
+                "variant": 0,
+                "videos": len(snapshots),
+                "views": int(views),
+                "avg_views": round(views / len(snapshots), 2),
+                "engagement_rate": round((likes + comments + shares) / views, 4) if views else 0,
+            }
+        )
     report = {"rows": rows, "matched_rows": len(latest), "unmatched_rows": 0}
     report["recommendations"] = tuning_recommendations(report)
     return report

@@ -591,16 +591,40 @@ def test_tuning_recommendations_call_out_insufficient_sample_size():
 
 
 def test_archive_report_keeps_only_aggregate_tuning_data(tmp_path):
-    output = archive_report({"rows": [{"category": "AI", "videos": 2}], "recommendations": ["Keep testing AI."]}, tmp_path / "weekly.json", "2026-08-30")
+    output = archive_report(
+        {"rows": [{"category": "AI", "videos": 2}], "recommendations": ["Keep testing AI."]},
+        tmp_path / "weekly.json",
+        "2026-08-30",
+    )
     payload = json.loads(output.read_text(encoding="utf-8"))
-    assert payload == {"week_of": "2026-08-30", "rows": [{"category": "AI", "videos": 2}], "recommendations": ["Keep testing AI."]}
+    assert payload == {
+        "week_of": "2026-08-30",
+        "rows": [{"category": "AI", "videos": 2}],
+        "recommendations": ["Keep testing AI."],
+    }
 
 
 def test_build_youtube_report_uses_latest_snapshot_per_video():
-    report = build_youtube_report({"snapshots": [
-        {"video_id": "a", "category": "AI", "format_name": "fact_explainer", "collected_at": "2026-08-30T01:00:00+00:00", "metrics": {"views": 10, "likes": 1}},
-        {"video_id": "a", "category": "AI", "format_name": "fact_explainer", "collected_at": "2026-08-30T02:00:00+00:00", "metrics": {"views": 20, "likes": 2}},
-    ]})
+    report = build_youtube_report(
+        {
+            "snapshots": [
+                {
+                    "video_id": "a",
+                    "category": "AI",
+                    "format_name": "fact_explainer",
+                    "collected_at": "2026-08-30T01:00:00+00:00",
+                    "metrics": {"views": 10, "likes": 1},
+                },
+                {
+                    "video_id": "a",
+                    "category": "AI",
+                    "format_name": "fact_explainer",
+                    "collected_at": "2026-08-30T02:00:00+00:00",
+                    "metrics": {"views": 20, "likes": 2},
+                },
+            ]
+        }
+    )
     assert report["rows"][0]["videos"] == 1
     assert report["rows"][0]["views"] == 20
 
