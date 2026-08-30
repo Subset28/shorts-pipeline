@@ -843,8 +843,10 @@ def test_background_reel_builds_long_sequence_instead_of_short_loop(tmp_path, mo
     result = build_background_reel(sources, tmp_path / "reel.mp4", duration=60, variation_key="demo")
     assert result == tmp_path / "reel.mp4"
     command = captured["command"]
-    assert command.count("-i") == 20
-    assert "concat=n=20:v=1:a=0[v]" in command[command.index("-filter_complex") + 1]
+    assert command.count("-i") == 22
+    filter_graph = command[command.index("-filter_complex") + 1]
+    assert "xfade=transition=fade:duration=0.180" in filter_graph
+    assert command[command.index("-map") + 1] == "[x21]"
 
 
 def test_background_selection_maps_editorial_aliases_to_asset_categories(tmp_path):
