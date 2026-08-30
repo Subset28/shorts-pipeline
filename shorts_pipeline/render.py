@@ -5,6 +5,7 @@ import subprocess
 import textwrap
 import re
 import os
+import hashlib
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -114,12 +115,27 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
         draw.ellipse((name_x + name_width + 10, top + 32, name_x + name_width + 27, top + 49), fill=(38, 132, 255, 255))
     badge_x = name_x
     fallback_badges = ((255, 69, 0, 255), (255, 190, 0, 255), (76, 175, 80, 255), (145, 95, 220, 255))
-    for index, color in enumerate(fallback_badges, 1):
-        badge = _asset(asset_dir / f"badge-{index}.png", (25, 25))
+    award_files = sorted((asset_dir / "awards").glob("*.png"))
+    award_files += sorted((asset_dir / "awards").glob("*.gif"))
+    seed_bytes = hashlib.sha256((package.title + "|" + "|".join(package.sources)).encode("utf-8")).digest()
+    seed = int.from_bytes(seed_bytes[:4], "big")
+    selected_awards = [award_files[(seed + (index * 17)) % len(award_files)] for index in range(8)] if award_files else []
+    animated_files = [award for award in award_files if award.suffix.lower() == ".gif"]
+    if selected_awards and animated_files:
+        # Keep motion present in every Reddit opening while varying which
+        # award animates and which static awards surround it.
+        animated_slot = seed % len(selected_awards)
+        selected_awards[animated_slot] = animated_files[(seed // len(selected_awards)) % len(animated_files)]
+    animated_awards: list[tuple[Path, int]] = []
+    for index in range(8):
+        color = fallback_badges[index % len(fallback_badges)]
+        badge = _asset(selected_awards[index], (25, 25)) if selected_awards else _asset(asset_dir / f"badge-{index + 1}.png", (25, 25))
         if badge:
             image.alpha_composite(badge, (badge_x, top + 78))
         else:
             draw.ellipse((badge_x, top + 78, badge_x + 25, top + 103), fill=color)
+        if selected_awards and selected_awards[index].suffix.lower() == ".gif":
+            animated_awards.append((selected_awards[index], badge_x))
         badge_x += 34
     draw.text((right - 52, top + 32), "···", fill=(100, 100, 100), font=username_font)
 
@@ -146,6 +162,21 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     draw.text((left + 56, bottom - 48), "99+", fill=(120, 120, 120), font=small)
     draw.text((left + 169, bottom - 48), "99+", fill=(120, 120, 120), font=small)
     image.save(path)
+    if animated_awards:
+        frames = []
+        for frame_index in range(8):
+            frame = image.copy()
+            for award_path, x in animated_awards:
+                try:
+                    with Image.open(award_path) as award:
+                        award.seek(frame_index % max(1, getattr(award, "n_frames", 1)))
+                        badge_frame = award.convert("RGBA")
+                        badge_frame.thumbnail((25, 25), Image.Resampling.LANCZOS)
+                        frame.alpha_composite(badge_frame, (x, top + 78))
+                except (OSError, EOFError):
+                    continue
+            frames.append(frame)
+        frames[0].save(path.with_suffix(".gif"), save_all=True, append_images=frames[1:], duration=120, loop=0, disposal=2)
 
 
 def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = None, captions: Path | None = None, background: Path | None = None) -> Path:
@@ -167,7 +198,11 @@ def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = 
         if package.format_name == "reddit_story":
             reddit_card = output_dir / "reddit-post-card.png"
             _reddit_post_card(package, reddit_card)
-            command += ["-loop", "1", "-i", str(reddit_card)]
+            animated_card = reddit_card.with_suffix(".gif")
+            if animated_card.exists():
+                command += ["-stream_loop", "-1", "-i", str(animated_card)]
+            else:
+                command += ["-loop", "1", "-i", str(reddit_card)]
             audio_index = 3
         if audio:
             command += ["-i", str(audio)]
