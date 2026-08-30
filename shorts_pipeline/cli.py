@@ -66,6 +66,24 @@ def _should_upload_tiktok(private_drafts: bool, youtube_only: bool) -> bool:
     return not private_drafts and not youtube_only
 
 
+def _select_backgrounds_for_topic(
+    settings,
+    directory: Path,
+    key: str,
+    category: str | None,
+    provenance: str | None,
+    limit: int = 3,
+):
+    return select_backgrounds(
+        directory,
+        key,
+        limit=limit,
+        category=category,
+        provenance=provenance,
+        manifest=settings.background_manifest,
+    )
+
+
 def is_youtube_upload_limit_error(error: Exception) -> bool:
     return "uploadLimitExceeded" in str(error)
 
@@ -150,7 +168,8 @@ def run(
         if package.format_name == "reddit_story" and settings.reddit_background_dir.exists()
         else settings.background_dir
     )
-    background_sources = select_backgrounds(
+    background_sources = _select_backgrounds_for_topic(
+        settings,
         background_dir,
         f"{source_url}|{package.variant}",
         category=package.category,
@@ -318,7 +337,8 @@ def run_longform(source_url: str | None, output_dir: Path) -> int:
         if settings.captions_enabled
         else None
     )
-    background = select_backgrounds(
+    background = _select_backgrounds_for_topic(
+        settings,
         settings.background_dir,
         topic.sources[0].url,
         limit=1,
