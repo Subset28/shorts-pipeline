@@ -14,6 +14,7 @@ for plist in \
     source="$repo_dir/scripts/$plist"
     target="$agent_dir/$plist"
     test -f "$source" || { echo "Missing launchd file: $source" >&2; exit 1; }
+    plutil -lint "$source" >/dev/null || { echo "Invalid launchd plist: $source" >&2; exit 1; }
     cp "$source" "$target"
     label=$(basename "$plist" .plist)
     launchctl bootout "$domain/$label" 2>/dev/null || true

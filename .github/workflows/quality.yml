@@ -26,5 +26,7 @@ jobs:
           fi
       - name: Compile Python
         run: python -m compileall -q shorts_pipeline
+      - name: Check shell helpers
+        run: for script in scripts/*.sh; do sh -n "$script"; done
       - name: Run tests
         run: pytest -q
