@@ -84,7 +84,7 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
     # rather than a full-width panel that dominates the opening frame.
     left, right = 35, 1045
     top = 650
-    story = package.title.strip()
+    story = (package.card_text or package.title).strip()
     if len(story.split()) < 12:
         story_match = re.search(r"Here's what happened:\s*(.*?)(?:\s+The useful part|\Z)", package.narration, re.S)
         narrated_story = story_match.group(1).strip() if story_match else ""

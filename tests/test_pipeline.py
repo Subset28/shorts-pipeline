@@ -146,7 +146,8 @@ def test_reddit_story_lane_requires_explicit_rights_and_attribution():
     assert fallback_package(topic).format_name == "reddit_story"
     packages = [fallback_package(topic, variant=i) for i in range(len(eligible_formats(topic)))]
     package = next(item for item in packages if item.format_name == "reddit_story")
-    assert "Here's what happened" in package.narration
+    assert source.summary in package.narration
+    assert package.card_text == source.title
     assert "example_user" not in package.narration
     assert "u/example_user" in package.description
 

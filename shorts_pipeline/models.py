@@ -31,3 +31,4 @@ class ScriptPackage:
     format_name: str = "explainer"
     category: str = ""
     variant: int = 0
+    card_text: str = ""

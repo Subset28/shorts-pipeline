@@ -27,6 +27,8 @@
 - Added the supplied Reddit avatar and verification graphics plus the public
   Reddit award collection. Reddit cards now choose eight deterministic award
   images per post and guarantee at least one animated award when available.
+- Reddit story cards now preserve the complete post title independently from
+  the shorter platform metadata title, so long hooks no longer end mid-sentence.
   The card itself is rendered as an 8-frame opening loop.
 - Replaced the local Aerospire and Supkin background masters with fresh
   yt-dlp downloads: Aerospire is 1280x720/24fps (the source maximum), and

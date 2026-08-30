@@ -100,7 +100,10 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     elif format_name == "prediction_watch":
         narration = f"This is a claim worth watching, not a promise: {summary} The next thing to look for is evidence that it holds outside the original context. Until then, separate a measured result from a prediction."
     elif format_name == "reddit_story":
-        narration = f"Here's what happened: {summary} The useful part is what happened next, not just the outrage. Treat this as one person's account and compare it with primary evidence before drawing a wider conclusion."
+        # Reddit-story treatment reads the post itself. Attribution,
+        # permission, and the educational disclaimer stay in the metadata so
+        # the narration keeps the same direct rhythm as the reference format.
+        narration = summary
     elif format_name == "myth_bust":
         narration = f"This sounds like a bigger claim than it is. Here's what the evidence says: {summary} The honest takeaway is to separate the result from the hype."
     else:
@@ -115,7 +118,11 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     tags = [topic.category, "technology", "science", "explained", "shorts"]
     if topic.category == "Finance":
         tags.extend(["markets", "business"])
-    return ScriptPackage(hook, narration, title, description, tags, [source.url], format_name, topic.category, max(0, variant))
+    return ScriptPackage(
+        hook, narration, title, description, tags, [source.url], format_name,
+        topic.category, max(0, variant),
+        card_text=source.title if format_name == "reddit_story" else "",
+    )
 
 
 def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
@@ -150,4 +157,5 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
         [source.url],
         format_name,
         topic.category,
+        card_text=source.title if format_name == "reddit_story" else "",
     )
