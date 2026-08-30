@@ -97,11 +97,16 @@ def _paste_circle(base: Image.Image, image: Image.Image, box: tuple[int, int, in
 def _card(package: ScriptPackage, path: Path, transparent: bool = False, show_hook: bool = True) -> None:
     image = Image.new("RGBA" if transparent else "RGB", (1080, 1920), (0, 0, 0, 0) if transparent else (12, 20, 38))
     draw = ImageDraw.Draw(image)
-    font = _font(40 if transparent else 54)
+    font = _font(58 if transparent else 54, bold=True)
     if transparent and show_hook:
-        lines = textwrap.wrap(package.hook.upper(), width=30)[:3]
+        lines = textwrap.wrap(package.hook.upper(), width=22)[:3]
+        hook_text = "\n".join(lines)
+        bounds = draw.multiline_textbbox((0, 0), hook_text, font=font, spacing=8, stroke_width=2)
+        panel = (40, 145, min(1040, bounds[2] + 110), bounds[3] - bounds[1] + 220)
+        draw.rounded_rectangle(panel, radius=28, fill=(5, 10, 22, 205), outline=(255, 255, 255, 80), width=2)
+        draw.rounded_rectangle((panel[0], panel[1], panel[0] + 12, panel[3]), radius=6, fill=(255, 92, 38, 255))
         draw.multiline_text(
-            (60, 230), "\n".join(lines), fill="white", font=font, spacing=8, stroke_width=2, stroke_fill=(0, 0, 0, 230)
+            (72, 205), hook_text, fill="white", font=font, spacing=8, stroke_width=2, stroke_fill=(0, 0, 0, 230)
         )
     elif not transparent:
         draw.rounded_rectangle((48, 450, 1032, 820), radius=34, fill=(5, 10, 22, 190) if transparent else (5, 10, 22))
