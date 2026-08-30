@@ -75,6 +75,15 @@
   ribbon-cutting or honors entries before narration.
 - Made the ceremony filter require concrete signal in the source summary,
   preventing generic title words such as “new” from bypassing it.
+- Added content-level deduplication so newsletter and article mirrors of the
+  same story do not consume separate non-Reddit queue slots.
+- Extended deduplication to conservative near-mirror matching using shared
+  title terms and high first-100-word similarity, covering lightly edited
+  newsletter/article versions without broad topic matching.
+- Calibrated the near-mirror threshold against the live Hugging Face
+  newsletter/article pair so that confirmed duplicates collapse in practice.
+- Made near-mirror comparison symmetric because lightly edited feed summaries
+  can produce different sequence ratios depending on ingestion order.
 - Extended substantive non-Reddit news/explainer fallback context to support
   the intended longer runtime while retaining sentence-boundary clipping and
   refusing to pad thin sources.
