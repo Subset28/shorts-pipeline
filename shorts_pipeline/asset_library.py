@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import httpx
@@ -28,7 +29,11 @@ def sync_backgrounds(manifest_path: Path, output_dir: Path) -> list[Path]:
         if target.exists() and target.stat().st_size:
             downloaded.append(target)
             continue
-        temporary = target.with_suffix(target.suffix + ".part")
+        # Deployment and Container Manager can invoke a sync concurrently.
+        # A shared ``.part`` path lets one process remove/replace another's
+        # download before the atomic rename. Keep each in-flight transfer
+        # isolated; completed targets remain atomically replaced.
+        temporary = target.with_name(f"{target.name}.{os.getpid()}.part")
         with httpx.stream("GET", asset["url"], follow_redirects=True, timeout=120) as response:
             response.raise_for_status()
             with temporary.open("wb") as handle:

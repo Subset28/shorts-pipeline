@@ -8,6 +8,7 @@ from shorts_pipeline.seo import fallback_package, normalize_package
 from shorts_pipeline.media import select_background, select_backgrounds
 from shorts_pipeline.analytics import build_report
 from shorts_pipeline.asset_library import load_asset_manifest
+from shorts_pipeline.asset_library import sync_backgrounds
 from shorts_pipeline.publish import save_manifest
 from pathlib import Path
 from shorts_pipeline.sources import _clean_summary
@@ -171,6 +172,24 @@ def test_background_manifest_requires_provenance_fields(tmp_path):
     manifest = tmp_path / "backgrounds.json"
     manifest.write_text(json.dumps({"assets": [{"name": "x", "filename": "x.mp4", "url": "https://example.test/x.mp4", "source_page": "https://example.test", "attribution": "Example", "rights_note": "authorized"}]}), encoding="utf-8")
     assert load_asset_manifest(manifest)[0]["name"] == "x"
+
+
+def test_background_sync_uses_isolated_temporary_download_path(tmp_path, monkeypatch):
+    manifest = tmp_path / "backgrounds.json"
+    manifest.write_text(json.dumps({"assets": [{"name": "x", "filename": "x.mp4", "url": "https://example.test/x.mp4", "source_page": "https://example.test", "attribution": "Example", "rights_note": "authorized"}]}), encoding="utf-8")
+    class Response:
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return None
+        def raise_for_status(self):
+            return None
+        def iter_bytes(self):
+            yield b"video"
+    monkeypatch.setattr("shorts_pipeline.asset_library.httpx.stream", lambda *args, **kwargs: Response())
+    paths = sync_backgrounds(manifest, tmp_path / "out")
+    assert paths[0].read_bytes() == b"video"
+    assert not list((tmp_path / "out").glob("*.part"))
 
 
 def test_manifest_records_selected_background(tmp_path):
