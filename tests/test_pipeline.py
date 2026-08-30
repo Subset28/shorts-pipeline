@@ -73,8 +73,8 @@ def test_metadata_is_platform_neutral():
 def test_metadata_description_is_youtube_safe():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     package = fallback_package(Topic("A breakthrough", "AI", (source,)))
-    package.description = "Valid\x00 description\u2028"
-    assert metadata(package)["description"] == "Valid description"
+    package.description = "Valid\x00 description\u2028 – café"
+    assert metadata(package)["description"] == "Valid description cafe"
 
 
 def test_variants_rotate_content_lane_without_changing_source():
