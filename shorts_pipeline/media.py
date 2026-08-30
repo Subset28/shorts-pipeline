@@ -43,7 +43,8 @@ def build_background_reel(sources: list[Path], output: Path, seconds_per_clip: f
     for index in range(len(sources)):
         label = f"v{index}"
         filters.append(
-            f"[{index}:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+            f"[{index}:v]scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,"
+            f"unsharp=5:5:0.35:5:5:0,"
             f"setsar=1,fps=30,trim=duration={seconds_per_clip},setpts=PTS-STARTPTS[{label}]"
         )
         labels.append(f"[{label}]")
@@ -51,7 +52,7 @@ def build_background_reel(sources: list[Path], output: Path, seconds_per_clip: f
     command = ["ffmpeg", "-y"]
     for source in sources:
         command += ["-i", str(source)]
-    command += ["-filter_complex", ";".join(filters), "-map", "[v]", "-an", "-c:v", "libx264", "-preset", "medium", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(output)]
+    command += ["-filter_complex", ";".join(filters), "-map", "[v]", "-an", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(output)]
     subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)
     return output
 

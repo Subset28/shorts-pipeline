@@ -49,6 +49,10 @@
   preserve the final source sentence as the outcome, and render a flowing
   title-plus-body card with no fixed dead-space minimum. The latest demo is
   about 46 seconds.
+- Background rendering now uses Lanczos scaling, restrained post-scale
+  sharpening, and CRF 18 encoding for cleaner portrait gameplay. The current
+  Minecraft master is 1920x1080 landscape, so a native 4K or vertical source
+  would be the next quality ceiling.
 - Replaced the local Aerospire and Supkin background masters with fresh
   yt-dlp downloads: Aerospire is 1280x720/24fps (the source maximum), and
   Supkin is 1920x1080/60fps.

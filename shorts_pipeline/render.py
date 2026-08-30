@@ -218,14 +218,17 @@ def render_video(package: ScriptPackage, output_dir: Path, audio: Path | None = 
             command += ["-i", str(audio)]
         else:
             command += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]
-        video_filter = "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=saturation=1.15:contrast=1.08:brightness=-0.04[bg];[bg][1:v]overlay=0:0"
+        # The landscape gameplay must be enlarged for a portrait crop. Lanczos
+        # preserves detail better than the default scaler, and a restrained
+        # unsharp pass restores edge definition after that unavoidable resize.
+        video_filter = "[0:v]scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,unsharp=5:5:0.35:5:5:0,eq=saturation=1.15:contrast=1.08:brightness=-0.04[bg];[bg][1:v]overlay=0:0"
         if package.format_name == "reddit_story":
             video_filter = video_filter.replace("[bg][1:v]overlay=0:0", "[bg][1:v]overlay=0:0[base];[base][2:v]overlay=0:0:enable='between(t,0,4)'")
         if captions and captions.exists():
             # Keep the proven narration-aligned timing. The opening card is a
             # visual layer and must not rewrite subtitle timestamps.
             video_filter += "," + _caption_filter(captions)
-        command += ["-filter_complex", video_filter + "[v]", "-map", "[v]", "-map", f"{audio_index}:a", "-t", str(duration), "-r", "30", "-c:v", "libx264", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(output)]
+        command += ["-filter_complex", video_filter + "[v]", "-map", "[v]", "-map", f"{audio_index}:a", "-t", str(duration), "-r", "30", "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(output)]
     else:
         command = ["ffmpeg", "-y", "-loop", "1", "-i", str(card)]
         if audio:
