@@ -3,11 +3,13 @@
 
 import json
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 load_dotenv("/Users/abba/shorts-pipeline/.env")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 os.environ.update(
     {
         "TOPIC_LIMIT": "20",
