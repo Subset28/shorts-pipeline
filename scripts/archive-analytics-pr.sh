@@ -3,6 +3,7 @@ set -eu
 
 repo_dir=${PIPELINE_REPO_DIR:-/Volumes/n2me/Developer/shorts-pipeline}
 runtime_data=${ANALYTICS_LOCAL_DIR:-/Users/abba/shorts-pipeline/data}
+python_bin=${PIPELINE_PYTHON:-/Users/abba/shorts-pipeline/.venv/bin/python}
 week_of=${1:-$(date -u +%F)}
 branch="analytics/weekly-$week_of"
 source_report="$runtime_data/youtube_weekly_report.json"
@@ -20,7 +21,7 @@ trap cleanup EXIT INT TERM
 git -C "$repo_dir" worktree add --detach "$worktree" origin/main >/dev/null
 git -C "$worktree" switch -c "$branch" >/dev/null
 mkdir -p "$worktree/docs/analytics"
-/Users/abba/shorts-pipeline/.venv/bin/python -m shorts_pipeline archive-analytics \
+"$python_bin" -m shorts_pipeline archive-analytics \
     --input "$source_report" \
     --week-of "$week_of" \
     --out "$worktree/docs/analytics/$week_of.json"
