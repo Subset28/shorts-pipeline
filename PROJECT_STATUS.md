@@ -20,6 +20,9 @@
 - Their creator names and pending-license status are recorded in
   `assets/user_backgrounds.json`; original channel URLs still need to be added
   before public publishing.
+- Discovery now filters each feed by lane-specific relevance and rejects generic
+  navigation titles or entries too thin to explain. Live discovery returned
+  substantive AI, CS, aerospace, and finance topics after the filter.
 - `pytest -q`: 27 passed. `git diff --check`: passed.
 
 ## Remaining work

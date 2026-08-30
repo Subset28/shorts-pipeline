@@ -11,7 +11,7 @@ from shorts_pipeline.asset_library import load_asset_manifest
 from shorts_pipeline.asset_library import sync_backgrounds
 from shorts_pipeline.publish import save_manifest
 from pathlib import Path
-from shorts_pipeline.sources import _clean_summary
+from shorts_pipeline.sources import _clean_summary, is_relevant, is_usable_source
 import shorts_pipeline.cli as cli
 
 
@@ -286,6 +286,22 @@ def test_fallback_narration_uses_title_when_summary_is_feed_boilerplate():
     package = fallback_package(Topic("A useful machine-learning discovery", "ML", (source,)))
     assert "A useful machine-learning discovery" in package.narration
     assert "https://" not in package.narration
+
+
+def test_discovery_rejects_off_topic_items_for_audience_lanes():
+    drought = Source("Europe's summer drought", "https://example.test/drought", "Rivers and soil are unusually dry.")
+    software = Source("A new compiler improves code", "https://example.test/compiler", "The developer tool changes how software is built.")
+    assert not is_relevant("CS", drought)
+    assert is_relevant("CS", software)
+
+
+def test_discovery_rejects_generic_or_underdescribed_feed_titles():
+    generic = Source("Markets - Bloomberg.com", "https://example.test/markets", "")
+    thin = Source("AI update", "https://example.test/ai", "A short note.")
+    useful = Source("How a new compiler improves code", "https://example.test/compiler", "A developer tool changes how software is built.")
+    assert not is_usable_source(generic)
+    assert not is_usable_source(thin)
+    assert is_usable_source(useful)
 
 
 def test_batch_reports_feed_outage_before_claiming_topics_are_seen(monkeypatch):

@@ -18,6 +18,33 @@ FEEDS = {
     "Finance": "https://news.google.com/rss/search?q=technology%20finance%20markets%20AI&hl=en-US&gl=US&ceid=US:en",
 }
 
+_CATEGORY_TERMS = {
+    "AI": ("artificial intelligence", " ai ", "llm", "language model", "neural", "agent", "generative"),
+    "ML": ("machine learning", "deep learning", "neural", "model", "training", "inference", "dataset", "classifier"),
+    "CS": ("software", "programming", "developer", "code", "database", "browser", "linux", "computer", "open source", "api", "algorithm"),
+    "AI News": ("artificial intelligence", " ai ", "llm", "robot", "neural", "model", "algorithm", "machine learning"),
+    "Aerospace": ("space", "rocket", "launch", "orbit", "satellite", "spacecraft", "nasa", "lunar", "mars", "astronaut"),
+    "Cyber": ("cve", "vulnerability", "security", "cyber", "malware", "ransomware", "exploit", "patch", "breach", "authentication"),
+    "Finance": ("finance", "market", "stock", "invest", "fund", "earnings", "bank", "economy", "revenue", "valuation"),
+}
+
+
+def is_relevant(category: str, source: Source) -> bool:
+    """Keep a feed item only when its text supports the advertised lane."""
+    text = f" {source.title} {source.summary} ".lower()
+    terms = _CATEGORY_TERMS.get(category)
+    return bool(terms and any(term in text for term in terms))
+
+
+def is_usable_source(source: Source) -> bool:
+    """Reject feed navigation labels and entries too thin to explain."""
+    title = re.sub(r"\s+", " ", source.title).strip().lower()
+    if re.fullmatch(r"(markets|news|latest news|home|front page)(\s*[-|].*)?", title):
+        return False
+    title_words = re.findall(r"[a-z0-9]+", title)
+    summary_words = re.findall(r"[a-z0-9]+", source.summary.lower())
+    return len(title_words) >= 4 or len(summary_words) >= 12
+
 
 def _clean_summary(value: str) -> str:
     value = html.unescape(value)
@@ -53,6 +80,8 @@ def discover_topics(limit: int = 10) -> list[Topic]:
                 summary=_clean_summary(str(entry.get("summary", entry.get("description", "")))),
                 published=published,
             )
+            if not is_relevant(category, source) or not is_usable_source(source):
+                continue
             # Prefer current, well-described entries. The exact popularity
             # signal comes later from channel analytics, not fake view counts.
             score = 1.0 if source.summary else 0.0
