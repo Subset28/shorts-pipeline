@@ -151,6 +151,7 @@ def test_model_output_is_normalized_and_rejects_unsupported_formats():
     )
     assert source.url in package.description
     assert package.sources == [source.url]
+    assert package.narration.startswith(source.title + ".")
     invalid = dict(package.__dict__, format_name="unknown")
     try:
         normalize_package(topic, invalid)
