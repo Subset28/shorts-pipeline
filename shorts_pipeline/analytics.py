@@ -6,7 +6,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-
 ARCHIVE_FIELDS = ("category", "format_name", "platform", "variant", "videos", "views", "avg_views", "engagement_rate")
 
 
