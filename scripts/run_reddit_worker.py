@@ -23,18 +23,11 @@ os.environ.update(
     }
 )
 
-from shorts_pipeline.cli import run
-from shorts_pipeline.history import load_seen
+from shorts_pipeline.cli import run_worker
 
 
 def main() -> None:
-    candidates = json.loads(Path(os.environ["REDDIT_APPROVED_FILE"]).read_text())
-    urls = {item["source"]["url"] for item in candidates if item["source"].get("reuse_permission") is True}
-    seen = load_seen(Path(os.environ["DATA_DIR"]) / "seen_sources.json")
-    remaining = len(urls - seen)
-    print(f"confirmed={len(urls)} remaining={remaining}", flush=True)
-    for _ in range(remaining):
-        run(reddit_only=True, youtube_only=True)
+    run_worker(reddit_only=True, youtube_only=True, interval_hours=6.0)
 
 
 if __name__ == "__main__":

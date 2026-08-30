@@ -21,6 +21,8 @@ from .tts import synthesize
 from .telemetry import record_event
 from .reddit import discover_reddit_topics, load_approved_reddit_topics
 
+YOUTUBE_QUOTA_RETRY_HOURS = 24.0
+
 
 def _discover_topics(settings, limit: int, reddit_only: bool = False, private_drafts: bool = False):
     if reddit_only:
@@ -63,6 +65,36 @@ def _publish_state_key(source_url: str, variant: int) -> str:
 
 def _should_upload_tiktok(private_drafts: bool, youtube_only: bool) -> bool:
     return not private_drafts and not youtube_only
+
+
+def is_youtube_upload_limit_error(error: Exception) -> bool:
+    return "uploadLimitExceeded" in str(error)
+
+
+def _has_unseen_reddit_topic(settings) -> bool:
+    topics = load_approved_reddit_topics(settings.reddit_approved_file)
+    seen = load_seen(settings.data_dir / "seen_sources.json")
+    return any(topic.sources[0].url not in seen for topic in topics)
+
+
+def run_worker(force_dry_run: bool = False, reddit_only: bool = False, private_drafts: bool = False, youtube_only: bool = False, interval_hours: float = 6.0) -> int:
+    retry_seconds = max(interval_hours, 0.25) * 3600
+    quota_retry_seconds = max(YOUTUBE_QUOTA_RETRY_HOURS, interval_hours) * 3600
+    while True:
+        if reddit_only and not _has_unseen_reddit_topic(load_settings()):
+            print("Reddit queue complete")
+            return 0
+        try:
+            run(force_dry_run=force_dry_run, reddit_only=reddit_only, private_drafts=private_drafts, youtube_only=youtube_only)
+        except Exception as exc:
+            print(f"Pipeline run failed; will retry: {exc}")
+            traceback.print_exc()
+            delay = quota_retry_seconds if is_youtube_upload_limit_error(exc) else retry_seconds
+            print(f"Retrying in {delay / 3600:g} hours", flush=True)
+            time.sleep(delay)
+        else:
+            if not reddit_only:
+                time.sleep(retry_seconds)
 
 
 def run(force_dry_run: bool = False, topic_override=None, output_dir_override: Path | None = None, variant: int = 0, reddit_only: bool = False, private_drafts: bool = False, youtube_only: bool = False) -> int:
@@ -219,11 +251,5 @@ def main() -> None:
         print(f"Wrote {output} ({len(topics)} candidates; none are cleared for publishing)")
         return
     if args.daemon:
-        while True:
-            try:
-                run(force_dry_run=args.dry_run, reddit_only=args.reddit_only, private_drafts=args.private_drafts, youtube_only=args.youtube_only)
-            except Exception as exc:
-                print(f"Pipeline run failed; will retry: {exc}")
-                traceback.print_exc()
-            time.sleep(max(args.interval_hours, 0.25) * 3600)
+        raise SystemExit(run_worker(force_dry_run=args.dry_run, reddit_only=args.reddit_only, private_drafts=args.private_drafts, youtube_only=args.youtube_only, interval_hours=args.interval_hours))
     raise SystemExit(run(force_dry_run=args.dry_run, reddit_only=args.reddit_only, private_drafts=args.private_drafts, youtube_only=args.youtube_only))

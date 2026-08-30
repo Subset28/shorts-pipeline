@@ -245,6 +245,11 @@ def test_youtube_only_mode_skips_tiktok():
     assert cli._should_upload_tiktok(private_drafts=True, youtube_only=False) is False
 
 
+def test_youtube_upload_limit_errors_are_classified_for_worker_backoff():
+    assert cli.is_youtube_upload_limit_error(RuntimeError("uploadLimitExceeded")) is True
+    assert cli.is_youtube_upload_limit_error(RuntimeError("network unavailable")) is False
+
+
 def test_publish_state_resumes_each_platform_without_overwriting(tmp_path):
     path = tmp_path / "publish_state.json"
     save_publish_state(path, "https://example.test/source", youtube_id="yt123")
