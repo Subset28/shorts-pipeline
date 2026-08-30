@@ -74,6 +74,10 @@ API keys. Install `scripts/com.shorts-pipeline.analytics-sync.plist` with
 launchd to run Sundays at 23:30; override `ANALYTICS_REMOTE_HOST` and
 `ANALYTICS_REMOTE_DIR` when the Windows/NAS SSH alias or path differs.
 
+Install or refresh all Mac jobs with `scripts/install-launchd-jobs.sh`. The
+installer copies each plist, registers it in the current user's launchd
+domain, and stops with the copied file path if macOS rejects a job.
+
 ## Background library
 
 Run `python -m shorts_pipeline backgrounds` on a new host to provision the
