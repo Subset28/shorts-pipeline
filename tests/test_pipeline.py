@@ -944,6 +944,25 @@ def test_cli_background_selection_passes_configured_manifest(tmp_path, monkeypat
     assert captured["kwargs"]["category"] == "AI News"
 
 
+def test_cli_background_reel_variation_uses_source_and_variant(tmp_path, monkeypatch):
+    captured = {}
+
+    def fake_build(sources, output, **kwargs):
+        captured.update(sources=sources, output=output, kwargs=kwargs)
+        return output
+
+    monkeypatch.setattr(cli, "build_background_reel", fake_build)
+    result = cli._build_background_reel_for_render(
+        [tmp_path / "a.mp4"],
+        tmp_path / "reel.mp4",
+        "https://example.test/story",
+        2,
+    )
+
+    assert result == tmp_path / "reel.mp4"
+    assert captured["kwargs"]["variation_key"] == "https://example.test/story|variant=2"
+
+
 def test_dockerfile_copies_asset_manifest():
     dockerfile = Path(__file__).parents[1] / "Dockerfile"
     assert "COPY assets ./assets" in dockerfile.read_text(encoding="utf-8")

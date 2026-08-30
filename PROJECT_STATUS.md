@@ -174,5 +174,7 @@
 
 - Continue improving the creative quality from retention evidence rather than
   assuming any lane will go viral.
+- Wired source and variant identity into background reel construction so
+  repeated non-Reddit renders change their crop and pan sequence.
 - Finish platform OAuth/configuration and perform a deliberate final-release
   review before deploying to the NAS.
