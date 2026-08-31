@@ -280,22 +280,19 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     if format_name not in eligible_formats(topic):
         raise ValueError(f"unsupported format: {format_name!r}")
     narration = _clip_narration(data["narration"])
-    if format_name != "reddit_story":
-        narration = _ensure_source_opening(source.title, narration)
     minimum_words = 12 if format_name == "reddit_story" else 70
     if len(narration.split()) < minimum_words:
         raise ValueError("model narration is too short")
+    if format_name != "reddit_story":
+        if not _has_source_fidelity(source.title, source.summary, narration):
+            raise ValueError("model narration lacks concrete source anchors")
+        narration = _ensure_source_opening(source.title, narration)
     if format_name == "reddit_story":
         # Keep model-generated Reddit treatments source-faithful: exact title,
         # then the original body. The fallback adds the narrative transitions.
         body = " ".join(source.summary.split())
         narration = f"{source.title}. {body}"[:900].rsplit(" ", 1)[0]
     else:
-        if not _has_source_fidelity(source.title, source.summary, narration):
-            raise ValueError("model narration lacks concrete source anchors")
-    else:
-        if not _has_source_fidelity(source.title, source.summary, narration):
-            raise ValueError("model narration lacks concrete source anchors")
         if not narration.casefold().startswith(source.title.casefold()):
             narration = _clip_narration(f"{source.title}. {narration}")
     tags = data.get("tags", [])

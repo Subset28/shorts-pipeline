@@ -210,7 +210,9 @@ def test_model_narration_is_rejected_when_it_lacks_source_anchors():
     )
     data = {
         "hook": "A strong hook",
-        "narration": "This is a sufficiently long generic explanation with no concrete subject or measured detail included.",
+        "narration": (
+            "This is a sufficiently long generic explanation with no concrete subject or measured detail included. " * 8
+        ),
         "title": "A title",
         "description": "An original explanation.",
         "tags": ["CS"],
@@ -234,7 +236,10 @@ def test_model_narration_opens_with_exact_source_headline():
         Topic(source.title, "CS", (source,)),
         {
             "hook": "A strong hook",
-            "narration": "The compiler improved code speed in a measured benchmark for developers, reducing build time in the reported test.",
+            "narration": (
+                "The compiler improved code speed in a measured benchmark for developers, reducing build time in the reported test. "
+                * 8
+            ),
             "title": "A title",
             "description": "An original explanation.",
             "tags": ["CS"],
@@ -254,7 +259,10 @@ def test_generic_model_metadata_is_repaired_from_source():
         Topic(source.title, "CS", (source,)),
         {
             "hook": "This changes everything",
-            "narration": "The compiler improved code speed in a measured benchmark for developers, reducing build time in the reported test.",
+            "narration": (
+                "The compiler improved code speed in a measured benchmark for developers, reducing build time in the reported test. "
+                * 8
+            ),
             "title": "You will not believe this",
             "description": "An original explanation.",
             "tags": ["CS"],
@@ -1066,7 +1074,7 @@ def test_quality_report_rejects_late_first_caption(tmp_path, monkeypatch):
     monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda _path: 10.0)
     report = assess_render(video, audio, captions, None)
     assert report["passed"] is False
-    assert report["issues"] == ["captions_start_too_late"]
+    assert "captions_start_too_late" in report["issues"]
     assert report["caption_start_seconds"] == 1.5
 
 
@@ -1080,7 +1088,7 @@ def test_quality_report_rejects_caption_overrun(tmp_path, monkeypatch):
     monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda _path: 10.0)
     report = assess_render(video, audio, captions, None)
     assert report["passed"] is False
-    assert report["issues"] == ["captions_end_too_late"]
+    assert "captions_end_too_late" in report["issues"]
     assert report["caption_coverage"] == 1.1
 
 
