@@ -34,6 +34,9 @@ The enforcement path now raises on failed metadata evidence instead of merely
 returning a failed report, so invalid packages cannot proceed to upload.
 The unattended Reddit launchd job now runs as a background, low-priority,
 throttled process to reduce resource contention during TTS and FFmpeg work.
+Long-form renders now add an original technical flow visual after the opening
+title card, giving the chapter-based explanation an intentional visual anchor
+without requiring an unavailable Sora integration.
 Weekly analytics now builds the planner-facing aggregate report automatically;
 the YouTube Reporting API Reach Basic job supplies thumbnail impressions and
 CTR while the existing activity query supplies retention and engagement.
