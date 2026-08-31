@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -9,12 +10,17 @@ from typing import Any
 ARCHIVE_FIELDS = ("category", "format_name", "platform", "variant", "videos", "views", "avg_views", "engagement_rate")
 
 
+def _metric_value(value: object) -> float:
+    try:
+        metric = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return max(0.0, metric) if math.isfinite(metric) else 0.0
+
+
 def _number(row: dict[str, str], name: str) -> float:
     value = (row.get(name) or "0").strip().replace(",", "")
-    try:
-        return max(0.0, float(value))
-    except ValueError:
-        return 0.0
+    return _metric_value(value)
 
 
 def _variant(row: dict[str, str], name: str = "variant") -> int:
@@ -102,8 +108,8 @@ def tuning_recommendations(report: dict[str, Any], min_videos: int = 2) -> list[
     rows = [row for row in report.get("rows", []) if int(row.get("videos", 0)) >= min_videos]
     if not rows:
         return ["Collect at least two videos per lane before changing the content mix."]
-    by_views = max(rows, key=lambda row: float(row.get("avg_views", 0)))
-    by_engagement = max(rows, key=lambda row: float(row.get("engagement_rate", 0)))
+    by_views = max(rows, key=lambda row: _metric_value(row.get("avg_views", 0)))
+    by_engagement = max(rows, key=lambda row: _metric_value(row.get("engagement_rate", 0)))
     recommendations = [
         f"Keep testing {by_views['category']} / {by_views['format_name']}; it leads repeated lanes by average views.",
         f"Study the hook and pacing of {by_engagement['category']} / {by_engagement['format_name']}; it leads repeated lanes by engagement rate.",
