@@ -35,6 +35,9 @@ During long-form production, the same validation applies the reviewed bridge,
 question, and source-linked metadata to the narrated package.
 Ready analytics experiments are also materialized in research briefs as
 bounded hook or packaging treatments with their metric and control context.
+Long-form composition adds a generated technical flow card after the opening
+title card; this is the original-visual fallback when no Sora capability is
+available.
 
 The free path uses RSS, deterministic fallback copy, local Pillow rendering,
 FFmpeg, and a required narration track. Optional LLM and TTS adapters improve quality without

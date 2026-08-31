@@ -734,7 +734,9 @@ def test_longform_render_writes_video_with_audio_and_captions(tmp_path, monkeypa
     monkeypatch.setattr("shorts_pipeline.longform.subprocess.run", fake_run)
     output = render_longform_video(package, tmp_path, audio, captions, None)
     assert output.name == "longform.mp4"
-    assert "2:a" in calls[0][0]
+    assert "3:a" in calls[0][0]
+    assert (tmp_path / "technical-map.png").exists()
+    assert "2:v" in " ".join(calls[0][0])
     assert calls[0][1]["timeout"] == 600
     assert "47.5" in calls[0][0]
     assert "00:07 Context" in package.description

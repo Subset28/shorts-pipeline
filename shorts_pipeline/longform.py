@@ -142,6 +142,37 @@ def _title_card(package: ScriptPackage, path: Path) -> None:
     image.save(path)
 
 
+def _technical_card(package: ScriptPackage, path: Path) -> None:
+    image = Image.new("RGBA", (760, 500), (12, 24, 44, 238))
+    draw = ImageDraw.Draw(image)
+    draw.rounded_rectangle((8, 8, 752, 492), radius=24, outline=(100, 190, 255, 220), width=3)
+    draw.text((32, 28), f"{package.category} | technical map", fill=(175, 220, 255), font=_font(28, bold=True))
+    labels = ["Source", "Decision", "Result", "Lesson"]
+    x_positions = (36, 214, 392, 570)
+    for index, label in enumerate(labels):
+        left = x_positions[index]
+        draw.rounded_rectangle((left, 190, left + 150, 290), radius=14, fill=(28, 66, 100, 240))
+        draw.text((left + 18, 224), label, fill="white", font=_font(22, bold=True))
+        if index < len(labels) - 1:
+            draw.line((left + 150, 240, x_positions[index + 1] - 12, 240), fill=(105, 210, 255), width=5)
+            draw.polygon(
+                (
+                    (x_positions[index + 1] - 12, 240),
+                    (x_positions[index + 1] - 28, 230),
+                    (x_positions[index + 1] - 28, 250),
+                ),
+                fill=(105, 210, 255),
+            )
+    draw.multiline_text(
+        (32, 350),
+        "Separate reported facts from\ninterpretation, then test the lesson.",
+        fill=(225, 238, 250),
+        font=_font(25),
+        spacing=8,
+    )
+    image.save(path)
+
+
 def render_longform_video(
     package: ScriptPackage, output_dir: Path, audio: Path, captions: Path | None, background: Path | None
 ) -> Path:
@@ -149,7 +180,9 @@ def render_longform_video(
         raise RuntimeError("ffmpeg is required")
     output_dir.mkdir(parents=True, exist_ok=True)
     card = output_dir / "title-card.png"
+    technical_card = output_dir / "technical-map.png"
     _title_card(package, card)
+    _technical_card(package, technical_card)
     output = output_dir / "longform.mp4"
     measured_audio = _audio_duration(audio)
     duration = (
@@ -171,9 +204,13 @@ def render_longform_video(
         background_input = "[0:v]format=yuv420p[bg]"
         video = "[bg]"
         next_input = 1
-    command += ["-loop", "1", "-i", str(card), "-i", str(audio)]
-    filters = [background_input, f"{video}[{next_input}:v]overlay=0:0:enable='between(t,0,6)'[base]"]
-    video_label = "[base]"
+    command += ["-loop", "1", "-i", str(card), "-loop", "1", "-i", str(technical_card), "-i", str(audio)]
+    filters = [
+        background_input,
+        f"{video}[{next_input}:v]overlay=0:0:enable='between(t,0,6)'[base]",
+        "[base][2:v]overlay=1080:520:enable='gte(t,6)'[mapped]",
+    ]
+    video_label = "[mapped]"
     if captions and captions.exists():
         filters.append(f"{video_label}{_caption_filter(captions, margin_v=70)}[captioned]")
         video_label = "[captioned]"
@@ -183,7 +220,7 @@ def render_longform_video(
         "-map",
         video_label,
         "-map",
-        "2:a",
+        "3:a",
         "-t",
         str(duration),
         "-r",
