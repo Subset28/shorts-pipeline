@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Weekly production preflight now requires every entry to carry a private, source-linked editorial brief with a hook, metadata, and tags; long-form entries also require a reviewed question and at least three chapters. This blocks unreviewed or weakly packaged weekly content before TTS, rendering, or upload.
+
 2026-08-31: Tightened Reddit relevance filtering for the channel promise. Career/advice-shaped titles now require a concrete technical mechanism; generic career guidance is rejected while technical incidents remain eligible. The regenerated 2026-09-07 private plan contains 8 entries and no generic career-advice candidate.
 
 2026-08-31: Added private editorial research slates. `research-week` now
