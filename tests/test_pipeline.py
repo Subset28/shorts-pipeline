@@ -2117,6 +2117,17 @@ def test_launchd_logs_use_boot_volume_not_external_media_volume():
         assert "/Users/abba/Library/Logs/shorts-pipeline/" in text
 
 
+def test_github_monitor_launchd_entrypoint_uses_boot_volume_runtime():
+    plist = Path(__file__).parents[1] / "scripts/com.shorts-pipeline.github-monitor.plist"
+    text = plist.read_text(encoding="utf-8")
+    assert "/Users/abba/shorts-pipeline/scripts/github_monitor.py" in text
+    assert "/Users/abba/shorts-pipeline</string>" in text
+    installer = Path(__file__).parents[1] / "scripts/install-launchd-jobs.sh"
+    assert 'cp "$repo_dir/scripts/github_monitor.py" "$runtime_dir/scripts/github_monitor.py"' in installer.read_text(
+        encoding="utf-8"
+    )
+
+
 def test_feed_summary_removes_markup_urls_and_link_aggregator_boilerplate():
     cleaned = _clean_summary(
         '<p>Article URL: <a href="https://example.test">https://example.test</a></p><p>Points: 27</p># Comments: 11'
