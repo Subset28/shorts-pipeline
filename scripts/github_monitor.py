@@ -8,8 +8,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+import httpx
+
 REPO = os.getenv("GITHUB_MONITOR_REPO", "Subset28/shorts-pipeline")
-GH_CLI = os.getenv("GITHUB_CLI", "/opt/homebrew/bin/gh")
 STATE = Path(
     os.getenv("GITHUB_MONITOR_STATE", "/Volumes/n2me/Developer/shorts-pipeline/data/github_monitor_state.json")
 )
@@ -18,14 +19,14 @@ MONITOR_TIMEOUT_SECONDS = 45
 
 
 def fetch_events() -> list[dict]:
-    result = subprocess.run(
-        [GH_CLI, "api", f"repos/{REPO}/events?per_page=30"],
-        check=True,
-        capture_output=True,
-        text=True,
-        timeout=30,
+    response = httpx.get(
+        f"https://api.github.com/repos/{REPO}/events",
+        params={"per_page": 30},
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "shorts-pipeline-monitor"},
+        timeout=15,
     )
-    payload = json.loads(result.stdout)
+    response.raise_for_status()
+    payload = response.json()
     if not isinstance(payload, list):
         raise RuntimeError("GitHub events response was not a list")
     return [item for item in payload if isinstance(item, dict) and item.get("id")]

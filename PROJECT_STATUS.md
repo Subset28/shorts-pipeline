@@ -340,3 +340,9 @@ the normal rotation unchanged.
 - Added a 45-second whole-process deadline to the GitHub activity monitor so a stuck API or notification path cannot remain resident under launchd.
 - Deadline failures are reported to stderr and exit with a retryable temporary-failure status; no publishing code is involved.
 - Verification: deadline-handler assertion, Python compilation, and `git diff --check` passed.
+
+## 2026-08-31 — remove GitHub CLI dependency from monitor
+
+- Replaced the launchd monitor's `gh` subprocess with a direct GitHub Events API request using the existing HTTP client and a 15-second request timeout.
+- This avoids the launchd-only subprocess hang while preserving watched pull-request, review, comment, and push notifications without reading credentials.
+- Verification: mocked HTTPS request contract passed with the runtime virtualenv; Python compilation and `git diff --check` passed.

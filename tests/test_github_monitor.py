@@ -37,16 +37,31 @@ def test_monitor_saves_state_atomically(tmp_path, monkeypatch):
     assert not state.with_suffix(".json.tmp").exists()
 
 
-def test_monitor_uses_configured_absolute_github_cli(monkeypatch):
+def test_monitor_fetches_events_over_bounded_https(monkeypatch):
     monitor = _module()
     calls = []
 
-    def fake_run(command, **kwargs):
-        calls.append(command)
-        return type("Result", (), {"stdout": "[]"})()
+    class Response:
+        def raise_for_status(self):
+            return None
 
-    monkeypatch.setattr(monitor, "GH_CLI", "/opt/homebrew/bin/gh")
-    monkeypatch.setattr(monitor.subprocess, "run", fake_run)
+        def json(self):
+            return [{"id": "event-1", "type": "PushEvent"}]
 
-    assert monitor.fetch_events() == []
-    assert calls[0][:2] == ["/opt/homebrew/bin/gh", "api"]
+    def fake_get(url, **kwargs):
+        calls.append((url, kwargs))
+        return Response()
+
+    monkeypatch.setattr(monitor.httpx, "get", fake_get)
+
+    assert monitor.fetch_events() == [{"id": "event-1", "type": "PushEvent"}]
+    assert calls == [
+        (
+            "https://api.github.com/repos/Subset28/shorts-pipeline/events",
+            {
+                "params": {"per_page": 30},
+                "headers": {"Accept": "application/vnd.github+json", "User-Agent": "shorts-pipeline-monitor"},
+                "timeout": 15,
+            },
+        )
+    ]
