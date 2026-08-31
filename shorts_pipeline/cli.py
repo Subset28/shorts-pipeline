@@ -446,6 +446,60 @@ def run_weekly_plan(week_of: str, shorts_count: int, output: Path, include_longf
     return 0
 
 
+def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: bool = False) -> int:
+    """Render a reviewed private plan without allowing public or TikTok publishing."""
+    try:
+        payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Could not read weekly plan: {plan_path}") from exc
+    if not isinstance(payload, dict) or payload.get("privacy_status") != "private":
+        raise ValueError("Weekly plan must declare private privacy_status")
+    entries = payload.get("entries")
+    if not isinstance(entries, list) or not 1 <= len(entries) <= 8:
+        raise ValueError("Weekly plan must contain 1 to 8 entries")
+    if sum(isinstance(entry, dict) and entry.get("kind") == "short" for entry in entries) > 7:
+        raise ValueError("Weekly plan cannot contain more than 7 Shorts")
+    if sum(isinstance(entry, dict) and entry.get("kind") == "longform" for entry in entries) > 1:
+        raise ValueError("Weekly plan cannot contain more than 1 long-form entry")
+    settings = load_settings()
+    topics = discover_topics(max(settings.topic_limit, 10))
+    approved_topics = load_approved_reddit_topics(settings.reddit_approved_file)
+    approved_by_url = {
+        topic.sources[0].url: topic for topic in approved_topics if topic.sources and topic.sources[0].url
+    }
+    topics.extend(approved_topics)
+    topic_by_url = {topic.sources[0].url: topic for topic in topics if topic.sources and topic.sources[0].url}
+    prepared: list[tuple[str, str, object]] = []
+    for entry in entries:
+        if not isinstance(entry, dict) or entry.get("privacy_status") != "private":
+            raise ValueError("Every weekly plan entry must be private")
+        kind = entry.get("kind")
+        if kind not in {"short", "longform"}:
+            raise ValueError(f"Unsupported weekly plan entry kind: {kind}")
+        source_url = str(entry.get("source_url", "")).strip()
+        if source_url not in topic_by_url:
+            raise ValueError(f"Weekly plan source is unavailable: {source_url}")
+        if kind == "longform" and source_url not in approved_by_url:
+            raise ValueError(f"Long-form source is not approved: {source_url}")
+        prepared.append((kind, source_url, approved_by_url.get(source_url, topic_by_url[source_url])))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for index, (kind, source_url, topic) in enumerate(prepared, 1):
+        if kind == "short":
+            run(
+                force_dry_run=not upload_private,
+                topic_override=topic,
+                output_dir_override=output_dir / f"short-{index:02d}",
+                private_drafts=upload_private,
+                youtube_only=True,
+            )
+        elif kind == "longform":
+            run_longform(source_url, output_dir / f"longform-{index:02d}")
+        else:
+            raise ValueError(f"Unsupported weekly plan entry kind: {kind}")
+    print(f"Produced {len(entries)} weekly entries")
+    return 0
+
+
 def run_analytics(authorize: bool = False, weekly: bool = False) -> int:
     settings = load_settings()
     snapshots = settings.data_dir / "youtube_analytics.json"
@@ -512,6 +566,12 @@ def main() -> None:
     weekly_parser.add_argument("--shorts", type=int, default=7)
     weekly_parser.add_argument("--out", default="data/weekly_plan.json")
     weekly_parser.add_argument("--no-longform", action="store_true")
+    production_parser = sub.add_parser("produce-week")
+    production_parser.add_argument("--plan", required=True)
+    production_parser.add_argument("--out", default="output/weekly")
+    production_parser.add_argument(
+        "--upload-private", action="store_true", help="Upload Shorts as private YouTube drafts; TikTok stays disabled"
+    )
     analytics_parser = sub.add_parser("analytics")
     analytics_parser.add_argument(
         "--authorize", action="store_true", help="Perform one-time read-only YouTube Analytics OAuth"
@@ -548,6 +608,8 @@ def main() -> None:
         raise SystemExit(run_longform(args.source_url, Path(args.out)))
     if args.command == "plan-week":
         raise SystemExit(run_weekly_plan(args.week_of, args.shorts, Path(args.out), not args.no_longform))
+    if args.command == "produce-week":
+        raise SystemExit(run_weekly_production(Path(args.plan), Path(args.out), args.upload_private))
     if args.command == "analytics":
         raise SystemExit(run_analytics(authorize=args.authorize, weekly=args.weekly))
     if args.command == "backgrounds":

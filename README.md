@@ -66,6 +66,11 @@ Build a balanced weekly slate with seven Shorts and one long-form slot using
 source URLs, categories, private status, and UTC publish times to
 `data/weekly_plan.json`; it plans only and never uploads or publishes.
 
+Execute a reviewed plan with `python -m shorts_pipeline produce-week --plan
+data/weekly_plan.json`. It renders only by default. Add `--upload-private` to
+upload Shorts as private YouTube drafts; the command never publishes publicly
+or invokes TikTok.
+
 Provision the tracked, rights-documented background library with
 `python -m shorts_pipeline backgrounds`. The command downloads only URLs in
 `assets/backgrounds.json` and skips files already present.

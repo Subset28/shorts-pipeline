@@ -6,6 +6,9 @@
 categories, reserves a distinct long-form slot from approved Reddit sources,
 writes private UTC publishing times, and separates planning from rendering and
 uploading.
+2026-08-30: Added bounded weekly production dispatch. Reviewed plans now have
+a render-only execution path, optional private-Short upload mode, source
+validation, an eight-entry cap, and an explicit TikTok-off boundary.
 
 2026-08-30: Added channel-level YouTube packaging with bounded metadata,
 category-aware tags, generated custom thumbnails, and idempotent thumbnail

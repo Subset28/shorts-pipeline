@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 
+from shorts_pipeline import cli
 from shorts_pipeline.content_calendar import build_weekly_plan
 from shorts_pipeline.models import Source, Topic
 
@@ -76,3 +77,97 @@ def test_weekly_plan_rejects_invalid_inputs():
         build_weekly_plan([], date(2026, 9, 7), shorts_count=8)
     with pytest.raises(ValueError, match="Monday"):
         build_weekly_plan([], date(2026, 9, 8))
+
+
+def test_weekly_production_rejects_public_plan(tmp_path):
+    plan = tmp_path / "plan.json"
+    plan.write_text('{"privacy_status": "public", "entries": []}', encoding="utf-8")
+    with pytest.raises(ValueError, match="private"):
+        cli.run_weekly_production(plan, tmp_path / "output")
+
+
+def test_weekly_production_dispatches_render_only_entries(tmp_path, monkeypatch):
+    source = Source(
+        "Approved story",
+        "https://reddit.test/story",
+        "A complete story.",
+        author="a",
+        community="CS",
+        reuse_permission=True,
+    )
+    topic = Topic(source.title, "CS", (source,), 10)
+    plan = tmp_path / "plan.json"
+    plan.write_text(
+        '{"privacy_status":"private","entries":['
+        '{"kind":"short","source_url":"https://reddit.test/story","privacy_status":"private"},'
+        '{"kind":"longform","source_url":"https://reddit.test/story","privacy_status":"private"}]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        cli,
+        "load_settings",
+        lambda: type("Settings", (), {"topic_limit": 10, "reddit_approved_file": tmp_path / "approved.json"})(),
+    )
+    monkeypatch.setattr(cli, "discover_topics", lambda limit: [])
+    monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda path: [topic])
+    calls = []
+    monkeypatch.setattr(cli, "run", lambda **kwargs: calls.append(kwargs))
+    monkeypatch.setattr(
+        cli, "run_longform", lambda source_url, output: calls.append({"longform": source_url, "output": output})
+    )
+    assert cli.run_weekly_production(plan, tmp_path / "output") == 0
+    assert calls[0]["force_dry_run"] is True
+    assert calls[0]["private_drafts"] is False
+    assert calls[0]["youtube_only"] is True
+    assert calls[1]["longform"] == source.url
+
+
+def test_weekly_production_preflights_all_sources_before_rendering(tmp_path, monkeypatch):
+    source = Source(
+        "Approved story",
+        "https://reddit.test/story",
+        "A complete story.",
+        author="a",
+        community="CS",
+        reuse_permission=True,
+    )
+    topic = Topic(source.title, "CS", (source,), 10)
+    plan = tmp_path / "plan.json"
+    plan.write_text(
+        '{"privacy_status":"private","entries":['
+        '{"kind":"short","source_url":"https://reddit.test/story","privacy_status":"private"},'
+        '{"kind":"short","source_url":"https://reddit.test/missing","privacy_status":"private"}]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        cli,
+        "load_settings",
+        lambda: type("Settings", (), {"topic_limit": 10, "reddit_approved_file": tmp_path / "approved.json"})(),
+    )
+    monkeypatch.setattr(cli, "discover_topics", lambda limit: [])
+    monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda path: [topic])
+    calls = []
+    monkeypatch.setattr(cli, "run", lambda **kwargs: calls.append(kwargs))
+    with pytest.raises(ValueError, match="unavailable"):
+        cli.run_weekly_production(plan, tmp_path / "output", upload_private=True)
+    assert calls == []
+
+
+def test_weekly_production_rejects_unapproved_longform_source(tmp_path, monkeypatch):
+    source = Source("RSS story", "https://example.test/story", "A complete story.")
+    topic = Topic(source.title, "CS", (source,), 10)
+    plan = tmp_path / "plan.json"
+    plan.write_text(
+        '{"privacy_status":"private","entries":['
+        '{"kind":"longform","source_url":"https://example.test/story","privacy_status":"private"}]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        cli,
+        "load_settings",
+        lambda: type("Settings", (), {"topic_limit": 10, "reddit_approved_file": tmp_path / "approved.json"})(),
+    )
+    monkeypatch.setattr(cli, "discover_topics", lambda limit: [topic])
+    monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda path: [])
+    with pytest.raises(ValueError, match="not approved"):
+        cli.run_weekly_production(plan, tmp_path / "output")
