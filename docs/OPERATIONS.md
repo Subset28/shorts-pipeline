@@ -98,7 +98,12 @@ rows are reported separately for cleanup.
 To create a Git-tracked, repository-safe snapshot, run
 `python -m shorts_pipeline archive-analytics --input data/analytics_report.json
 --week-of YYYY-MM-DD --out docs/analytics/YYYY-MM-DD.json`, then commit that
-file. The archive contains aggregate lane rows and recommendations only.
+file. The archive contains aggregate lane rows, conservative recommendations,
+and an `experiment_brief`. When at least two videos exist in two lanes, that
+brief records measured baseline/reference lanes and turns CTR into a
+title/thumbnail test and retention into an opening/pacing test. With fewer
+than two videos per lane it records `insufficient_sample` and prescribes no
+creative change.
 The Sunday launchd job runs the SSH sync and opens a dedicated GitHub PR for
 the same archive automatically when a new report exists.
 
