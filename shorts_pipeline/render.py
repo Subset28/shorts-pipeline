@@ -309,7 +309,7 @@ def render_video(
         command = [
             "ffmpeg",
             "-y",
-            *ffmpeg_resource_args(),
+            *ffmpeg_resource_args(1),
             "-stream_loop",
             "-1",
             "-i",
@@ -372,7 +372,7 @@ def render_video(
             str(output),
         ]
     else:
-        command = ["ffmpeg", "-y", *ffmpeg_resource_args(), "-loop", "1", "-i", str(card)]
+        command = ["ffmpeg", "-y", *ffmpeg_resource_args(1), "-loop", "1", "-i", str(card)]
         if audio:
             command += ["-i", str(audio), "-shortest"]
         else:
@@ -397,5 +397,10 @@ def render_video(
             "+faststart",
             str(output),
         ]
-    subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)
+    try:
+        subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)
+    except subprocess.CalledProcessError as exc:
+        detail = (exc.stderr or exc.stdout or "").strip()
+        detail = detail[-1000:] if detail else "no diagnostic output"
+        raise RuntimeError(f"FFmpeg render failed with exit {exc.returncode}: {detail}") from exc
     return output

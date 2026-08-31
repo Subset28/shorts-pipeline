@@ -892,6 +892,22 @@ def test_short_render_uses_upload_friendly_mp4_muxing(tmp_path, monkeypatch):
     assert captured["kwargs"]["timeout"] == 300
 
 
+def test_render_video_preserves_ffmpeg_diagnostics(tmp_path, monkeypatch):
+    monkeypatch.setattr("shorts_pipeline.render.shutil.which", lambda _: "ffmpeg")
+    monkeypatch.setattr("shorts_pipeline.render._render_duration", lambda *_args: 1.0)
+    monkeypatch.setattr("shorts_pipeline.render._card", lambda _package, path, **_kwargs: path.write_bytes(b"card"))
+
+    def fail(*_args, **_kwargs):
+        raise __import__("subprocess").CalledProcessError(234, "ffmpeg", stderr="filter failed: diagnostic")
+
+    monkeypatch.setattr("shorts_pipeline.render.subprocess.run", fail)
+    package = fallback_package(
+        Topic("A breakthrough", "AI", (Source("A breakthrough", "https://example.test", "A useful finding."),))
+    )
+    with pytest.raises(RuntimeError, match="filter failed: diagnostic"):
+        render_video(package, tmp_path)
+
+
 def test_ffmpeg_resource_args_are_bounded_and_configurable(monkeypatch):
     monkeypatch.setenv("FFMPEG_THREADS", "99")
     assert ffmpeg_resource_args() == [
