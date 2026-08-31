@@ -116,13 +116,13 @@ def build_background_reel(
             video_filter = (
                 f"crop=iw*0.94:ih*0.94:x=(iw-ow)*({x_position:.3f}+0.04*sin(2*PI*t/{seconds_per_clip:.3f})):"
                 f"y=(ih-oh)*({y_position:.3f}+0.04*sin(2*PI*t/{seconds_per_clip:.3f}+PI/2)),"
-                "scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,"
-                "unsharp=5:5:0.35:5:5:0,setsar=1,fps=30"
+                "scale=1080:1920:force_original_aspect_ratio=increase:flags=bilinear,crop=1080:1920,"
+                "setsar=1,fps=30"
             )
             command = [
                 "ffmpeg",
                 "-y",
-                *ffmpeg_resource_args(),
+                *ffmpeg_resource_args(1),
                 "-stream_loop",
                 "-1",
                 "-ss",
@@ -137,7 +137,7 @@ def build_background_reel(
                 "-c:v",
                 "libx264",
                 "-preset",
-                "medium",
+                "ultrafast",
                 "-crf",
                 "18",
                 "-pix_fmt",

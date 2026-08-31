@@ -3,12 +3,15 @@ from __future__ import annotations
 import os
 
 
-def ffmpeg_resource_args() -> list[str]:
+def ffmpeg_resource_args(thread_override: int | None = None) -> list[str]:
     """Return conservative FFmpeg limits for unattended media jobs."""
-    try:
-        requested = int(os.getenv("FFMPEG_THREADS", "2"))
-    except ValueError:
-        requested = 2
+    if thread_override is None:
+        try:
+            requested = int(os.getenv("FFMPEG_THREADS", "2"))
+        except ValueError:
+            requested = 2
+    else:
+        requested = thread_override
     threads = min(4, max(1, requested))
     return [
         "-threads",
