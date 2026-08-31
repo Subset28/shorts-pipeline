@@ -394,7 +394,13 @@ def run_schedule(schedule_path: Path, force_dry_run: bool = False) -> int:
     return 0
 
 
-def run_longform(source_url: str | None, output_dir: Path, editorial_brief: dict[str, Any] | None = None) -> int:
+def run_longform(
+    source_url: str | None,
+    output_dir: Path,
+    editorial_brief: dict[str, Any] | None = None,
+    upload_private: bool = False,
+    publish_at: str | None = None,
+) -> int:
     settings = load_settings()
     topics = discover_topics(max(settings.topic_limit, 10))
     topics.extend(load_approved_reddit_topics(settings.reddit_approved_file))
@@ -431,6 +437,46 @@ def run_longform(source_url: str | None, output_dir: Path, editorial_brief: dict
         thumbnail,
     )
     print(f"Created {video}")
+    if not upload_private:
+        return 0
+    quality_gate(output_dir / "manifest.json")
+    publish_path = settings.data_dir / "publish_state.json"
+    events_path = settings.data_dir / "events.jsonl"
+    published = load_publish_state(publish_path).get(source_url or topic.sources[0].url, {})
+    youtube_id = published.get("youtube_id")
+    if youtube_id:
+        thumbnail_ready = set_youtube_thumbnail(
+            youtube_id, thumbnail, settings.youtube_client_secrets, settings.youtube_token_file
+        )
+    else:
+        youtube_id = upload_youtube(
+            video,
+            package,
+            settings.youtube_client_secrets,
+            settings.youtube_token_file,
+            "private",
+            publish_at,
+        )
+        thumbnail_ready = set_youtube_thumbnail(
+            youtube_id, thumbnail, settings.youtube_client_secrets, settings.youtube_token_file
+        )
+    state_key = source_url or topic.sources[0].url
+    save_publish_state(publish_path, state_key, youtube_id=youtube_id)
+    record_event(
+        events_path,
+        "youtube_scheduled" if publish_at else "youtube_published",
+        source_url=state_key,
+        category=package.category,
+        format_name=package.format_name,
+        variant=package.variant,
+        platform_id=youtube_id,
+        publish_at=publish_at,
+    )
+    if not thumbnail_ready:
+        print("Long-form thumbnail is pending; source will be retried later")
+        return 0
+    mark_seen(settings.data_dir / "seen_sources.json", state_key)
+    print(f"Uploaded private long-form YouTube draft: {youtube_id}")
     return 0
 
 
@@ -558,7 +604,7 @@ def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: boo
     }
     topics.extend(approved_topics)
     topic_by_url = {topic.sources[0].url: topic for topic in topics if topic.sources and topic.sources[0].url}
-    prepared: list[tuple[str, str, object, dict[str, Any] | None]] = []
+    prepared: list[tuple[str, str, object, dict[str, Any] | None, str | None]] = []
     for entry in entries:
         if not isinstance(entry, dict) or entry.get("privacy_status") != "private":
             raise ValueError("Every weekly plan entry must be private")
@@ -573,9 +619,17 @@ def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: boo
         editorial_brief = entry.get("editorial_brief")
         if editorial_brief is not None and not isinstance(editorial_brief, dict):
             raise ValueError("Weekly plan editorial_brief must be an object")
-        prepared.append((kind, source_url, approved_by_url.get(source_url, topic_by_url[source_url]), editorial_brief))
+        prepared.append(
+            (
+                kind,
+                source_url,
+                approved_by_url.get(source_url, topic_by_url[source_url]),
+                editorial_brief,
+                entry.get("publish_at"),
+            )
+        )
     output_dir.mkdir(parents=True, exist_ok=True)
-    for index, (kind, source_url, topic, editorial_brief) in enumerate(prepared, 1):
+    for index, (kind, source_url, topic, editorial_brief, publish_at) in enumerate(prepared, 1):
         if kind == "short":
             run(
                 force_dry_run=not upload_private,
@@ -586,7 +640,13 @@ def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: boo
                 editorial_brief=editorial_brief,
             )
         elif kind == "longform":
-            run_longform(source_url, output_dir / f"longform-{index:02d}", editorial_brief=editorial_brief)
+            run_longform(
+                source_url,
+                output_dir / f"longform-{index:02d}",
+                editorial_brief=editorial_brief,
+                upload_private=upload_private,
+                publish_at=publish_at,
+            )
         else:
             raise ValueError(f"Unsupported weekly plan entry kind: {kind}")
     print(f"Produced {len(entries)} weekly entries")

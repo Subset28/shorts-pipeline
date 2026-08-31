@@ -81,6 +81,9 @@ execute a reviewed slate. It is render-only by default, caps the slate at
 seven Shorts plus one long-form entry, rejects non-private plans, and never
 invokes TikTok. Add `--upload-private` only when private YouTube drafts are
 intended.
+The same flag uploads the reviewed long-form entry as a private YouTube draft
+and preserves its planned publish time; long-form remains render-only without
+the flag.
 
 On the configured Windows host, `.\scripts\deploy-nas.ps1` performs the
 same deployment using the `synology` SSH alias. It uses legacy SCP for the

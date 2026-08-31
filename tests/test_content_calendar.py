@@ -1,10 +1,11 @@
 from datetime import date
+from types import SimpleNamespace
 
 import pytest
 
 from shorts_pipeline import cli
 from shorts_pipeline.content_calendar import build_weekly_plan
-from shorts_pipeline.models import Source, Topic
+from shorts_pipeline.models import ScriptPackage, Source, Topic
 
 
 def _topic(title: str, category: str, score: float) -> Topic:
@@ -250,8 +251,14 @@ def test_weekly_production_dispatches_render_only_entries(tmp_path, monkeypatch)
     monkeypatch.setattr(
         cli,
         "run_longform",
-        lambda source_url, output, editorial_brief=None: calls.append(
-            {"longform": source_url, "output": output, "editorial_brief": editorial_brief}
+        lambda source_url, output, editorial_brief=None, upload_private=False, publish_at=None: calls.append(
+            {
+                "longform": source_url,
+                "output": output,
+                "editorial_brief": editorial_brief,
+                "upload_private": upload_private,
+                "publish_at": publish_at,
+            }
         ),
     )
     assert cli.run_weekly_production(plan, tmp_path / "output") == 0
@@ -261,6 +268,62 @@ def test_weekly_production_dispatches_render_only_entries(tmp_path, monkeypatch)
     assert calls[0]["editorial_brief"]["source"]["url"] == source.url
     assert calls[1]["longform"] == source.url
     assert calls[1]["editorial_brief"]["source"]["url"] == source.url
+    assert calls[1]["upload_private"] is False
+    assert calls[1]["publish_at"] is None
+
+
+def test_longform_private_upload_uses_private_youtube_status(tmp_path, monkeypatch):
+    source = Source("Long-form source", "https://example.test/longform", "A complete technical account.")
+    topic = Topic(source.title, "CS", (source,))
+    package = ScriptPackage(
+        "Hook", "Narration", "Title", "Description", ["CS"], [source.url], "longform_explainer", "CS"
+    )
+    settings = SimpleNamespace(
+        topic_limit=10,
+        reddit_approved_file=tmp_path / "approved.json",
+        captions_enabled=False,
+        background_dir=tmp_path,
+        data_dir=tmp_path,
+        youtube_client_secrets=tmp_path / "client.json",
+        youtube_token_file=tmp_path / "token.json",
+    )
+    monkeypatch.setattr(cli, "load_settings", lambda: settings)
+    monkeypatch.setattr(cli, "discover_topics", lambda _limit: [topic])
+    monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda _path: [])
+    monkeypatch.setattr(cli, "create_longform_package", lambda _topic, editorial_brief=None: package)
+    monkeypatch.setattr(cli, "synthesize", lambda _text, _settings, path: path if path.write_bytes(b"audio") else path)
+    monkeypatch.setattr(cli, "_select_backgrounds_for_topic", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        cli,
+        "render_longform_video",
+        lambda _package, output, *_args: (
+            output / "longform.mp4" if (output / "longform.mp4").write_bytes(b"video") else output / "longform.mp4"
+        ),
+    )
+    monkeypatch.setattr(
+        cli, "render_thumbnail", lambda _package, path: path if path.write_bytes(b"thumbnail") else path
+    )
+    monkeypatch.setattr(
+        cli,
+        "save_manifest",
+        lambda *args: (
+            tmp_path / "manifest.json"
+            if tmp_path.joinpath("manifest.json").write_text("{}")
+            else tmp_path / "manifest.json"
+        ),
+    )
+    monkeypatch.setattr(cli, "quality_gate", lambda _path: {})
+    monkeypatch.setattr(cli, "load_publish_state", lambda _path: {})
+    uploads = []
+    monkeypatch.setattr(cli, "upload_youtube", lambda *args: uploads.append(args) or "video-id")
+    monkeypatch.setattr(cli, "set_youtube_thumbnail", lambda *args: True)
+    monkeypatch.setattr(cli, "record_event", lambda *args, **kwargs: None)
+    monkeypatch.setattr(cli, "save_publish_state", lambda *args, **kwargs: None)
+    monkeypatch.setattr(cli, "mark_seen", lambda *args: None)
+
+    assert cli.run_longform(source.url, tmp_path, upload_private=True, publish_at="2099-01-02T15:00:00+00:00") == 0
+    assert uploads[0][4] == "private"
+    assert uploads[0][5] == "2099-01-02T15:00:00+00:00"
 
 
 def test_weekly_production_preflights_all_sources_before_rendering(tmp_path, monkeypatch):
@@ -312,7 +375,11 @@ def test_weekly_production_allows_discovered_nonreddit_longform_source(tmp_path,
     monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda path: [])
     calls = []
     monkeypatch.setattr(
-        cli, "run_longform", lambda source_url, output, editorial_brief=None: calls.append((source_url, output))
+        cli,
+        "run_longform",
+        lambda source_url, output, editorial_brief=None, upload_private=False, publish_at=None: calls.append(
+            (source_url, output, upload_private, publish_at)
+        ),
     )
     assert cli.run_weekly_production(plan, tmp_path / "output") == 0
     assert calls[0][0] == source.url
