@@ -637,6 +637,7 @@ def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: boo
                 output_dir_override=output_dir / f"short-{index:02d}",
                 private_drafts=upload_private,
                 youtube_only=True,
+                publish_at=publish_at,
                 editorial_brief=editorial_brief,
             )
         elif kind == "longform":
