@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Added an explicit `run --preflight` mode that validates Reddit queue, background, YouTube OAuth files, and TTS configuration without TTS, FFmpeg, or platform calls. Documented that `--dry-run` is render-only after a resource-safety audit observed high-CPU background generation.
+
 2026-08-31: Strengthened source-backed YouTube packaging by adding up to four concrete terms from each source headline to the generated search tags, while retaining bounded metadata and existing source-link requirements. Focused metadata/editorial tests pass.
 
 2026-08-31: Added `prepare-week --reddit-only` so reviewed weekly slates can be built deterministically from the approved Reddit queue without mixing in general RSS discovery. The mode remains planning-only and leaves permission records unchanged; targeted tests pass.

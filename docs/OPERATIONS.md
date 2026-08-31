@@ -24,6 +24,9 @@ download the selected model (`CAPTION_MODEL`, default `base`).
 Each render manifest includes a quality report with duration sync, background
 coverage, caption coverage, and any failed checks. Treat `quality.passed=false`
 as a review gate before publishing.
+For a no-media release check, use `python -m shorts_pipeline run --preflight`.
+The `--dry-run` option is render-only and can still consume substantial CPU;
+it skips uploads but is not a configuration check.
 
 Every short and long-form render also creates `thumbnail.jpg` at 1280x720 and
 records it in the manifest. YouTube uploads attempt to set that custom

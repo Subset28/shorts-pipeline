@@ -683,6 +683,51 @@ def test_private_draft_reddit_worker_keeps_polling_without_approved_queue(monkey
     assert calls == [{"force_dry_run": False, "reddit_only": True, "private_drafts": True, "youtube_only": False}]
 
 
+def test_run_preflight_checks_inputs_without_starting_media(monkeypatch, tmp_path, capsys):
+    approved = tmp_path / "approved.json"
+    approved.write_text("[]", encoding="utf-8")
+    background = tmp_path / "backgrounds"
+    background.mkdir()
+    (background / "chunk.mp4").write_bytes(b"video")
+    secrets = tmp_path / "client_secrets.json"
+    token = tmp_path / "token.json"
+    secrets.write_text("{}", encoding="utf-8")
+    token.write_text("{}", encoding="utf-8")
+    settings = SimpleNamespace(
+        reddit_approved_file=approved,
+        reddit_background_dir=background,
+        youtube_client_secrets=secrets,
+        youtube_token_file=token,
+        reddit_client_id="configured",
+        reddit_client_secret="configured",
+        elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
+        elevenlabs_voice_id="configured",
+        edge_tts_voice="en-US-GuyNeural",
+    )
+    monkeypatch.setattr(cli, "load_settings", lambda: settings)
+
+    assert cli.run_preflight(reddit_only=True, private_drafts=True, youtube_only=True) == 0
+    assert "Preflight passed" in capsys.readouterr().out
+
+
+def test_run_preflight_reports_missing_inputs(monkeypatch, tmp_path):
+    settings = SimpleNamespace(
+        reddit_approved_file=tmp_path / "missing.json",
+        reddit_background_dir=tmp_path / "missing-backgrounds",
+        youtube_client_secrets=tmp_path / "missing-secrets.json",
+        youtube_token_file=tmp_path / "missing-token.json",
+        reddit_client_id="",
+        reddit_client_secret="",
+        elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
+        elevenlabs_voice_id="",
+        edge_tts_voice="",
+    )
+    monkeypatch.setattr(cli, "load_settings", lambda: settings)
+
+    with pytest.raises(RuntimeError, match="Preflight failed"):
+        cli.run_preflight(reddit_only=True)
+
+
 def test_worker_interval_rejects_non_finite_or_non_positive_values():
     for value in (0, -1, float("nan"), float("inf")):
         with pytest.raises(ValueError, match="interval_hours"):
