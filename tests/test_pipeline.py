@@ -870,6 +870,17 @@ def test_tuning_recommendations_call_out_insufficient_sample_size():
     ]
 
 
+def test_tuning_recommendations_ignore_malformed_metric_values():
+    report = {
+        "rows": [
+            {"category": "AI", "format_name": "explainer", "videos": 2, "avg_views": "bad", "engagement_rate": "nan"},
+            {"category": "CS", "format_name": "explainer", "videos": 2, "avg_views": 100, "engagement_rate": 0.2},
+        ]
+    }
+    recommendations = tuning_recommendations(report)
+    assert recommendations[0].startswith("Keep testing CS")
+
+
 def test_archive_report_keeps_only_aggregate_tuning_data(tmp_path):
     output = archive_report(
         {
