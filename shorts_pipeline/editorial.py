@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date
 from typing import Any
 
 from .content_calendar import _longform_sort_key, _select_short_topics
-from .models import Topic
+from .models import ScriptPackage, Topic
 from .seo import eligible_formats, fallback_package
 
 REDDIT_URL_PREFIXES = ("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")
@@ -85,6 +86,35 @@ def build_editorial_brief(topic: Topic, analytics_target: dict[str, Any] | None 
         "analytics_target": analytics_target,
         "privacy_status": "private",
     }
+
+
+def apply_editorial_brief(package: ScriptPackage, topic: Topic, brief: dict[str, Any]) -> ScriptPackage:
+    """Apply reviewed packaging choices only after validating their source and lane."""
+    source = topic.sources[0]
+    brief_source = brief.get("source") if isinstance(brief, dict) else None
+    creative = brief.get("creative") if isinstance(brief, dict) else None
+    metadata = brief.get("metadata") if isinstance(brief, dict) else None
+    if not isinstance(brief_source, dict) or brief_source.get("url") != source.url:
+        raise ValueError("editorial brief source URL does not match topic")
+    if brief.get("privacy_status") != "private":
+        raise ValueError("editorial brief must be private")
+    if not isinstance(creative, dict) or not isinstance(metadata, dict):
+        raise ValueError("editorial brief requires creative and metadata objects")
+    format_name = creative.get("format_name")
+    if format_name != package.format_name or format_name not in eligible_formats(topic):
+        raise ValueError("editorial brief format does not match generated package")
+    hook = creative.get("hook")
+    title = metadata.get("title")
+    description = metadata.get("description")
+    tags = metadata.get("tags")
+    if not all(isinstance(value, str) and value.strip() for value in (hook, title, description)):
+        raise ValueError("editorial brief metadata is incomplete")
+    if source.url not in description or not isinstance(tags, list):
+        raise ValueError("editorial brief metadata is not source-linked")
+    clean_tags = [str(tag).strip()[:30] for tag in tags if str(tag).strip()][:12]
+    return replace(
+        package, hook=hook.strip()[:140], title=title.strip()[:100], description=description.strip(), tags=clean_tags
+    )
 
 
 def _unique_topics(topics: list[Topic]) -> list[Topic]:

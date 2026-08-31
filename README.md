@@ -76,6 +76,9 @@ source claim, evidence URL, hook, eligible format, visual direction, caption
 plan, metadata, long-form bridge, and rights gate for each selected story. Add
 `--research data/research_week.json` to `plan-week` to attach those briefs to
 the private weekly plan. Research and planning never render or publish.
+When `produce-week` consumes that plan, the validated brief also shapes the
+short's hook and metadata before narration/rendering; a mismatched or public
+brief is rejected.
 
 Execute a reviewed plan with `python -m shorts_pipeline produce-week --plan
 data/weekly_plan.json`. It renders only by default. Add `--upload-private` to

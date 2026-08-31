@@ -28,6 +28,9 @@ source claim, creative treatment, visual and caption direction, metadata,
 long-form bridge, and rights gate. `research-week` writes those briefs for
 review; `plan-week --research` attaches them to the private production plan.
 The research layer does not render or publish.
+During short production, the validated brief is passed into package creation
+so reviewed packaging choices survive into the generated hook and metadata;
+the narration remains source-anchored.
 
 The free path uses RSS, deterministic fallback copy, local Pillow rendering,
 FFmpeg, and a required narration track. Optional LLM and TTS adapters improve quality without
