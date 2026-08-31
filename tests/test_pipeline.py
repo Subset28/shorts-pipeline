@@ -737,13 +737,13 @@ def test_longform_package_rejects_public_editorial_bridge():
 def test_weekly_editorial_gate_requires_private_source_linked_packaging():
     source_url = "https://example.test/source"
     with pytest.raises(ValueError, match="requires an editorial_brief"):
-        cli._validate_weekly_editorial_brief(None, source_url, "short")
+        cli._validate_weekly_editorial_brief(None, source_url, "short", required=True)
     brief = build_editorial_brief(
         Topic("A reviewed incident", "CS", (Source("A reviewed incident", source_url, "A report."),))
     )
     brief["metadata"]["description"] = "Unlinked description"
     with pytest.raises(ValueError, match="not source-linked"):
-        cli._validate_weekly_editorial_brief(brief, source_url, "short")
+        cli._validate_weekly_editorial_brief(brief, source_url, "short", required=True)
 
 
 def test_weekly_editorial_gate_requires_longform_bridge():
@@ -752,7 +752,7 @@ def test_weekly_editorial_gate_requires_longform_bridge():
     brief = build_editorial_brief(Topic(source.title, "CS", (source,)))
     brief.pop("longform_bridge")
     with pytest.raises(ValueError, match="reviewed question"):
-        cli._validate_weekly_editorial_brief(brief, source_url, "longform")
+        cli._validate_weekly_editorial_brief(brief, source_url, "longform", required=True)
 
 
 def test_longform_render_writes_video_with_audio_and_captions(tmp_path, monkeypatch):

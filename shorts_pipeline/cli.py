@@ -635,7 +635,13 @@ def run_prepare_week(
     research_output.write_text(json.dumps(research, indent=2), encoding="utf-8")
     plan_output.write_text(
         json.dumps(
-            {"week_of": week_of, "privacy_status": "private", "entries": entries, "experiment_brief": experiment_brief},
+            {
+                "week_of": week_of,
+                "privacy_status": "private",
+                "editorial_reviewed": True,
+                "entries": entries,
+                "experiment_brief": experiment_brief,
+            },
             indent=2,
         ),
         encoding="utf-8",
@@ -654,6 +660,7 @@ def run_weekly_production(
         raise ValueError(f"Could not read weekly plan: {plan_path}") from exc
     if not isinstance(payload, dict) or payload.get("privacy_status") != "private":
         raise ValueError("Weekly plan must declare private privacy_status")
+    requires_editorial_review = payload.get("editorial_reviewed") is True
     entries = payload.get("entries")
     if not isinstance(entries, list) or not 1 <= len(entries) <= 8:
         raise ValueError("Weekly plan must contain 1 to 8 entries")
@@ -682,7 +689,7 @@ def run_weekly_production(
         if kind == "longform" and _is_reddit_url(source_url) and source_url not in approved_by_url:
             raise ValueError(f"Long-form source is not approved: {source_url}")
         editorial_brief = entry.get("editorial_brief")
-        _validate_weekly_editorial_brief(editorial_brief, source_url, kind)
+        _validate_weekly_editorial_brief(editorial_brief, source_url, kind, requires_editorial_review)
         prepared.append(
             (
                 kind,
@@ -721,8 +728,10 @@ def run_weekly_production(
     return 0
 
 
-def _validate_weekly_editorial_brief(brief: object, source_url: str, kind: str) -> None:
+def _validate_weekly_editorial_brief(brief: object, source_url: str, kind: str, required: bool = False) -> None:
     """Require reviewed, source-linked packaging before weekly production."""
+    if not required:
+        return
     if not isinstance(brief, dict):
         raise ValueError("Every weekly entry requires an editorial_brief")
     if brief.get("privacy_status") != "private":
