@@ -318,6 +318,59 @@ def archive_report(report: dict[str, Any], output: Path, week_of: str) -> Path:
     return output
 
 
+def tuning_log(report: dict[str, Any], week_of: str) -> str:
+    """Render a repository-safe record of measured results and next tests."""
+    rows = [row for row in report.get("rows", []) if isinstance(row, dict)]
+    lines = [f"# Analytics tuning log — {week_of}", "", "Generated from aggregate platform analytics.", ""]
+    if rows:
+        lines.extend(
+            [
+                "## Measured lanes",
+                "",
+                "| Lane | Videos | Views | CTR | Retention | Watch minutes | Engagement |",
+                "|---|---:|---:|---:|---:|---:|---:|",
+            ]
+        )
+        for row in rows:
+            lines.append(
+                "| {lane} | {videos} | {views} | {ctr:.2%} | {retention:.1f}% | {watch:.2f} | {engagement:.2%} |".format(
+                    lane=_lane(row),
+                    videos=int(row.get("videos", 0)),
+                    views=int(_metric_value(row.get("views", 0))),
+                    ctr=_metric_value(row.get("ctr", 0)),
+                    retention=_metric_value(row.get("avg_view_percentage", 0)),
+                    watch=_metric_value(row.get("watch_minutes", 0)),
+                    engagement=_metric_value(row.get("engagement_rate", 0)),
+                )
+            )
+    else:
+        lines.extend(["## Evidence", "", "No matched analytics rows were available."])
+    lines.extend(["", "## Recommendations", ""])
+    recommendations = [str(item).strip() for item in report.get("recommendations", []) if str(item).strip()]
+    lines.extend(f"- {item}" for item in recommendations or ["Collect more data before changing the content mix."])
+    lines.extend(
+        [
+            "",
+            "## Experiment brief",
+            "",
+            "```json",
+            json.dumps(report.get("experiment_brief", {}), indent=2),
+            "```",
+            "",
+            "Treat these recommendations as the next test plan; do not infer causality from lane aggregates alone.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def write_tuning_log(report: dict[str, Any], output: Path, week_of: str) -> Path:
+    """Write the repository-safe weekly tuning log."""
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(tuning_log(report, week_of), encoding="utf-8")
+    return output
+
+
 def build_youtube_report(weekly: dict[str, Any]) -> dict[str, Any]:
     """Aggregate the latest checkpoint for each video into editorial lanes."""
     latest: dict[str, dict[str, Any]] = {}
