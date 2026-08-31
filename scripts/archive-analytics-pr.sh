@@ -35,7 +35,22 @@ mkdir -p "$worktree/docs/analytics"
     --input "$source_report" \
     --week-of "$week_of" \
     --out "$worktree/docs/analytics/$week_of.json"
+"$python_bin" - "$source_report" "$worktree/docs/analytics/$week_of-tuning.md" "$week_of" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+from shorts_pipeline.analytics import build_youtube_report, write_tuning_log
+
+source = Path(sys.argv[1])
+output = Path(sys.argv[2])
+week = sys.argv[3]
+payload = json.loads(source.read_text(encoding="utf-8"))
+report = build_youtube_report(payload) if "snapshots" in payload else payload
+write_tuning_log(report, output, week)
+PY
 git -C "$worktree" add "docs/analytics/$week_of.json"
+git -C "$worktree" add "docs/analytics/$week_of-tuning.md"
 if git -C "$worktree" diff --cached --quiet; then
     echo "Analytics archive already exists for $week_of"
     exit 0

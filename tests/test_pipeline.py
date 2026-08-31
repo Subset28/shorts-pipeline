@@ -12,6 +12,7 @@ from shorts_pipeline.analytics import (
     build_experiment_brief,
     build_report,
     build_youtube_report,
+    tuning_log,
     tuning_recommendations,
 )
 from shorts_pipeline.analytics_schedule import load_publications
@@ -1327,6 +1328,31 @@ def test_archive_report_keeps_only_aggregate_tuning_data(tmp_path):
             "experiments": [],
         },
     }
+
+
+def test_tuning_log_records_metrics_and_experiment_plan():
+    report = {
+        "rows": [
+            {
+                "category": "AI",
+                "format_name": "fact_explainer",
+                "videos": 2,
+                "views": 1200,
+                "ctr": 0.06,
+                "avg_view_percentage": 72.5,
+                "watch_minutes": 84.0,
+                "engagement_rate": 0.04,
+            }
+        ],
+        "recommendations": ["Test a clearer technical promise."],
+        "experiment_brief": {"status": "ready", "experiments": [{"area": "packaging"}]},
+    }
+    log = tuning_log(report, "2026-09-07")
+    assert "AI / fact_explainer" in log
+    assert "6.00%" in log
+    assert "72.5%" in log
+    assert "Test a clearer technical promise." in log
+    assert '"status": "ready"' in log
 
 
 def test_build_youtube_report_uses_latest_snapshot_per_video():

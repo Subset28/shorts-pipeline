@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Added a repository-safe weekly tuning log generator. The analytics archive workflow now records lane metrics, recommendations, and the structured experiment brief in readable Markdown alongside the aggregate JSON, making the next creative/SEO test explicit for review and Windows/NAS sync.
+
 2026-08-31: Expanded the private research slate with a current AI-security candidate based on official OpenAI and UK AISI reporting. The brief labels vendor benchmark claims, separates incidents, and restricts visuals to defensive explanations; merged via PR #90.
 
 2026-08-31: Weekly production preflight now requires every entry to carry a private, source-linked editorial brief with a hook, metadata, and tags; long-form entries also require a reviewed question and at least three chapters. This blocks unreviewed or weakly packaged weekly content before TTS, rendering, or upload.
