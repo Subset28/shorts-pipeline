@@ -32,6 +32,7 @@ from shorts_pipeline.models import ScriptPackage, Source, Topic
 from shorts_pipeline.publish import (
     fetch_tiktok_status,
     metadata,
+    metadata_quality_gate,
     quality_gate,
     save_manifest,
     set_youtube_thumbnail,
@@ -1595,6 +1596,46 @@ def test_quality_gate_accepts_passing_render(tmp_path):
     manifest = tmp_path / "manifest.json"
     manifest.write_text(json.dumps({"quality": {"passed": True, "issues": []}}), encoding="utf-8")
     assert quality_gate(manifest)["passed"] is True
+
+
+def test_metadata_quality_gate_requires_source_linked_package_fields(tmp_path):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "title": "A technical story",
+                "description": "Source: https://example.test/story",
+                "sources": ["https://example.test/story"],
+                "tags": ["computer science"],
+                "category": "CS",
+                "format_name": "fact_explainer",
+                "captions": str(tmp_path / "captions.srt"),
+                "background": str(tmp_path / "background.mp4"),
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert metadata_quality_gate(manifest)["passed"] is True
+
+
+def test_metadata_quality_gate_rejects_missing_captions_and_citation(tmp_path):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "title": "A technical story",
+                "description": "No source link",
+                "sources": ["https://example.test/story"],
+                "tags": [],
+                "category": "CS",
+                "format_name": "fact_explainer",
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = metadata_quality_gate(manifest)
+    assert result["passed"] is False
+    assert {"description_missing_source", "tags_missing", "captions_missing"} <= set(result["issues"])
 
 
 def test_tts_does_not_reuse_stale_audio_after_provider_failure(tmp_path, monkeypatch):

@@ -85,6 +85,8 @@ The same flag uploads the reviewed long-form entry as a private YouTube draft
 and preserves its planned publish time; long-form remains render-only without
 the flag.
 Each Short also receives its own planned publish time from the reviewed slate.
+Uploads are blocked unless the manifest has valid source-linked metadata and
+caption evidence; Shorts additionally need a selected background visual.
 
 On the configured Windows host, `.\scripts\deploy-nas.ps1` performs the
 same deployment using the `synology` SSH alias. It uses legacy SCP for the

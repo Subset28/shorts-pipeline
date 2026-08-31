@@ -144,6 +144,40 @@ def quality_gate(manifest: Path) -> dict:
     return quality
 
 
+def metadata_quality_gate(manifest: Path) -> dict[str, object]:
+    """Validate source-backed packaging before a platform upload."""
+    try:
+        payload = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Metadata report unavailable: {manifest}") from exc
+    issues: list[str] = []
+    sources = payload.get("sources")
+    title = payload.get("title")
+    description = payload.get("description")
+    tags = payload.get("tags")
+    category = payload.get("category")
+    format_name = payload.get("format_name")
+    if not isinstance(sources, list) or not any(isinstance(url, str) and url.strip() for url in sources):
+        issues.append("sources_missing")
+    if not isinstance(title, str) or not title.strip() or len(title) > 100:
+        issues.append("title_invalid")
+    if not isinstance(description, str) or not description.strip():
+        issues.append("description_missing")
+    elif isinstance(sources, list) and any(isinstance(url, str) and url not in description for url in sources if url):
+        issues.append("description_missing_source")
+    if not isinstance(tags, list) or not any(str(tag).strip() for tag in tags):
+        issues.append("tags_missing")
+    if not isinstance(category, str) or not category.strip():
+        issues.append("category_missing")
+    if not isinstance(format_name, str) or not format_name.strip():
+        issues.append("format_missing")
+    if not isinstance(payload.get("captions"), str) or not payload["captions"].strip():
+        issues.append("captions_missing")
+    if format_name != "longform_explainer" and not isinstance(payload.get("background"), str):
+        issues.append("background_missing")
+    return {"passed": not issues, "issues": issues}
+
+
 def _youtube_credentials(client_secrets: Path, token_file: Path) -> Credentials:
     credentials = None
     if token_file.exists():

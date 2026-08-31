@@ -91,6 +91,9 @@ With `--upload-private`, the long-form entry is also uploaded as a private
 YouTube draft and keeps its planned publish time.
 Shorts likewise keep their individual planned publish times from the weekly
 plan.
+Before any upload, the manifest must pass both render-quality and
+source-linked metadata gates; Shorts also require a background visual and all
+uploads require captions.
 
 Provision the tracked, rights-documented background library with
 `python -m shorts_pipeline backgrounds`. The command downloads only URLs in
