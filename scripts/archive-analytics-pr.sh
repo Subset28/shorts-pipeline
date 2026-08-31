@@ -31,11 +31,11 @@ trap cleanup EXIT INT TERM
 git -C "$repo_dir" worktree add --detach "$worktree" origin/main >/dev/null
 git -C "$worktree" switch -c "$branch" >/dev/null
 mkdir -p "$worktree/docs/analytics"
-"$python_bin" -m shorts_pipeline archive-analytics \
+PYTHONPATH="$worktree" "$python_bin" -m shorts_pipeline archive-analytics \
     --input "$source_report" \
     --week-of "$week_of" \
     --out "$worktree/docs/analytics/$week_of.json"
-"$python_bin" - "$source_report" "$worktree/docs/analytics/$week_of-tuning.md" "$week_of" <<'PY'
+PYTHONPATH="$worktree" "$python_bin" - "$source_report" "$worktree/docs/analytics/$week_of-tuning.md" "$week_of" <<'PY'
 import json
 import sys
 from pathlib import Path
