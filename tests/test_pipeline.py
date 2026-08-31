@@ -425,6 +425,7 @@ def test_reddit_discovery_candidates_are_not_automatically_cleared(monkeypatch):
                 else {
                     "data": {
                         "children": [
+                            "malformed-child",
                             {
                                 "data": {
                                     "title": "A production incident",
@@ -434,7 +435,7 @@ def test_reddit_discovery_candidates_are_not_automatically_cleared(monkeypatch):
                                     "subreddit": "programming",
                                     "score": 123,
                                 }
-                            }
+                            },
                         ]
                     }
                 }
