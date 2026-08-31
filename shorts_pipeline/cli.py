@@ -104,7 +104,7 @@ def run_worker(
     retry_seconds = max(interval_hours, 0.25) * 3600
     quota_retry_seconds = max(YOUTUBE_QUOTA_RETRY_HOURS, interval_hours) * 3600
     while True:
-        if reddit_only and not _has_unseen_reddit_topic(load_settings()):
+        if reddit_only and not private_drafts and not _has_unseen_reddit_topic(load_settings()):
             print("Reddit queue complete")
             return 0
         try:
