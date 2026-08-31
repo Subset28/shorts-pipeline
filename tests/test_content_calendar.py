@@ -232,7 +232,8 @@ def test_weekly_production_dispatches_render_only_entries(tmp_path, monkeypatch)
     plan = tmp_path / "plan.json"
     plan.write_text(
         '{"privacy_status":"private","entries":['
-        '{"kind":"short","source_url":"https://reddit.test/story","privacy_status":"private"},'
+        '{"kind":"short","source_url":"https://reddit.test/story","privacy_status":"private",'
+        '"editorial_brief":{"source":{"url":"https://reddit.test/story"}}},'
         '{"kind":"longform","source_url":"https://reddit.test/story","privacy_status":"private"}]}',
         encoding="utf-8",
     )
@@ -252,6 +253,7 @@ def test_weekly_production_dispatches_render_only_entries(tmp_path, monkeypatch)
     assert calls[0]["force_dry_run"] is True
     assert calls[0]["private_drafts"] is False
     assert calls[0]["youtube_only"] is True
+    assert calls[0]["editorial_brief"]["source"]["url"] == source.url
     assert calls[1]["longform"] == source.url
 
 

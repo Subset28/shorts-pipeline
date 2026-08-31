@@ -179,6 +179,7 @@ def run(
     private_drafts: bool = False,
     youtube_only: bool = False,
     publish_at: str | None = None,
+    editorial_brief: dict[str, Any] | None = None,
 ) -> int:
     settings = load_settings()
     dry_run = force_dry_run or (settings.dry_run and not private_drafts)
@@ -196,7 +197,7 @@ def run(
     topic = _select_topic(topics, seen, reddit_only=reddit_only)
     source_url = topic.sources[0].url
     output_dir = output_dir_override or settings.output_dir
-    package = create_package(topic, settings.openai_api_key, settings.openai_model, variant)
+    package = create_package(topic, settings.openai_api_key, settings.openai_model, variant, editorial_brief)
     state_key = _publish_state_key(source_url, package.variant)
     published = load_publish_state(publish_path).get(state_key, {})
     audio = synthesize(package.narration, settings, output_dir / "narration.mp3")
@@ -538,7 +539,7 @@ def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: boo
     }
     topics.extend(approved_topics)
     topic_by_url = {topic.sources[0].url: topic for topic in topics if topic.sources and topic.sources[0].url}
-    prepared: list[tuple[str, str, object]] = []
+    prepared: list[tuple[str, str, object, dict[str, Any] | None]] = []
     for entry in entries:
         if not isinstance(entry, dict) or entry.get("privacy_status") != "private":
             raise ValueError("Every weekly plan entry must be private")
@@ -550,9 +551,12 @@ def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: boo
             raise ValueError(f"Weekly plan source is unavailable: {source_url}")
         if kind == "longform" and _is_reddit_url(source_url) and source_url not in approved_by_url:
             raise ValueError(f"Long-form source is not approved: {source_url}")
-        prepared.append((kind, source_url, approved_by_url.get(source_url, topic_by_url[source_url])))
+        editorial_brief = entry.get("editorial_brief")
+        if editorial_brief is not None and not isinstance(editorial_brief, dict):
+            raise ValueError("Weekly plan editorial_brief must be an object")
+        prepared.append((kind, source_url, approved_by_url.get(source_url, topic_by_url[source_url]), editorial_brief))
     output_dir.mkdir(parents=True, exist_ok=True)
-    for index, (kind, source_url, topic) in enumerate(prepared, 1):
+    for index, (kind, source_url, topic, editorial_brief) in enumerate(prepared, 1):
         if kind == "short":
             run(
                 force_dry_run=not upload_private,
@@ -560,6 +564,7 @@ def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: boo
                 output_dir_override=output_dir / f"short-{index:02d}",
                 private_drafts=upload_private,
                 youtube_only=True,
+                editorial_brief=editorial_brief,
             )
         elif kind == "longform":
             run_longform(source_url, output_dir / f"longform-{index:02d}")

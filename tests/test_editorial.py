@@ -4,8 +4,10 @@ from datetime import date
 import pytest
 
 from shorts_pipeline import cli
-from shorts_pipeline.editorial import build_editorial_brief, build_research_week
+from shorts_pipeline.editorial import apply_editorial_brief, build_editorial_brief, build_research_week
+from shorts_pipeline.llm import create_package
 from shorts_pipeline.models import Source, Topic
+from shorts_pipeline.seo import fallback_package
 
 
 def _topic(category="AI", permission=False):
@@ -32,6 +34,38 @@ def test_editorial_brief_keeps_evidence_and_creative_contract():
     assert brief["metadata"]["title"]
     assert brief["rights"]["reuse_permission"] is False
     assert brief["longform_bridge"]["question"]
+
+
+def test_editorial_brief_changes_package_metadata_after_validation():
+    topic = _topic()
+    package = fallback_package(topic)
+    brief = build_editorial_brief(topic)
+    brief["creative"]["hook"] = "A REVIEWED SOURCE HOOK"
+    brief["metadata"]["title"] = "Reviewed source title"
+
+    shaped = apply_editorial_brief(package, topic, brief)
+
+    assert shaped.hook == "A REVIEWED SOURCE HOOK"
+    assert shaped.title == "Reviewed source title"
+    assert shaped.narration == package.narration
+
+
+def test_create_package_uses_reviewed_brief_without_api_key():
+    topic = _topic()
+    brief = build_editorial_brief(topic)
+    brief["creative"]["hook"] = "REVIEWED HOOK"
+
+    package = create_package(topic, "", "unused", editorial_brief=brief)
+
+    assert package.hook == "REVIEWED HOOK"
+
+
+def test_editorial_brief_rejects_wrong_source():
+    topic = _topic()
+    brief = build_editorial_brief(topic)
+    brief["source"]["url"] = "https://example.test/other"
+    with pytest.raises(ValueError, match="source URL"):
+        apply_editorial_brief(fallback_package(topic), topic, brief)
 
 
 def test_reddit_brief_requires_explicit_reuse_permission():

@@ -9,6 +9,9 @@ The selector now prioritizes the channel's AI/ML, cyber, CS, and engineering
 lanes before using score to fill the remaining slots, and chooses long-form by
 channel relevance instead of raw source score. The 2026-09-07 slate was
 generated and retained as a private review artifact.
+Reviewed editorial briefs now flow into short-package generation and weekly
+production, so approved hooks and metadata are applied only after source,
+format, and private-status validation.
 
 ## Shorts pipeline
 

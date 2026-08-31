@@ -4,18 +4,22 @@ import json
 
 import httpx
 
+from .editorial import apply_editorial_brief
 from .models import ScriptPackage, Topic
 from .seo import fallback_package, normalize_package
 
 
-def create_package(topic: Topic, api_key: str, model: str, variant: int = 0) -> ScriptPackage:
+def create_package(
+    topic: Topic, api_key: str, model: str, variant: int = 0, editorial_brief: dict | None = None
+) -> ScriptPackage:
     """Use OpenAI only when an API key is explicitly configured.
 
     ChatGPT Plus login/OAuth is not an API credential; the free path remains
     deterministic and source-backed when no API key is available.
     """
     if not api_key:
-        return fallback_package(topic, variant)
+        package = fallback_package(topic, variant)
+        return apply_editorial_brief(package, topic, editorial_brief) if editorial_brief else package
     source = topic.sources[0]
     prompt = {
         "topic": topic.title,
@@ -44,7 +48,8 @@ def create_package(topic: Topic, api_key: str, model: str, variant: int = 0) -> 
         data = json.loads(response.json()["choices"][0]["message"]["content"])
         package = normalize_package(topic, data)
         package.variant = max(0, variant)
-        return package
+        return apply_editorial_brief(package, topic, editorial_brief) if editorial_brief else package
     except (httpx.HTTPError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         print(f"LLM unavailable; using source-backed fallback: {exc}")
-        return fallback_package(topic, variant)
+        package = fallback_package(topic, variant)
+        return apply_editorial_brief(package, topic, editorial_brief) if editorial_brief else package
