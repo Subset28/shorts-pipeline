@@ -8,6 +8,7 @@ from PIL import Image
 
 import shorts_pipeline.cli as cli
 from shorts_pipeline.analytics import archive_report, build_report, build_youtube_report, tuning_recommendations
+from shorts_pipeline.analytics_schedule import load_publications
 from shorts_pipeline.asset_library import load_asset_manifest, sync_backgrounds
 from shorts_pipeline.captions import (
     _escape_ass_text,
@@ -828,6 +829,24 @@ def test_background_selection_ignores_empty_video_placeholders(tmp_path):
 
     assert select_background(tmp_path, "topic") == usable
     assert select_backgrounds(tmp_path, "topic") == [usable]
+
+
+def test_analytics_schedule_skips_non_object_event_lines(tmp_path):
+    events = tmp_path / "events.jsonl"
+    events.write_text(
+        "[]\n"
+        + json.dumps(
+            {
+                "event": "youtube_published",
+                "platform_id": "video-1",
+                "timestamp": "2026-08-30T12:00:00Z",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    assert [item["video_id"] for item in load_publications(events)] == ["video-1"]
 
 
 def test_analytics_joins_platform_metrics_to_experiment_metadata(tmp_path):
