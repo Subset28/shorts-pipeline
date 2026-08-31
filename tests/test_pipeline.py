@@ -7,6 +7,7 @@ import pytest
 from PIL import Image
 
 import shorts_pipeline.cli as cli
+import shorts_pipeline.config as config
 from shorts_pipeline.analytics import (
     archive_report,
     build_experiment_brief,
@@ -831,6 +832,14 @@ def test_ffmpeg_resource_args_are_bounded_and_configurable(monkeypatch):
     ]
     monkeypatch.setenv("FFMPEG_THREADS", "invalid")
     assert ffmpeg_resource_args()[1] == "2"
+
+
+def test_settings_can_load_dotenv_from_explicit_runtime_path(monkeypatch):
+    loaded = []
+    monkeypatch.setenv("DOTENV_PATH", "/private/runtime/.env")
+    monkeypatch.setattr(config, "load_dotenv", lambda path: loaded.append(path))
+    config.load_settings()
+    assert loaded == ["/private/runtime/.env"]
 
 
 def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):

@@ -42,7 +42,7 @@ class Settings:
 
 
 def load_settings(dotenv_path: str | None = None) -> Settings:
-    load_dotenv(dotenv_path)
+    load_dotenv(dotenv_path or os.getenv("DOTENV_PATH"))
     return Settings(
         llm_provider=os.getenv("LLM_PROVIDER", "fallback"),
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
