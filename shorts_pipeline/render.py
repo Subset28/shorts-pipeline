@@ -357,5 +357,5 @@ def render_video(
             "+faststart",
             str(output),
         ]
-    subprocess.run(command, check=True, capture_output=True, text=True)
+    subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)
     return output

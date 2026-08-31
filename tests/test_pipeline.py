@@ -648,15 +648,18 @@ def test_short_render_uses_upload_friendly_mp4_muxing(tmp_path, monkeypatch):
     monkeypatch.setattr("shorts_pipeline.render.shutil.which", lambda _: "ffmpeg")
     monkeypatch.setattr("shorts_pipeline.render._render_duration", lambda *_args: 10.0)
     monkeypatch.setattr("shorts_pipeline.render._card", lambda _package, path, **_kwargs: path.write_bytes(b"card"))
-    monkeypatch.setattr(
-        "shorts_pipeline.render.subprocess.run", lambda command, **_kwargs: captured.update(command=command)
-    )
+
+    def fake_run(command, **kwargs):
+        captured.update(command=command, kwargs=kwargs)
+
+    monkeypatch.setattr("shorts_pipeline.render.subprocess.run", fake_run)
     package = fallback_package(
         Topic("A breakthrough", "AI", (Source("A breakthrough", "https://example.test", "A useful finding."),))
     )
     render_video(package, tmp_path, audio)
     command = captured["command"]
     assert command[command.index("-movflags") + 1] == "+faststart"
+    assert captured["kwargs"]["timeout"] == 300
 
 
 def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
