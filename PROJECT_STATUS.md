@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Strengthened source-backed YouTube packaging by adding up to four concrete terms from each source headline to the generated search tags, while retaining bounded metadata and existing source-link requirements. Focused metadata/editorial tests pass.
+
 2026-08-31: Added `prepare-week --reddit-only` so reviewed weekly slates can be built deterministically from the approved Reddit queue without mixing in general RSS discovery. The mode remains planning-only and leaves permission records unchanged; targeted tests pass.
 
 2026-08-31: Extended Reddit relevance tuning to aerospace and generic prompt threads after the second live audit. Aviation candidates now require a concrete mechanism plus an event arc, prompt-shaped titles need the same narrative evidence, and duplicate parent/comment stories are collapsed; technical flight incidents remain eligible.
