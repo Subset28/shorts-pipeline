@@ -22,8 +22,8 @@
     <key>ThrottleInterval</key>
     <integer>60</integer>
     <key>StandardOutPath</key>
-    <string>/Volumes/n2me/Developer/shorts-pipeline/data/reddit-worker.log</string>
+    <string>/Users/abba/Library/Logs/shorts-pipeline/reddit-worker.log</string>
     <key>StandardErrorPath</key>
-    <string>/Volumes/n2me/Developer/shorts-pipeline/data/reddit-worker.error.log</string>
+    <string>/Users/abba/Library/Logs/shorts-pipeline/reddit-worker.error.log</string>
 </dict>
 </plist>

@@ -3,9 +3,11 @@ set -eu
 
 repo_dir=${PIPELINE_REPO_DIR:-/Volumes/n2me/Developer/shorts-pipeline}
 agent_dir=${LAUNCH_AGENT_DIR:-/Users/abba/Library/LaunchAgents}
+log_dir=${LAUNCH_LOG_DIR:-/Users/abba/Library/Logs/shorts-pipeline}
 domain="gui/$(id -u)"
 
 mkdir -p "$agent_dir"
+mkdir -p "$log_dir"
 for plist in \
     com.shorts-pipeline.reddit-worker.plist \
     com.shorts-pipeline.github-monitor.plist \
