@@ -100,5 +100,5 @@ def render_longform_video(
         "-shortest",
         str(output),
     ]
-    subprocess.run(command, check=True, capture_output=True, text=True)
+    subprocess.run(command, check=True, capture_output=True, text=True, timeout=600)
     return output
