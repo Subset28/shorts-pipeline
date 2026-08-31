@@ -9,6 +9,9 @@ uploading.
 2026-08-30: Added bounded weekly production dispatch. Reviewed plans now have
 a render-only execution path, optional private-Short upload mode, source
 validation, an eight-entry cap, and an explicit TikTok-off boundary.
+2026-08-30: Strengthened the long-form package with a six-chapter narrated
+structure, source-versus-inference guardrails, chapter metadata, and a more
+specific technical-analysis tag set.
 
 2026-08-30: Added channel-level YouTube packaging with bounded metadata,
 category-aware tags, generated custom thumbnails, and idempotent thumbnail

@@ -655,6 +655,31 @@ def test_longform_package_has_argument_structure_and_source_link():
     )
     package = create_longform_package(Topic(source.title, "CS", (source,)))
     assert package.format_name == "longform_explainer"
+    assert package.hook.startswith("What actually happened")
+    assert "Chapter one" in package.narration
+    assert "Chapter six" in package.narration
+    assert "technical analysis" in package.tags
+    assert "00:00 Hook" in package.description
+    assert "03:00" not in package.description
+    assert source.url in metadata(package)["description"]
+    safe_description = metadata(package)["description"]
+    assert safe_description.index("Hook") < safe_description.index("What actually happened")
+
+
+def test_longform_metadata_keeps_citation_for_long_source_body():
+    source = Source(
+        "A long production incident",
+        "https://www.reddit.com/r/sysadmin/comments/example/long-story/",
+        " ".join(["The incident exposed a measurable systems failure."] * 400),
+        author="author",
+        community="sysadmin",
+        reuse_permission=True,
+    )
+    package = create_longform_package(Topic(source.title, "CS", (source,)))
+    assert source.url in metadata(package)["description"]
+    assert "Hook" in metadata(package)["description"]
+    assert "Takeaway" in metadata(package)["description"]
+    assert "The incident exposed a measurable systems failure." in package.narration
 
 
 def test_longform_render_writes_video_with_audio_and_captions(tmp_path, monkeypatch):

@@ -12,27 +12,56 @@ from .models import ScriptPackage, Topic
 from .render import _caption_filter, _font
 
 
+def _chapter_timestamp(narration: str, marker: str) -> str:
+    total_words = max(1, len(narration.split()))
+    position = narration.find(f"\n\n{marker}")
+    words_before = len(narration[: max(0, position)].split()) if position >= 0 else total_words
+    seconds = min(max(0, int((words_before / total_words) * max(30.0, total_words / 2.5))), 5999)
+    return f"{seconds // 60:02d}:{seconds % 60:02d}"
+
+
+def _chapter_metadata(narration: str) -> str:
+    chapters = (
+        ("00:00", "Hook"),
+        (_chapter_timestamp(narration, "Chapter two: Context:"), "Context"),
+        (_chapter_timestamp(narration, "Chapter four: Why it matters:"), "Technical lesson"),
+        (_chapter_timestamp(narration, "Chapter five:"), "Limits and takeaway"),
+    )
+    return "\n".join(f"{timestamp} {label}" for timestamp, label in chapters)
+
+
 def create_longform_package(topic: Topic) -> ScriptPackage:
     source = topic.sources[0]
     sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", source.summary) if part.strip()]
-    body = " ".join(sentences)
+    body_sentences = sentences if len(sentences) <= 40 else [*sentences[:30], *sentences[-10:]]
+    body = " ".join(body_sentences)
+    hook = f"What actually happened with {source.title}?"
     narration = (
-        f"Today we are breaking down {source.title}. "
-        f"This is not just a headline. It is a useful case study in {topic.category.lower()}.\n\n"
-        f"Context: The source reports: {body}\n\n"
-        f"What happened: The important sequence is the concrete chain of events above, which we can examine without treating one post as universal proof.\n\n"
-        f"Why it matters: In practical terms, this shows how technical decisions create consequences outside the code or equipment itself. "
-        f"The strongest lesson is to separate what the source directly reports from what we can reasonably infer.\n\n"
-        f"Takeaway: The story is useful because it gives us a concrete example to examine, not because one post proves a universal rule. "
-        f"For the full context, read the linked source and compare the claims with primary evidence."
+        f"{hook}\n\n"
+        f"Chapter one: the claim. Today we are breaking down {source.title}. "
+        f"This is a source-backed case study in {topic.category.lower()}, not a claim that one story explains an entire field.\n\n"
+        f"Chapter two: Context: what the source says. {body}\n\n"
+        "Chapter three: What happened: reconstructing the sequence. The useful way to read this account is to identify the initial condition, "
+        "the technical decision or event that followed, and the observable result. The source gives us the reported details; "
+        "our job is to connect them carefully without adding facts that are not present.\n\n"
+        "Chapter four: Why it matters: the technical lesson. A single incident can still expose a design tradeoff. Ask what assumption failed, "
+        "what constraint shaped the outcome, and which control or test would have revealed the problem earlier. Those questions "
+        "turn a headline into an engineering lesson while keeping the explanation honest about its limits.\n\n"
+        "Chapter five: what we cannot conclude. This source is evidence about the event it describes. It is not, by itself, "
+        "a benchmark of every system, proof that every organization works the same way, or a substitute for primary documentation. "
+        "Where the source is incomplete, that uncertainty belongs in the story.\n\n"
+        "Chapter six: Takeaway: the durable lesson is to separate the reported facts from the interpretation, then test the "
+        "interpretation against stronger evidence. For the full context, read the linked source and compare its claims with "
+        "primary technical documentation, measurements, or follow-up reporting."
     )
-    description = f"{narration}\n\nSource: {source.url}\nReddit attribution: u/{source.author} in r/{source.community}"
+    attribution = f"Reddit attribution: u/{source.author} in r/{source.community}" if source.author else ""
+    description = (f"Source: {source.url}\n{attribution}\n\n{_chapter_metadata(narration)}\n\n{narration}").strip()
     return ScriptPackage(
-        source.title[:100],
+        hook,
         narration,
         source.title[:100],
         description,
-        [topic.category, "technology", "explainer", "long form"],
+        [topic.category, "technology", "technical analysis", "deep dive", "long form"],
         [source.url],
         "longform_explainer",
         topic.category,
