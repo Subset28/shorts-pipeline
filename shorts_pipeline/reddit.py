@@ -100,6 +100,12 @@ def _clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
+def _clean_story_text(value: str) -> str:
+    """Remove spoken URL noise while preserving Markdown link labels."""
+    value = re.sub(r"\[([^]]+)\]\(https?://[^)]+\)", r"\1", value)
+    return _clean_text(re.sub(r"https?://\S+", "", value))
+
+
 def _score_value(value: object) -> float:
     """Normalize an optional Reddit score without aborting discovery."""
     try:
@@ -206,7 +212,7 @@ def discover_reddit_topics(
             children = response.json().get("data", {}).get("children", [])
             for child in children:
                 post = child.get("data", {})
-                body = _clean_text(str(post.get("selftext", "")))
+                body = _clean_story_text(str(post.get("selftext", "")))
                 if post.get("stickied") or post.get("over_18"):
                     continue
                 author = str(post.get("author", "")).strip()
@@ -251,7 +257,7 @@ def discover_reddit_topics(
                     continue
                 for comment_child in listings[1].get("data", {}).get("children", []):
                     comment = comment_child.get("data", {})
-                    comment_body = _clean_text(str(comment.get("body", "")))
+                    comment_body = _clean_story_text(str(comment.get("body", "")))
                     comment_author = str(comment.get("author", "")).strip()
                     comment_permalink = str(comment.get("permalink", "")).strip()
                     if (
@@ -300,7 +306,7 @@ def load_approved_reddit_topics(path: Path) -> list[Topic]:
         source = Source(
             str(data.get("title", "")).strip(),
             str(data.get("url", "")).strip(),
-            _clean_text(str(data.get("summary", ""))),
+            _clean_story_text(str(data.get("summary", ""))),
             str(data.get("published", "")),
             str(data.get("author", "")).strip(),
             str(data.get("community", "")).strip(),

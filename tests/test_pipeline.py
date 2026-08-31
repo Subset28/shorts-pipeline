@@ -24,6 +24,7 @@ from shorts_pipeline.models import ScriptPackage, Source, Topic
 from shorts_pipeline.publish import fetch_tiktok_status, metadata, quality_gate, save_manifest, youtube_status
 from shorts_pipeline.quality import assess_render
 from shorts_pipeline.reddit import (
+    _clean_story_text,
     _get_with_retries,
     _is_niche_relevant,
     _post_with_retries,
@@ -537,6 +538,12 @@ def test_reddit_score_value_handles_malformed_api_values():
     assert _score_value(None) == 0.0
     assert _score_value("nan") == 0.0
     assert _score_value("inf") == 0.0
+
+
+def test_reddit_story_text_removes_markdown_url_noise():
+    assert _clean_story_text("Read [the report](https://example.test/report) and https://example.test/more") == (
+        "Read the report and"
+    )
 
 
 def test_private_draft_reddit_worker_keeps_polling_without_approved_queue(monkeypatch):
