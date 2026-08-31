@@ -70,6 +70,13 @@ prefers the measured reference category while preserving rotation and records
 the exact review target. Use `--analytics path/to/report.json` to select a
 different report; incomplete samples do not alter the slate.
 
+Create a reviewable, source-backed editorial slate first with
+`python -m shorts_pipeline research-week --week-of YYYY-MM-DD`. It records the
+source claim, evidence URL, hook, eligible format, visual direction, caption
+plan, metadata, long-form bridge, and rights gate for each selected story. Add
+`--research data/research_week.json` to `plan-week` to attach those briefs to
+the private weekly plan. Research and planning never render or publish.
+
 Execute a reviewed plan with `python -m shorts_pipeline produce-week --plan
 data/weekly_plan.json`. It renders only by default. Add `--upload-private` to
 upload Shorts as private YouTube drafts; the command never publishes publicly

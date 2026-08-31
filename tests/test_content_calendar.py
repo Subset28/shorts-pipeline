@@ -139,6 +139,53 @@ def test_weekly_plan_rejects_missing_explicit_analytics_report(tmp_path, monkeyp
         cli.run_weekly_plan("2026-09-07", 1, tmp_path / "plan.json", False, tmp_path / "missing.json")
 
 
+def test_weekly_plan_attaches_private_editorial_research(tmp_path, monkeypatch):
+    topic = _topic("AI story", "AI", 10)
+    research = tmp_path / "research.json"
+    research.write_text(
+        '{"privacy_status":"private","shorts":[{"source":{"url":"'
+        + topic.sources[0].url
+        + '"},"creative":{"hook":"USE THIS"}}],"longform":[]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        cli,
+        "load_settings",
+        lambda: type(
+            "Settings",
+            (),
+            {"data_dir": tmp_path, "topic_limit": 10, "reddit_approved_file": tmp_path / "approved.json"},
+        )(),
+    )
+    monkeypatch.setattr(cli, "discover_topics", lambda _limit: [topic])
+    monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda _path: [])
+
+    assert cli.run_weekly_plan("2026-09-07", 1, tmp_path / "plan.json", False, None, research) == 0
+    payload = __import__("json").loads((tmp_path / "plan.json").read_text(encoding="utf-8"))
+    assert payload["entries"][0]["editorial_brief"]["creative"]["hook"] == "USE THIS"
+
+
+def test_weekly_plan_rejects_public_editorial_research(tmp_path, monkeypatch):
+    research = tmp_path / "research.json"
+    research.write_text('{"privacy_status":"public"}', encoding="utf-8")
+    with pytest.raises(ValueError, match="private"):
+        cli.run_weekly_plan("2026-09-07", 1, tmp_path / "plan.json", False, None, research)
+
+
+def test_weekly_plan_rejects_malformed_editorial_research(tmp_path):
+    research = tmp_path / "research.json"
+    research.write_text("[]", encoding="utf-8")
+    with pytest.raises(ValueError, match="JSON object"):
+        cli.run_weekly_plan("2026-09-07", 1, tmp_path / "plan.json", False, None, research)
+
+
+def test_weekly_plan_rejects_malformed_editorial_entry(tmp_path):
+    research = tmp_path / "research.json"
+    research.write_text('{"privacy_status":"private","shorts":[{}],"longform":[]}', encoding="utf-8")
+    with pytest.raises(ValueError, match="source URL"):
+        cli.run_weekly_plan("2026-09-07", 1, tmp_path / "plan.json", False, None, research)
+
+
 def test_weekly_plan_rejects_invalid_inputs():
     with pytest.raises(ValueError, match="shorts_count"):
         build_weekly_plan([], date(2026, 9, 7), shorts_count=0)
@@ -222,7 +269,7 @@ def test_weekly_production_preflights_all_sources_before_rendering(tmp_path, mon
     assert calls == []
 
 
-def test_weekly_production_rejects_unapproved_longform_source(tmp_path, monkeypatch):
+def test_weekly_production_allows_discovered_nonreddit_longform_source(tmp_path, monkeypatch):
     source = Source("RSS story", "https://example.test/story", "A complete story.")
     topic = Topic(source.title, "CS", (source,), 10)
     plan = tmp_path / "plan.json"
@@ -238,5 +285,7 @@ def test_weekly_production_rejects_unapproved_longform_source(tmp_path, monkeypa
     )
     monkeypatch.setattr(cli, "discover_topics", lambda limit: [topic])
     monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda path: [])
-    with pytest.raises(ValueError, match="not approved"):
-        cli.run_weekly_production(plan, tmp_path / "output")
+    calls = []
+    monkeypatch.setattr(cli, "run_longform", lambda source_url, output: calls.append((source_url, output)))
+    assert cli.run_weekly_production(plan, tmp_path / "output") == 0
+    assert calls[0][0] == source.url

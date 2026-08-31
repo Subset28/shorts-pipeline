@@ -15,6 +15,7 @@ from .asset_library import sync_backgrounds
 from .captions import create_captions
 from .config import load_settings
 from .content_calendar import build_weekly_plan
+from .editorial import build_research_week
 from .history import load_publish_state, load_seen, mark_seen, save_publish_state
 from .llm import create_package
 from .longform import create_longform_package, render_longform_video
@@ -35,12 +36,17 @@ from .tts import synthesize
 from .youtube_analytics import collect_due, write_weekly_report
 
 YOUTUBE_QUOTA_RETRY_HOURS = 24.0
+REDDIT_URL_PREFIXES = ("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")
 
 
 def _interval_seconds(interval_hours: float) -> float:
     if not math.isfinite(interval_hours) or interval_hours <= 0:
         raise ValueError("interval_hours must be finite and greater than zero")
     return max(interval_hours, 0.25) * 3600
+
+
+def _is_reddit_url(source_url: str) -> bool:
+    return source_url.lower().startswith(REDDIT_URL_PREFIXES)
 
 
 def _discover_topics(settings, limit: int, reddit_only: bool = False, private_drafts: bool = False):
@@ -389,10 +395,11 @@ def run_schedule(schedule_path: Path, force_dry_run: bool = False) -> int:
 
 def run_longform(source_url: str | None, output_dir: Path) -> int:
     settings = load_settings()
-    topics = load_approved_reddit_topics(settings.reddit_approved_file)
+    topics = discover_topics(max(settings.topic_limit, 10))
+    topics.extend(load_approved_reddit_topics(settings.reddit_approved_file))
     topic = next((item for item in topics if not source_url or item.sources[0].url == source_url), None)
     if not topic:
-        raise ValueError("No approved source matched the requested long-form topic")
+        raise ValueError("No source-backed topic matched the requested long-form topic")
     package = create_longform_package(topic)
     audio = synthesize(package.narration, settings, output_dir / "narration.mp3")
     if not audio or not audio.exists() or audio.stat().st_size == 0:
@@ -427,7 +434,12 @@ def run_longform(source_url: str | None, output_dir: Path) -> int:
 
 
 def run_weekly_plan(
-    week_of: str, shorts_count: int, output: Path, include_longform: bool = True, analytics_path: Path | None = None
+    week_of: str,
+    shorts_count: int,
+    output: Path,
+    include_longform: bool = True,
+    analytics_path: Path | None = None,
+    research_path: Path | None = None,
 ) -> int:
     try:
         week_start = date.fromisoformat(week_of)
@@ -449,9 +461,34 @@ def run_weekly_plan(
     topics = discover_topics(max(settings.topic_limit, shorts_count + 3))
     approved_topics = load_approved_reddit_topics(settings.reddit_approved_file)
     topics.extend(approved_topics)
-    entries = build_weekly_plan(topics, week_start, shorts_count, include_longform, approved_topics, brief)
+    entries = build_weekly_plan(topics, week_start, shorts_count, include_longform, topics, brief)
     if not entries:
         raise RuntimeError("No source-backed topics were available for the weekly plan")
+    editorial_by_url: dict[str, Any] = {}
+    if research_path is not None:
+        try:
+            research = json.loads(research_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"Could not read research slate: {research_path}") from exc
+        if not isinstance(research, dict):
+            raise ValueError("Research slate must be a JSON object")
+        research_shorts = research.get("shorts", [])
+        research_longform = research.get("longform", [])
+        if not isinstance(research_shorts, list) or not isinstance(research_longform, list):
+            raise ValueError("Research slate shorts and longform fields must be lists")
+        for item in research_shorts + research_longform:
+            if not isinstance(item, dict) or not isinstance(item.get("source"), dict):
+                raise ValueError("Each research entry must contain a source URL")
+            url = item["source"].get("url")
+            if not isinstance(url, str) or not url.strip():
+                raise ValueError("Each research entry must contain a source URL")
+            editorial_by_url[url.strip()] = item
+        if research.get("privacy_status") != "private":
+            raise ValueError("Research slate must declare private privacy_status")
+    for entry in entries:
+        brief_item = editorial_by_url.get(entry["source_url"])
+        if brief_item is not None:
+            entry["editorial_brief"] = brief_item
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
         json.dumps(
@@ -460,6 +497,21 @@ def run_weekly_plan(
         encoding="utf-8",
     )
     print(f"Wrote {output} ({len(entries)} entries)")
+    return 0
+
+
+def run_research_week(week_of: str, shorts_count: int, output: Path, include_longform: bool = True) -> int:
+    try:
+        week_start = date.fromisoformat(week_of)
+    except ValueError as exc:
+        raise ValueError("week_of must be an ISO date") from exc
+    settings = load_settings()
+    topics = discover_topics(max(settings.topic_limit, shorts_count + 3))
+    topics.extend(load_approved_reddit_topics(settings.reddit_approved_file))
+    payload = build_research_week(topics, week_start, shorts_count, include_longform)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    print(f"Wrote {output} ({len(payload['shorts'])} Shorts, {len(payload['longform'])} long-form)")
     return 0
 
 
@@ -496,7 +548,7 @@ def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: boo
         source_url = str(entry.get("source_url", "")).strip()
         if source_url not in topic_by_url:
             raise ValueError(f"Weekly plan source is unavailable: {source_url}")
-        if kind == "longform" and source_url not in approved_by_url:
+        if kind == "longform" and _is_reddit_url(source_url) and source_url not in approved_by_url:
             raise ValueError(f"Long-form source is not approved: {source_url}")
         prepared.append((kind, source_url, approved_by_url.get(source_url, topic_by_url[source_url])))
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -584,6 +636,12 @@ def main() -> None:
     weekly_parser.add_argument("--out", default="data/weekly_plan.json")
     weekly_parser.add_argument("--no-longform", action="store_true")
     weekly_parser.add_argument("--analytics", help="Analytics report used to shape the next slate")
+    weekly_parser.add_argument("--research", help="Private editorial research slate to attach to the plan")
+    research_parser = sub.add_parser("research-week")
+    research_parser.add_argument("--week-of", required=True, help="Monday ISO date for the research slate")
+    research_parser.add_argument("--shorts", type=int, default=7)
+    research_parser.add_argument("--out", default="data/research_week.json")
+    research_parser.add_argument("--no-longform", action="store_true")
     production_parser = sub.add_parser("produce-week")
     production_parser.add_argument("--plan", required=True)
     production_parser.add_argument("--out", default="output/weekly")
@@ -632,8 +690,11 @@ def main() -> None:
                 Path(args.out),
                 not args.no_longform,
                 Path(args.analytics) if args.analytics else None,
+                Path(args.research) if args.research else None,
             )
         )
+    if args.command == "research-week":
+        raise SystemExit(run_research_week(args.week_of, args.shorts, Path(args.out), not args.no_longform))
     if args.command == "produce-week":
         raise SystemExit(run_weekly_production(Path(args.plan), Path(args.out), args.upload_private))
     if args.command == "analytics":
