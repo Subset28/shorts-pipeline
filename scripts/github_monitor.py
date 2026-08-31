@@ -3,7 +3,9 @@
 
 import json
 import os
+import signal
 import subprocess
+import sys
 from pathlib import Path
 
 REPO = os.getenv("GITHUB_MONITOR_REPO", "Subset28/shorts-pipeline")
@@ -12,6 +14,7 @@ STATE = Path(
     os.getenv("GITHUB_MONITOR_STATE", "/Volumes/n2me/Developer/shorts-pipeline/data/github_monitor_state.json")
 )
 WATCHED_EVENTS = {"PullRequestEvent", "PullRequestReviewEvent", "IssueCommentEvent", "PushEvent"}
+MONITOR_TIMEOUT_SECONDS = 45
 
 
 def fetch_events() -> list[dict]:
@@ -69,17 +72,29 @@ def _event_message(event: dict) -> tuple[str, str]:
     return "Shorts Pipeline GitHub activity", f"{actor}: {event_type}{context}{suffix}"
 
 
+def _timeout(_signum, _frame) -> None:
+    raise TimeoutError(f"GitHub monitor exceeded {MONITOR_TIMEOUT_SECONDS}s deadline")
+
+
 def main() -> None:
-    events = fetch_events()
-    watched = [event for event in events if event.get("type") in WATCHED_EVENTS]
-    previous = _load_state()
-    current = {str(event["id"]) for event in watched}
-    new_events = [event for event in reversed(watched) if str(event["id"]) not in previous]
-    _save_state(current)
-    if not previous:
-        return
-    for event in new_events:
-        notify(*_event_message(event))
+    signal.signal(signal.SIGALRM, _timeout)
+    signal.alarm(MONITOR_TIMEOUT_SECONDS)
+    try:
+        events = fetch_events()
+        watched = [event for event in events if event.get("type") in WATCHED_EVENTS]
+        previous = _load_state()
+        current = {str(event["id"]) for event in watched}
+        new_events = [event for event in reversed(watched) if str(event["id"]) not in previous]
+        _save_state(current)
+        if not previous:
+            return
+        for event in new_events:
+            notify(*_event_message(event))
+    except TimeoutError as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(75) from exc
+    finally:
+        signal.alarm(0)
 
 
 if __name__ == "__main__":

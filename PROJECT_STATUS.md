@@ -334,3 +334,9 @@ the normal rotation unchanged.
 - Moved all launchd stdout/stderr targets from `/Volumes` to `/Users/abba/Library/Logs/shorts-pipeline`.
 - The installer now creates the boot-volume log directory before registering jobs; this addresses silent `EX_CONFIG` 78 startup failures while keeping media and state on the external volume.
 - Verification: all tracked plists lint, focused monitor test passes, and the launchd log-path assertions pass. No Reddit worker was reloaded.
+
+## 2026-08-31 — bound GitHub monitor runtime
+
+- Added a 45-second whole-process deadline to the GitHub activity monitor so a stuck API or notification path cannot remain resident under launchd.
+- Deadline failures are reported to stderr and exit with a retryable temporary-failure status; no publishing code is involved.
+- Verification: deadline-handler assertion, Python compilation, and `git diff --check` passed.
