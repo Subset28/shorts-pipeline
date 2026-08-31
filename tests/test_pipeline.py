@@ -694,6 +694,17 @@ def test_variant_publish_state_keys_are_isolated_but_legacy_default_survives():
     assert cli._publish_state_key("https://example.test/source", 1) == "https://example.test/source#variant=1"
 
 
+def test_unattended_render_directories_are_unique_and_immutable(tmp_path):
+    first = cli._next_render_dir(tmp_path, "https://example.test/source", 0)
+    second = cli._next_render_dir(tmp_path, "https://example.test/source", 0)
+
+    assert first.parent == tmp_path / "runs"
+    assert second.parent == tmp_path / "runs"
+    assert first != second
+    assert first.is_dir()
+    assert second.is_dir()
+
+
 def test_youtube_only_mode_skips_tiktok():
     assert cli._should_upload_tiktok(private_drafts=False, youtube_only=True) is False
     assert cli._should_upload_tiktok(private_drafts=False, youtube_only=False) is True

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import time
 import traceback
 from dataclasses import replace
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .analytics import archive_report, build_report, build_youtube_report, write_report
@@ -62,6 +64,22 @@ def _next_batch_dir(output_dir: Path) -> Path:
         if not candidate.exists():
             return candidate
         index += 1
+
+
+def _next_render_dir(output_dir: Path, source_url: str, variant: int) -> Path:
+    """Allocate an immutable directory for an unattended render."""
+    runs_dir = output_dir / "runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    identity = f"{source_url}|variant={max(0, variant)}".encode("utf-8")
+    digest = hashlib.sha256(identity).hexdigest()[:10]
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    candidate = runs_dir / f"{stamp}-{digest}"
+    suffix = 2
+    while candidate.exists():
+        candidate = runs_dir / f"{stamp}-{digest}-{suffix}"
+        suffix += 1
+    candidate.mkdir()
+    return candidate
 
 
 def _publish_state_key(source_url: str, variant: int) -> str:
@@ -179,8 +197,8 @@ def run(
     seen = load_seen(seen_path)
     topic = _select_topic(topics, seen, reddit_only=reddit_only)
     source_url = topic.sources[0].url
-    output_dir = output_dir_override or settings.output_dir
     package = create_package(topic, settings.openai_api_key, settings.openai_model, variant)
+    output_dir = output_dir_override or _next_render_dir(settings.output_dir, source_url, package.variant)
     state_key = _publish_state_key(source_url, package.variant)
     published = load_publish_state(publish_path).get(state_key, {})
     audio = synthesize(package.narration, settings, output_dir / "narration.mp3")
