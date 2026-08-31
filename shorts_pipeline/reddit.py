@@ -195,7 +195,9 @@ def discover_reddit_topics(
                             title, source_url, body[:4000], str(post.get("created_utc", "")), author, community, False
                         )
                         topics.append(
-                            Topic(source.title, _story_category(community), (source,), _score_value(post.get("score", 0)))
+                            Topic(
+                                source.title, _story_category(community), (source,), _score_value(post.get("score", 0))
+                            )
                         )
                         seen_urls.add(source_url)
                 # Prompt threads often contain the best first-person stories in
