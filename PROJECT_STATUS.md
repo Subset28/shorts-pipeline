@@ -180,5 +180,15 @@
 - Restricted the technical-joke lane to sources with explicit humor or
   technical-culture signals, preventing serious AI and CS announcements from
   receiving mismatched generic POV scripts.
+- Added a model source-fidelity gate that rejects generic non-Reddit drafts and
+  anchors accepted narration to the exact source headline before TTS.
+- Extended source anchoring to repair generic model hooks and platform titles
+  from the source instead of allowing ungrounded metadata into publishing.
+- Added a caption-density quality gate that rejects caption files which reach
+  the end of the audio but contain too few words to represent the narration.
+- Wired source and variant identity into background reel construction so
+  repeated non-Reddit renders change their crop and pan sequence.
+- Hardened background discovery to ignore zero-byte video placeholders before
+  they can reach FFmpeg rendering.
 - Finish platform OAuth/configuration and perform a deliberate final-release
   review before deploying to the NAS.

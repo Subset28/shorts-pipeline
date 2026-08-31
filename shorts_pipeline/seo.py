@@ -22,6 +22,42 @@ _TECHNICAL_JOKE_SIGNAL = re.compile(
     re.IGNORECASE,
 )
 
+_SOURCE_STOPWORDS = {
+    "about",
+    "after",
+    "because",
+    "from",
+    "here",
+    "into",
+    "more",
+    "that",
+    "their",
+    "this",
+    "what",
+    "when",
+    "with",
+}
+
+
+def _content_terms(value: str) -> set[str]:
+    return {term for term in re.findall(r"[a-z0-9]+", value.lower()) if len(term) > 3 and term not in _SOURCE_STOPWORDS}
+
+
+def _has_source_fidelity(source_title: str, source_summary: str, narration: str) -> bool:
+    """Require model drafts to retain concrete source anchors."""
+    narration_terms = _content_terms(narration)
+    title_terms = _content_terms(source_title)
+    summary_terms = _content_terms(source_summary)
+    title_overlap = len(title_terms & narration_terms)
+    summary_overlap = len(summary_terms & narration_terms)
+    return title_overlap >= 2 or (title_overlap >= 1 and summary_overlap >= 2)
+
+
+def _has_any_source_anchor(source_title: str, source_summary: str, text: str) -> bool:
+    """Return whether short metadata retains at least one concrete source term."""
+    source_terms = _content_terms(f"{source_title} {source_summary}")
+    return bool(source_terms & _content_terms(text))
+
 
 def eligible_formats(topic: Topic) -> tuple[str, ...]:
     """Return lanes whose promise can be supported by this source."""
@@ -226,6 +262,14 @@ def _clip_narration(text: str, limit: int = 900) -> str:
     return bounded.rsplit(" ", 1)[0].rstrip(" ,;:-")
 
 
+def _ensure_source_opening(source_title: str, narration: str) -> str:
+    """Keep model narration anchored to the same headline shown on screen."""
+    title = " ".join(source_title.split()).strip(" .")
+    if narration.casefold().startswith(title.casefold()):
+        return narration
+    return _clip_narration(f"{title}. {narration}")
+
+
 def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     """Validate model output before it reaches TTS, rendering, or publishing."""
     source = topic.sources[0]
@@ -239,11 +283,18 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     minimum_words = 12 if format_name == "reddit_story" else 70
     if len(narration.split()) < minimum_words:
         raise ValueError("model narration is too short")
+    if format_name != "reddit_story":
+        if not _has_source_fidelity(source.title, source.summary, narration):
+            raise ValueError("model narration lacks concrete source anchors")
+        narration = _ensure_source_opening(source.title, narration)
     if format_name == "reddit_story":
         # Keep model-generated Reddit treatments source-faithful: exact title,
         # then the original body. The fallback adds the narrative transitions.
         body = " ".join(source.summary.split())
         narration = f"{source.title}. {body}"[:900].rsplit(" ", 1)[0]
+    else:
+        if not narration.casefold().startswith(source.title.casefold()):
+            narration = _clip_narration(f"{source.title}. {narration}")
     tags = data.get("tags", [])
     if not isinstance(tags, list):
         raise ValueError("model tags must be a list")
@@ -259,10 +310,16 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
         attribution = f"Reddit attribution: u/{source.author} in r/{source.community}"
         if attribution not in description:
             description += f"\n{attribution}"
+    hook = data["hook"].strip()[:140]
+    if not _has_any_source_anchor(source.title, source.summary, hook):
+        hook = _native_hook(source.title, source.summary, topic.category, format_name)
+    metadata_title = data["title"].strip()[:100]
+    if not _has_any_source_anchor(source.title, source.summary, metadata_title):
+        metadata_title = source.title[:100]
     return ScriptPackage(
-        data["hook"].strip()[:140],
+        hook,
         narration,
-        data["title"].strip()[:100],
+        metadata_title,
         description,
         tags,
         [source.url],

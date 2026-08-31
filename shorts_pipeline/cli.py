@@ -84,6 +84,15 @@ def _select_backgrounds_for_topic(
     )
 
 
+def _build_background_reel_for_render(sources: list[Path], output: Path, source_url: str, variant: int) -> Path | None:
+    """Tie reel motion variation to the source treatment being rendered."""
+    return build_background_reel(
+        sources,
+        output,
+        variation_key=f"{source_url}|variant={max(0, variant)}",
+    )
+
+
 def is_youtube_upload_limit_error(error: Exception) -> bool:
     return "uploadLimitExceeded" in str(error)
 
@@ -176,9 +185,11 @@ def run(
         provenance=topic.sources[0].community,
     )
     if background_sources:
-        background = build_background_reel(
+        background = _build_background_reel_for_render(
             background_sources,
             output_dir / "background-reel.mp4",
+            source_url,
+            package.variant,
         )
     else:
         background = fallback_background

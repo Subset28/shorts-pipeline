@@ -30,7 +30,7 @@ from shorts_pipeline.reddit import (
     discover_reddit_topics,
     load_approved_reddit_topics,
 )
-from shorts_pipeline.render import AUDIO_NORMALIZATION_FILTER, _card, _reddit_post_card, _render_duration, render_video
+from shorts_pipeline.render import _card, _reddit_post_card, _render_duration, render_video
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.sources import (
     _clean_summary,
@@ -141,7 +141,7 @@ def test_model_output_is_normalized_and_rejects_unsupported_formats():
         topic,
         {
             "hook": "A strong hook",
-            "narration": "This is a sufficiently long narration that explains the source-backed idea in plain language. "
+            "narration": "This breakthrough explains the useful finding in plain language with source-backed context. "
             * 8,
             "title": "A title",
             "description": "An original explanation.",
@@ -151,6 +151,7 @@ def test_model_output_is_normalized_and_rejects_unsupported_formats():
     )
     assert source.url in package.description
     assert package.sources == [source.url]
+    assert package.narration.startswith(source.title + ".")
     invalid = dict(package.__dict__, format_name="unknown")
     try:
         normalize_package(topic, invalid)
@@ -166,7 +167,7 @@ def test_model_narration_clips_at_a_complete_sentence():
     )
     topic = Topic(source.title, "AI", (source,))
     long_narration = (
-        "First, the source reports a measured change. "
+        "First, the model safety source reports a measured change. "
         + ("This sentence adds source-backed context. " * 30)
         + "The takeaway is to check the evidence."
     )
@@ -199,6 +200,77 @@ def test_nonreddit_model_narration_rejects_thin_script():
                 "format_name": "news_breakdown",
             },
         )
+
+
+def test_model_narration_is_rejected_when_it_lacks_source_anchors():
+    source = Source(
+        "A new compiler improves code speed",
+        "https://example.test/compiler",
+        "The compiler reduced build time in a measured benchmark.",
+    )
+    data = {
+        "hook": "A strong hook",
+        "narration": (
+            "This is a sufficiently long generic explanation with no concrete subject or measured detail included. " * 8
+        ),
+        "title": "A title",
+        "description": "An original explanation.",
+        "tags": ["CS"],
+        "format_name": "news_breakdown",
+    }
+    try:
+        normalize_package(Topic(source.title, "CS", (source,)), data)
+    except ValueError as exc:
+        assert "source anchors" in str(exc)
+    else:
+        raise AssertionError("generic model narration was accepted")
+
+
+def test_model_narration_opens_with_exact_source_headline():
+    source = Source(
+        "A new compiler improves code speed",
+        "https://example.test/compiler",
+        "The compiler reduced build time in a measured benchmark.",
+    )
+    package = normalize_package(
+        Topic(source.title, "CS", (source,)),
+        {
+            "hook": "A strong hook",
+            "narration": (
+                "The compiler improved code speed in a measured benchmark for developers, reducing build time in the reported test. "
+                * 8
+            ),
+            "title": "A title",
+            "description": "An original explanation.",
+            "tags": ["CS"],
+            "format_name": "news_breakdown",
+        },
+    )
+    assert package.narration.startswith(source.title + ".")
+
+
+def test_generic_model_metadata_is_repaired_from_source():
+    source = Source(
+        "A new compiler improves code speed",
+        "https://example.test/compiler",
+        "The compiler reduced build time in a measured benchmark.",
+    )
+    package = normalize_package(
+        Topic(source.title, "CS", (source,)),
+        {
+            "hook": "This changes everything",
+            "narration": (
+                "The compiler improved code speed in a measured benchmark for developers, reducing build time in the reported test. "
+                * 8
+            ),
+            "title": "You will not believe this",
+            "description": "An original explanation.",
+            "tags": ["CS"],
+            "format_name": "news_breakdown",
+        },
+    )
+    assert "compiler" in package.hook.lower()
+    assert "compiler" in package.title.lower()
 
 
 def test_metadata_is_platform_neutral():
@@ -500,7 +572,7 @@ def test_nonreddit_transparent_hook_card_has_high_contrast_opening(tmp_path):
     assert image.getpixel((75, 215))[3] > 0
 
 
-def test_short_render_normalizes_audio_and_sets_consistent_output_format(tmp_path, monkeypatch):
+def test_short_render_uses_upload_friendly_mp4_muxing(tmp_path, monkeypatch):
     audio = tmp_path / "narration.mp3"
     audio.write_bytes(b"audio")
     captured = {}
@@ -516,9 +588,7 @@ def test_short_render_normalizes_audio_and_sets_consistent_output_format(tmp_pat
     )
     render_video(package, tmp_path, audio)
     command = captured["command"]
-    assert command[command.index("-af") + 1] == AUDIO_NORMALIZATION_FILTER
-    assert command[command.index("-ar") + 1] == "48000"
-    assert command[command.index("-ac") + 1] == "2"
+    assert command[command.index("-movflags") + 1] == "+faststart"
 
 
 def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
@@ -671,6 +741,15 @@ def test_background_selection_is_stable_and_uses_fallback(tmp_path):
     fallback = tmp_path / "fallback.mp4"
     fallback.write_bytes(b"fallback")
     assert select_background(empty, "topic", fallback) == fallback
+
+
+def test_background_selection_ignores_empty_video_placeholders(tmp_path):
+    (tmp_path / "empty.mp4").touch()
+    usable = tmp_path / "usable.mp4"
+    usable.write_bytes(b"video")
+
+    assert select_background(tmp_path, "topic") == usable
+    assert select_backgrounds(tmp_path, "topic") == [usable]
 
 
 def test_analytics_joins_platform_metrics_to_experiment_metadata(tmp_path):
@@ -940,13 +1019,14 @@ def test_quality_report_records_sync_and_caption_coverage(tmp_path, monkeypatch)
     captions = tmp_path / "captions.srt"
     for path in (video, audio, background):
         path.write_bytes(b"media")
-    captions.write_text("1\n00:00:00,000 --> 00:00:09,500\nWORDS\n", encoding="utf-8")
+    captions.write_text("1\n00:00:00,000 --> 00:00:09,500\nONE TWO THREE FOUR FIVE SIX\n", encoding="utf-8")
     durations = {video: 10.0, audio: 10.0, background: 60.0}
     monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda path: durations.get(path))
     report = assess_render(video, audio, captions, background)
     assert report["passed"] is True
     assert report["audio_video_delta_seconds"] == 0.0
     assert report["caption_coverage"] == 0.95
+    assert report["caption_word_count"] == 6
 
 
 def test_quality_report_flags_background_and_caption_failures(tmp_path, monkeypatch):
@@ -982,6 +1062,50 @@ def test_quality_report_rejects_detectable_low_quality_video_profile(tmp_path, m
     assert report["video_width"] == 720
     assert report["video_height"] == 1280
     assert report["video_fps"] == 20.0
+
+
+def test_quality_report_rejects_late_first_caption(tmp_path, monkeypatch):
+    video = tmp_path / "short.mp4"
+    audio = tmp_path / "narration.mp3"
+    captions = tmp_path / "captions.srt"
+    video.write_bytes(b"video")
+    audio.write_bytes(b"audio")
+    captions.write_text("1\n00:00:01,500 --> 00:00:10,000\nWORDS\n", encoding="utf-8")
+    monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda _path: 10.0)
+    report = assess_render(video, audio, captions, None)
+    assert report["passed"] is False
+    assert "captions_start_too_late" in report["issues"]
+    assert report["caption_start_seconds"] == 1.5
+
+
+def test_quality_report_rejects_caption_overrun(tmp_path, monkeypatch):
+    video = tmp_path / "short.mp4"
+    audio = tmp_path / "narration.mp3"
+    captions = tmp_path / "captions.srt"
+    video.write_bytes(b"video")
+    audio.write_bytes(b"audio")
+    captions.write_text("1\n00:00:00,000 --> 00:00:11,000\nWORDS\n", encoding="utf-8")
+    monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda _path: 10.0)
+    report = assess_render(video, audio, captions, None)
+    assert report["passed"] is False
+    assert "captions_end_too_late" in report["issues"]
+    assert report["caption_coverage"] == 1.1
+
+
+def test_quality_report_rejects_sparse_caption_track(tmp_path, monkeypatch):
+    video = tmp_path / "short.mp4"
+    audio = tmp_path / "narration.mp3"
+    captions = tmp_path / "captions.srt"
+    for path in (video, audio):
+        path.write_bytes(b"media")
+    captions.write_text("1\n00:00:00,000 --> 00:00:10,000\nONE TWO\n", encoding="utf-8")
+    monkeypatch.setattr("shorts_pipeline.quality.probe_duration", lambda path: 10.0)
+
+    report = assess_render(video, audio, captions, None)
+
+    assert report["passed"] is False
+    assert report["caption_word_count"] == 2
+    assert "captions_too_sparse" in report["issues"]
 
 
 def test_background_reel_selection_rotates_stably(tmp_path):
@@ -1061,6 +1185,25 @@ def test_cli_background_selection_passes_configured_manifest(tmp_path, monkeypat
     assert cli._select_backgrounds_for_topic(settings, tmp_path, "topic", "AI News", "source") == []
     assert captured["kwargs"]["manifest"] == manifest
     assert captured["kwargs"]["category"] == "AI News"
+
+
+def test_cli_background_reel_variation_uses_source_and_variant(tmp_path, monkeypatch):
+    captured = {}
+
+    def fake_build(sources, output, **kwargs):
+        captured.update(sources=sources, output=output, kwargs=kwargs)
+        return output
+
+    monkeypatch.setattr(cli, "build_background_reel", fake_build)
+    result = cli._build_background_reel_for_render(
+        [tmp_path / "a.mp4"],
+        tmp_path / "reel.mp4",
+        "https://example.test/story",
+        2,
+    )
+
+    assert result == tmp_path / "reel.mp4"
+    assert captured["kwargs"]["variation_key"] == "https://example.test/story|variant=2"
 
 
 def test_dockerfile_copies_asset_manifest():
