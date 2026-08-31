@@ -644,7 +644,9 @@ def run_prepare_week(
     return 0
 
 
-def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: bool = False) -> int:
+def run_weekly_production(
+    plan_path: Path, output_dir: Path, upload_private: bool = False, preflight_only: bool = False
+) -> int:
     """Render a reviewed private plan without allowing public or TikTok publishing."""
     try:
         payload = json.loads(plan_path.read_text(encoding="utf-8"))
@@ -692,6 +694,9 @@ def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: boo
             )
         )
     output_dir.mkdir(parents=True, exist_ok=True)
+    if preflight_only:
+        print(f"Preflight passed for {len(prepared)} weekly entries")
+        return 0
     for index, (kind, source_url, topic, editorial_brief, publish_at) in enumerate(prepared, 1):
         if kind == "short":
             run(
@@ -813,6 +818,9 @@ def main() -> None:
     production_parser.add_argument(
         "--upload-private", action="store_true", help="Upload Shorts as private YouTube drafts; TikTok stays disabled"
     )
+    production_parser.add_argument(
+        "--preflight", action="store_true", help="Validate the private plan without TTS, rendering, or uploads"
+    )
     analytics_parser = sub.add_parser("analytics")
     analytics_parser.add_argument(
         "--authorize", action="store_true", help="Perform one-time read-only YouTube Analytics OAuth"
@@ -880,7 +888,7 @@ def main() -> None:
             )
         )
     if args.command == "produce-week":
-        raise SystemExit(run_weekly_production(Path(args.plan), Path(args.out), args.upload_private))
+        raise SystemExit(run_weekly_production(Path(args.plan), Path(args.out), args.upload_private, args.preflight))
     if args.command == "analytics":
         raise SystemExit(run_analytics(authorize=args.authorize, weekly=args.weekly))
     if args.command == "backgrounds":

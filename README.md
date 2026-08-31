@@ -94,6 +94,8 @@ plan.
 Before any upload, the manifest must pass both render-quality and
 source-linked metadata gates; Shorts also require a background visual and all
 uploads require captions.
+Run `produce-week --preflight --plan data/weekly_plan.json` to validate the
+slate without TTS, rendering, or uploads.
 Either gate blocks the upload when it fails.
 The unattended Reddit launchd job is configured as background/low-priority and
 throttled after exit to reduce host resource contention.
