@@ -516,6 +516,8 @@ def test_reddit_score_value_handles_malformed_api_values():
     assert _score_value(125) == 125.0
     assert _score_value("not-a-score") == 0.0
     assert _score_value(None) == 0.0
+    assert _score_value("nan") == 0.0
+    assert _score_value("inf") == 0.0
 
 
 def test_private_draft_reddit_worker_keeps_polling_without_approved_queue(monkeypatch):
