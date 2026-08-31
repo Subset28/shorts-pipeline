@@ -5,6 +5,7 @@ import json
 import math
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 import httpx
@@ -88,79 +89,88 @@ def build_background_reel(
     variation_key: str = "",
     duration: float = 60.0,
 ) -> Path | None:
-    """Create a full-duration reel with bounded decoder fan-out."""
+    """Create a full-duration reel while decoding only one source at a time."""
     if not sources:
         return sources[0] if sources else None
     if not shutil.which("ffmpeg"):
         raise RuntimeError("ffmpeg is required")
     output.parent.mkdir(parents=True, exist_ok=True)
-    filters = []
-    labels = []
-    transition = min(0.18, max(0.0, seconds_per_clip / 4))
     seed = int(hashlib.sha256(variation_key.encode("utf-8")).hexdigest()[:8], 16) if variation_key else 0
     requested_duration = max(duration, seconds_per_clip)
-    usable_segment_length = max(seconds_per_clip - transition, 0.1)
-    segment_count = max(1, math.ceil(requested_duration / usable_segment_length))
+    segment_count = max(1, math.ceil(requested_duration / max(seconds_per_clip, 0.1)))
     if segment_count > 8:
         segment_count = 8
-        seconds_per_clip = (requested_duration + transition * (segment_count - 1)) / segment_count
-        usable_segment_length = max(seconds_per_clip - transition, 0.1)
+    seconds_per_clip = requested_duration / segment_count
     start_index = seed % len(sources)
-    for index in range(segment_count):
-        label = f"v{index}"
-        # Every segment gets a different crop/offset even when the category
-        # has only one or two approved source videos. Keep a safe margin so
-        # the small deterministic pan never asks crop for a negative offset.
-        offset = ((seed >> (index * 5 % 24)) + index * 3) % 7
-        x_bias = ((seed >> (index * 3 % 24)) % 5) / 10
-        y_bias = ((seed >> (index * 4 % 24)) % 5) / 10
-        x_position = 0.1 + x_bias * 0.8
-        y_position = 0.1 + y_bias * 0.8
-        filters.append(
-            f"[{index}:v]trim=start={offset},setpts=PTS-STARTPTS,"
-            f"crop=iw*0.94:ih*0.94:x=(iw-ow)*({x_position:.3f}+0.04*sin(2*PI*t/{seconds_per_clip:.3f})):"
-            f"y=(ih-oh)*({y_position:.3f}+0.04*sin(2*PI*t/{seconds_per_clip:.3f}+PI/2)),"
-            f"scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,"
-            f"unsharp=5:5:0.35:5:5:0,"
-            f"setsar=1,fps=30,trim=duration={seconds_per_clip},setpts=PTS-STARTPTS[{label}]"
-        )
-        labels.append(f"[{label}]")
-    if transition:
-        current = labels[0]
-        for index in range(1, segment_count):
-            next_label = f"[x{index}]"
-            offset = index * usable_segment_length
-            filters.append(
-                f"{current}{labels[index]}xfade=transition=fade:duration={transition:.3f}:offset={offset:.3f}{next_label}"
-            )
-            current = next_label
-        final_label = current
-    else:
-        filters.append("".join(labels) + f"concat=n={segment_count}:v=1:a=0[v]")
-        final_label = "[v]"
-    command = ["ffmpeg", "-y", *ffmpeg_resource_args()]
     selected_sources = [sources[(start_index + index) % len(sources)] for index in range(segment_count)]
-    for source in selected_sources:
-        command += ["-stream_loop", "-1", "-i", str(source)]
-    command += [
-        "-filter_complex",
-        ";".join(filters),
-        "-map",
-        final_label,
-        "-an",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "medium",
-        "-crf",
-        "18",
-        "-pix_fmt",
-        "yuv420p",
-        "-movflags",
-        "+faststart",
-        str(output),
-    ]
-    subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)
+    with tempfile.TemporaryDirectory(prefix="background-reel-", dir=output.parent) as temporary_dir:
+        segment_paths: list[Path] = []
+        for index, source in enumerate(selected_sources):
+            segment_path = Path(temporary_dir) / f"segment-{index:02d}.mp4"
+            segment_paths.append(segment_path)
+            offset = ((seed >> (index * 5 % 24)) + index * 3) % 7
+            x_bias = ((seed >> (index * 3 % 24)) % 5) / 10
+            y_bias = ((seed >> (index * 4 % 24)) % 5) / 10
+            x_position = 0.1 + x_bias * 0.8
+            y_position = 0.1 + y_bias * 0.8
+            video_filter = (
+                f"crop=iw*0.94:ih*0.94:x=(iw-ow)*({x_position:.3f}+0.04*sin(2*PI*t/{seconds_per_clip:.3f})):"
+                f"y=(ih-oh)*({y_position:.3f}+0.04*sin(2*PI*t/{seconds_per_clip:.3f}+PI/2)),"
+                "scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,"
+                "unsharp=5:5:0.35:5:5:0,setsar=1,fps=30"
+            )
+            command = [
+                "ffmpeg",
+                "-y",
+                *ffmpeg_resource_args(),
+                "-stream_loop",
+                "-1",
+                "-ss",
+                str(offset),
+                "-i",
+                str(source),
+                "-t",
+                f"{seconds_per_clip:.4f}",
+                "-vf",
+                video_filter,
+                "-an",
+                "-c:v",
+                "libx264",
+                "-preset",
+                "medium",
+                "-crf",
+                "18",
+                "-pix_fmt",
+                "yuv420p",
+                str(segment_path),
+            ]
+            subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)
+
+        concat_file = Path(temporary_dir) / "segments.txt"
+        concat_file.write_text(
+            "".join(
+                f"file '{str(path).replace(chr(39), chr(39) + chr(92) + chr(39) + chr(39))}'\n"
+                for path in segment_paths
+            ),
+            encoding="utf-8",
+        )
+        command = [
+            "ffmpeg",
+            "-y",
+            *ffmpeg_resource_args(),
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(concat_file),
+            "-c",
+            "copy",
+            "-movflags",
+            "+faststart",
+            str(output),
+        ]
+        subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)
     return output
 
 

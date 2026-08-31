@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Replaced the multi-input background-reel graph with sequential per-segment renders plus stream-copy concatenation after an 8-input smoke render still reached roughly 430% CPU. The reel keeps source rotation, crop motion, and full duration while decoding one source at a time; focused tests pass.
+
 2026-08-31: Bounded background-reel decoder fan-out after a render safety audit observed 22 simultaneous looping inputs and excessive CPU. Full-duration reels now use at most eight segments/inputs with adjusted pacing, preserving motion and coverage while reducing resource pressure; focused tests pass.
 
 2026-08-31: Added an explicit `run --preflight` mode that validates Reddit queue, background, YouTube OAuth files, and TTS configuration without TTS, FFmpeg, or platform calls. Documented that `--dry-run` is render-only after a resource-safety audit observed high-CPU background generation.
