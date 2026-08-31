@@ -23,7 +23,7 @@ from shorts_pipeline.reddit import (
     discover_reddit_topics,
     load_approved_reddit_topics,
 )
-from shorts_pipeline.render import _card, _reddit_post_card, _render_duration
+from shorts_pipeline.render import AUDIO_NORMALIZATION_FILTER, _card, _reddit_post_card, _render_duration, render_video
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.sources import (
     _clean_summary,
@@ -431,6 +431,27 @@ def test_nonreddit_transparent_hook_card_has_high_contrast_opening(tmp_path):
     assert image.size == (1080, 1920)
     assert image.getpixel((50, 180))[3] > 0
     assert image.getpixel((75, 215))[3] > 0
+
+
+def test_short_render_normalizes_audio_and_sets_consistent_output_format(tmp_path, monkeypatch):
+    audio = tmp_path / "narration.mp3"
+    audio.write_bytes(b"audio")
+    captured = {}
+
+    monkeypatch.setattr("shorts_pipeline.render.shutil.which", lambda _: "ffmpeg")
+    monkeypatch.setattr("shorts_pipeline.render._render_duration", lambda *_args: 10.0)
+    monkeypatch.setattr("shorts_pipeline.render._card", lambda _package, path, **_kwargs: path.write_bytes(b"card"))
+    monkeypatch.setattr(
+        "shorts_pipeline.render.subprocess.run", lambda command, **_kwargs: captured.update(command=command)
+    )
+    package = fallback_package(
+        Topic("A breakthrough", "AI", (Source("A breakthrough", "https://example.test", "A useful finding."),))
+    )
+    render_video(package, tmp_path, audio)
+    command = captured["command"]
+    assert command[command.index("-af") + 1] == AUDIO_NORMALIZATION_FILTER
+    assert command[command.index("-ar") + 1] == "48000"
+    assert command[command.index("-ac") + 1] == "2"
 
 
 def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
