@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Added `prepare-week --reddit-only` so reviewed weekly slates can be built deterministically from the approved Reddit queue without mixing in general RSS discovery. The mode remains planning-only and leaves permission records unchanged; targeted tests pass.
+
 2026-08-31: Extended Reddit relevance tuning to aerospace and generic prompt threads after the second live audit. Aviation candidates now require a concrete mechanism plus an event arc, prompt-shaped titles need the same narrative evidence, and duplicate parent/comment stories are collapsed; technical flight incidents remain eligible.
 
 2026-08-31: Tightened live Reddit selection after a 20-candidate discovery audit showed career and motivation prompts dominating the queue. Career-community and advice-shaped posts now require both a concrete technical mechanism and an event arc; the rule also applies to comment-derived stories.

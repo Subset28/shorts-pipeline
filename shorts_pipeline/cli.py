@@ -591,6 +591,7 @@ def run_prepare_week(
     plan_output: Path,
     include_longform: bool = True,
     analytics_path: Path | None = None,
+    reddit_only: bool = False,
 ) -> int:
     """Discover once and write a private research slate plus production plan."""
     try:
@@ -598,8 +599,10 @@ def run_prepare_week(
     except ValueError as exc:
         raise ValueError("week_of must be an ISO date") from exc
     settings = load_settings()
-    topics = discover_topics(max(settings.topic_limit, shorts_count + 3))
-    topics.extend(load_approved_reddit_topics(settings.reddit_approved_file))
+    approved_topics = load_approved_reddit_topics(settings.reddit_approved_file)
+    topics = approved_topics if reddit_only else discover_topics(max(settings.topic_limit, shorts_count + 3))
+    if not reddit_only:
+        topics.extend(approved_topics)
     experiment_brief = None
     report_path = analytics_path or getattr(settings, "data_dir", Path("data")) / "analytics_report.json"
     if report_path.exists():
@@ -638,6 +641,7 @@ def run_prepare_week(
             {
                 "week_of": week_of,
                 "privacy_status": "private",
+                "reddit_only": reddit_only,
                 "editorial_reviewed": True,
                 "entries": entries,
                 "experiment_brief": experiment_brief,
@@ -854,6 +858,9 @@ def main() -> None:
     prepare_parser.add_argument("--plan-out", default="data/weekly_plan.json")
     prepare_parser.add_argument("--no-longform", action="store_true")
     prepare_parser.add_argument("--analytics", help="Analytics report used to shape the next treatments")
+    prepare_parser.add_argument(
+        "--reddit-only", action="store_true", help="Build the slate only from the approved Reddit queue"
+    )
     production_parser = sub.add_parser("produce-week")
     production_parser.add_argument("--plan", required=True)
     production_parser.add_argument("--out", default="output/weekly")
@@ -916,6 +923,7 @@ def main() -> None:
                 Path(args.out),
                 not args.no_longform,
                 Path(args.analytics) if args.analytics else None,
+                args.reddit_only,
             )
         )
     if args.command == "prepare-week":

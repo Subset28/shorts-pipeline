@@ -97,6 +97,8 @@ set `FFMPEG_THREADS` between 1 and 4 when tuning resource use on a host.
 For weekly preparation, `python -m shorts_pipeline prepare-week` writes both
 private planning artifacts from one discovery pass. It is planning-only;
 `produce-week` remains the separate render/upload step.
+Pass `--reddit-only` when the week must use only approved Reddit sources;
+this bypasses general discovery and leaves the approval queue unchanged.
 The generated plan is source-set checked against the research slate and keeps
 one matching brief per scheduled entry.
 
