@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Verified the YouTube analytics launchd job was missing and loaded it successfully. Hardened the installer to verify every registered label with `launchctl print`; the analytics supervisor is now confirmed loaded without starting media production.
+
 2026-08-31: Hardened the GitHub activity monitor for multi-agent work. It now watches PR/review/comment/push events, formats PR context in notifications, bounds `gh` and notification subprocesses, recovers from corrupt state, and writes state atomically.
 
 2026-08-31: Made dotenv loading explicit for unattended jobs. `load_settings()` accepts `DOTENV_PATH`, and the YouTube analytics launchd script points to the verified runtime environment without printing or copying credentials.
