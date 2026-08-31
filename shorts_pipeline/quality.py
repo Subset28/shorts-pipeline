@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import re
 import subprocess
+from fractions import Fraction
 from pathlib import Path
 
 _SRT_TIMESTAMP = re.compile(
@@ -35,6 +37,40 @@ def probe_duration(path: Path | None) -> float | None:
         return None
 
 
+def probe_video_stream(path: Path | None) -> dict[str, float | int] | None:
+    """Read video dimensions and frame rate when ffprobe can inspect the file."""
+    if not path or not path.exists():
+        return None
+    try:
+        result = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-show_entries",
+                "stream=width,height,r_frame_rate",
+                "-of",
+                "json",
+                str(path),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        stream = json.loads(result.stdout).get("streams", [None])[0]
+        if not isinstance(stream, dict):
+            return None
+        width = int(stream["width"])
+        height = int(stream["height"])
+        frame_rate = float(Fraction(str(stream["r_frame_rate"])))
+        return {"width": width, "height": height, "fps": frame_rate}
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+        return None
+
+
 def _timestamp_seconds(value: str) -> float:
     hours, minutes, remainder = value.replace(",", ".").split(":")
     return int(hours) * 3600 + int(minutes) * 60 + float(remainder)
@@ -50,12 +86,19 @@ def caption_end(path: Path | None) -> float | None:
 def assess_render(video: Path, audio: Path | None, captions: Path | None, background: Path | None) -> dict:
     """Return deterministic quality evidence for a rendered short."""
     video_duration = probe_duration(video)
+    video_stream = probe_video_stream(video)
     audio_duration = probe_duration(audio)
     background_duration = probe_duration(background)
     last_caption = caption_end(captions)
     issues: list[str] = []
     if video_duration is None:
         issues.append("video_duration_unavailable")
+    if video_stream:
+        dimensions = (video_stream["width"], video_stream["height"])
+        if dimensions not in {(1080, 1920), (1920, 1080)}:
+            issues.append("video_resolution_unexpected")
+        if float(video_stream["fps"]) < 24:
+            issues.append("video_frame_rate_too_low")
     if audio_duration is None:
         issues.append("audio_duration_unavailable")
     av_delta = (
@@ -75,6 +118,9 @@ def assess_render(video: Path, audio: Path | None, captions: Path | None, backgr
     return {
         "passed": not issues,
         "video_duration_seconds": round(video_duration, 3) if video_duration is not None else None,
+        "video_width": video_stream["width"] if video_stream else None,
+        "video_height": video_stream["height"] if video_stream else None,
+        "video_fps": round(float(video_stream["fps"]), 3) if video_stream else None,
         "audio_duration_seconds": round(audio_duration, 3) if audio_duration is not None else None,
         "background_duration_seconds": round(background_duration, 3) if background_duration is not None else None,
         "caption_end_seconds": round(last_caption, 3) if last_caption is not None else None,
