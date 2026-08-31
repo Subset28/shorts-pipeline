@@ -13,6 +13,11 @@ It is never part of topic discovery and never downloads playlists by default.
 the known narration text. The resulting SRT is burned into the final MP4 by
 FFmpeg, so platform uploads do not depend on sidecar-caption support.
 
+`content_calendar.py` turns the ranked source pool into a category-balanced
+weekly slate with explicit private UTC publish times. Planning is separate from
+rendering and publishing, so the operator can review the source and rights
+fields before media work begins.
+
 The free path uses RSS, deterministic fallback copy, local Pillow rendering,
 FFmpeg, and a required narration track. Optional LLM and TTS adapters improve quality without
 changing the pipeline contract.
