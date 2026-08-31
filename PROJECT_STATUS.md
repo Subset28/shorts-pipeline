@@ -322,3 +322,9 @@ the normal rotation unchanged.
 - This addresses the long-render FFmpeg failure path while preserving 1080x1920 output, captions, Reddit card animation, narration, and upload privacy behavior.
 - Verification: bounded 0.1-second FFmpeg compositor diagnostic succeeded; `git diff --check` passed. Full pytest was unavailable because this checkout has no `.venv` and the shell has no `pytest`.
 - Next: run a supervised full-duration smoke render only after the runtime checkout/dependencies are available; no upload was started.
+
+## 2026-08-31 — improve technical-paper hooks
+
+- Long research titles now produce a concise claim hook such as `WHY THIS ML METHOD REDUCES REDUNDANT EXPLORATION` instead of a truncated, generic `...MATTERS` hook.
+- The exact source title and evidence remain in narration and metadata; this only improves the opening visual promise.
+- Verification: direct fallback-package assertion, Python compilation, and `git diff --check` passed. Full pytest remains unavailable in this checkout.

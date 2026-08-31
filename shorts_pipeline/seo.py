@@ -58,6 +58,18 @@ _TAG_STOPWORDS = _SOURCE_STOPWORDS | {
     "with",
 }
 
+_CLAIM_VERBS = {
+    "cuts",
+    "decreases",
+    "detects",
+    "enables",
+    "improves",
+    "increases",
+    "reduces",
+    "removes",
+    "trains",
+}
+
 
 def _content_terms(value: str) -> set[str]:
     return {term for term in re.findall(r"[a-z0-9]+", value.lower()) if len(term) > 3 and term not in _SOURCE_STOPWORDS}
@@ -142,6 +154,15 @@ def _native_hook(headline: str, source_text: str, category: str, format_name: st
         return "NASA JUST AWARDED $775K FOR MOON RECYCLING"
     compact = re.sub(r"\s+", " ", headline).strip(" .:-")
     words = compact.split()
+    if format_name == "fact_explainer" and len(words) >= 8:
+        for index, word in enumerate(words):
+            if word.casefold() not in _CLAIM_VERBS:
+                continue
+            object_words = [
+                item.strip(".,:;()[]") for item in words[index + 1 :] if item.casefold() not in _TAG_STOPWORDS
+            ]
+            if len(object_words) >= 2:
+                return f"WHY THIS {category.upper()} METHOD {word.upper()} {' '.join(object_words[:2]).upper()}"
     compact = " ".join(words[:7])
     if format_name == "question_answer":
         return f"SO WHAT IS {compact}?"
@@ -216,7 +237,7 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         bounded = summary[: 760 if format_name != "technical_joke" else 560]
         sentences = re.split(r"(?<=[.!?])\s+", bounded)
         summary = " ".join(sentences[:-1]).strip() if len(sentences) > 1 else bounded.rsplit(" ", 1)[0]
-    hook = _native_hook(headline, summary, topic.category, format_name)
+    hook = _native_hook(source.title, summary, topic.category, format_name)
     headline_sentence = source.title.rstrip(". ") + "."
     takeaway = _nonreddit_takeaway(topic.category)
     category_label = {"AI News": "AI", "ML": "machine learning", "CS": "software", "Cyber": "cybersecurity"}.get(

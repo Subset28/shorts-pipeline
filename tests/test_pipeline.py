@@ -95,6 +95,19 @@ def test_fallback_package_adds_source_terms_to_search_tags():
     assert len(package.tags) <= 12
 
 
+def test_fallback_hook_translates_long_research_title_into_clear_claim():
+    source = Source(
+        "Marginal Coverage Credit Reduces Redundant Exploration in Parallel State-Entropy Optimization",
+        "https://arxiv.org/abs/2608.27507",
+        "A machine learning paper reports a measured improvement in parallel exploration across controlled environments and public benchmarks.",
+    )
+    package = fallback_package(Topic(source.title, "ML", (source,)))
+
+    assert package.hook == "WHY THIS ML METHOD REDUCES REDUNDANT EXPLORATION"
+    assert "MATTERS" not in package.hook
+    assert len(package.hook) <= 70
+
+
 def test_nonreddit_source_recency_bonus_tracks_actual_age():
     from datetime import datetime, timezone
 
