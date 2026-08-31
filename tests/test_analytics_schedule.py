@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from shorts_pipeline.analytics_schedule import due_videos, load_publications, week_videos
+from shorts_pipeline.youtube_analytics import write_weekly_report
 
 
 def _event(path, video_id, timestamp):
@@ -68,6 +69,19 @@ def test_week_videos_returns_only_current_monday_to_sunday_uploads(tmp_path):
         encoding="utf-8",
     )
     assert [item["video_id"] for item in week_videos(events, now)] == ["this-week"]
+
+
+def test_weekly_report_ignores_non_list_snapshot_values(tmp_path):
+    now = datetime(2026, 8, 30, 12, tzinfo=timezone.utc)
+    events = tmp_path / "events.jsonl"
+    _event(events, "abc", (now - timedelta(days=1)).isoformat())
+    snapshots = tmp_path / "snapshots.json"
+    snapshots.write_text(json.dumps({"abc": None}), encoding="utf-8")
+    output = tmp_path / "weekly.json"
+
+    write_weekly_report(events, snapshots, output, now)
+
+    assert json.loads(output.read_text(encoding="utf-8"))["snapshots"] == []
 
 
 def test_publications_ignore_non_youtube_and_duplicate_events(tmp_path):

@@ -10,7 +10,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
-from .analytics_schedule import due_videos, week_videos
+from .analytics_schedule import _snapshots, due_videos, week_videos
 
 ANALYTICS_SCOPE = "https://www.googleapis.com/auth/yt-analytics.readonly"
 METRICS = ",".join(
@@ -89,7 +89,7 @@ def collect_due(
 
 def write_weekly_report(events_path: Path, snapshots_path: Path, output: Path, now: datetime | None = None) -> Path:
     current = {item["video_id"] for item in week_videos(events_path, now)}
-    snapshots = json.loads(snapshots_path.read_text(encoding="utf-8")) if snapshots_path.exists() else {}
+    snapshots = _snapshots(snapshots_path)
     rows = [snapshot for video_id in current for snapshot in snapshots.get(video_id, [])]
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
