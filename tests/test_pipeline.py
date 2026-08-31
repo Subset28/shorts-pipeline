@@ -904,6 +904,7 @@ def test_ffmpeg_resource_args_are_bounded_and_configurable(monkeypatch):
     ]
     monkeypatch.setenv("FFMPEG_THREADS", "invalid")
     assert ffmpeg_resource_args()[1] == "2"
+    assert ffmpeg_resource_args(1)[1] == "1"
 
 
 def test_settings_can_load_dotenv_from_explicit_runtime_path(monkeypatch):
