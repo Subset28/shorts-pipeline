@@ -35,3 +35,18 @@ def test_monitor_saves_state_atomically(tmp_path, monkeypatch):
     monitor._save_state({"event-2", "event-1"})
     assert json.loads(state.read_text(encoding="utf-8")) == ["event-1", "event-2"]
     assert not state.with_suffix(".json.tmp").exists()
+
+
+def test_monitor_uses_configured_absolute_github_cli(monkeypatch):
+    monitor = _module()
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        return type("Result", (), {"stdout": "[]"})()
+
+    monkeypatch.setattr(monitor, "GH_CLI", "/opt/homebrew/bin/gh")
+    monkeypatch.setattr(monitor.subprocess, "run", fake_run)
+
+    assert monitor.fetch_events() == []
+    assert calls[0][:2] == ["/opt/homebrew/bin/gh", "api"]

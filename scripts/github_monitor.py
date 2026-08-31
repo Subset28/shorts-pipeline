@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 REPO = os.getenv("GITHUB_MONITOR_REPO", "Subset28/shorts-pipeline")
+GH_CLI = os.getenv("GITHUB_CLI", "/opt/homebrew/bin/gh")
 STATE = Path(
     os.getenv("GITHUB_MONITOR_STATE", "/Volumes/n2me/Developer/shorts-pipeline/data/github_monitor_state.json")
 )
@@ -15,7 +16,7 @@ WATCHED_EVENTS = {"PullRequestEvent", "PullRequestReviewEvent", "IssueCommentEve
 
 def fetch_events() -> list[dict]:
     result = subprocess.run(
-        ["gh", "api", f"repos/{REPO}/events?per_page=30"],
+        [GH_CLI, "api", f"repos/{REPO}/events?per_page=30"],
         check=True,
         capture_output=True,
         text=True,
