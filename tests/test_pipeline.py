@@ -435,7 +435,7 @@ def test_reddit_discovery_candidates_are_not_automatically_cleared(monkeypatch):
                                     "subreddit": "programming",
                                     "score": 123,
                                 }
-                            }
+                            },
                         ]
                     }
                 }
