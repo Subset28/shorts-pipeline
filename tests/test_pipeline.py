@@ -27,6 +27,7 @@ from shorts_pipeline.reddit import (
     _get_with_retries,
     _is_niche_relevant,
     _reddit_quality_score,
+    _score_value,
     discover_reddit_topics,
     load_approved_reddit_topics,
 )
@@ -509,6 +510,12 @@ def test_reddit_fetch_retries_transient_request_errors(monkeypatch):
     response = _get_with_retries(client, "https://example.test", {})
     assert response is not None
     assert client.calls == 3
+
+
+def test_reddit_score_value_handles_malformed_api_values():
+    assert _score_value(125) == 125.0
+    assert _score_value("not-a-score") == 0.0
+    assert _score_value(None) == 0.0
 
 
 def test_private_draft_reddit_worker_keeps_polling_without_approved_queue(monkeypatch):
