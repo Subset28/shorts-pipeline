@@ -439,6 +439,24 @@ def test_reddit_fetch_retries_transient_request_errors(monkeypatch):
     assert client.calls == 3
 
 
+def test_private_draft_reddit_worker_keeps_polling_without_approved_queue(monkeypatch):
+    class StopLoop(BaseException):
+        pass
+
+    calls = []
+    monkeypatch.setattr(cli, "load_settings", lambda: object())
+    monkeypatch.setattr(cli, "_has_unseen_reddit_topic", lambda _settings: False)
+
+    def fake_run(**kwargs):
+        calls.append(kwargs)
+        raise StopLoop()
+
+    monkeypatch.setattr(cli, "run", fake_run)
+    with pytest.raises(StopLoop):
+        cli.run_worker(reddit_only=True, private_drafts=True)
+    assert calls == [{"force_dry_run": False, "reddit_only": True, "private_drafts": True, "youtube_only": False}]
+
+
 def test_longform_package_has_argument_structure_and_source_link():
     source = Source(
         "A production incident",
