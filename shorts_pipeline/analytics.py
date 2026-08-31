@@ -175,6 +175,7 @@ def build_report(events_path: Path, metrics_path: Path) -> dict[str, Any]:
         )
     report = {"rows": rows, "matched_rows": sum(row["videos"] for row in rows), "unmatched_rows": unmatched}
     report["recommendations"] = tuning_recommendations(report)
+    report["experiment_brief"] = build_experiment_brief(report)
     return report
 
 
@@ -208,6 +209,70 @@ def tuning_recommendations(report: dict[str, Any], min_videos: int = 2) -> list[
     return recommendations
 
 
+def _lane(row: dict[str, Any]) -> str:
+    return f"{row.get('category', 'unknown')} / {row.get('format_name', 'unknown')}"
+
+
+def _comparison_key(row: dict[str, Any]) -> tuple[str, str, int]:
+    return (_lane(row), str(row.get("platform", "unknown")), int(row.get("variant", 0)))
+
+
+def _experiment_row(row: dict[str, Any], metric: str, duplicate_lanes: set[str]) -> dict[str, Any]:
+    lane = _lane(row)
+    if lane in duplicate_lanes:
+        lane = f"{lane} / {row.get('platform', 'unknown')} / variant {int(row.get('variant', 0))}"
+    return {"lane": lane, metric: row.get(metric, 0), "videos": int(row.get("videos", 0))}
+
+
+def build_experiment_brief(report: dict[str, Any], min_videos: int = 2) -> dict[str, Any]:
+    """Turn repeated lane metrics into bounded, testable editorial changes."""
+    rows = [row for row in report.get("rows", []) if isinstance(row, dict) and int(row.get("videos", 0)) >= min_videos]
+    comparison_keys = {_comparison_key(row) for row in rows}
+    brief: dict[str, Any] = {
+        "status": "ready" if len(comparison_keys) >= 2 else "insufficient_sample",
+        "min_videos": min_videos,
+        "eligible_lanes": len(comparison_keys),
+        "experiments": [],
+    }
+    if len(comparison_keys) < 2:
+        return brief
+    lane_counts: dict[str, int] = defaultdict(int)
+    for row in rows:
+        lane_counts[_lane(row)] += 1
+    duplicate_lanes = {lane for lane, count in lane_counts.items() if count > 1}
+
+    comparisons = (
+        (
+            "packaging",
+            "ctr",
+            "Rewrite the next low-CTR title and thumbnail around one clear technical promise, then compare it with the stronger lane.",
+        ),
+        (
+            "opening_and_pacing",
+            "avg_view_percentage",
+            "Use the stronger lane's first-second hook and information pacing as the control for the next treatment.",
+        ),
+    )
+    for area, metric, change in comparisons:
+        measured = [row for row in rows if _metric_value(row.get(metric, 0)) > 0]
+        if len(measured) < 2:
+            continue
+        baseline = min(measured, key=lambda row: _metric_value(row.get(metric, 0)))
+        reference = max(measured, key=lambda row: _metric_value(row.get(metric, 0)))
+        if _comparison_key(baseline) == _comparison_key(reference):
+            continue
+        brief["experiments"].append(
+            {
+                "area": area,
+                "metric": metric,
+                "baseline": _experiment_row(baseline, metric, duplicate_lanes),
+                "reference": _experiment_row(reference, metric, duplicate_lanes),
+                "change": change,
+            }
+        )
+    return brief
+
+
 def write_report(report: dict[str, Any], output: Path) -> Path:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2), encoding="utf-8")
@@ -225,6 +290,7 @@ def archive_report(report: dict[str, Any], output: Path, week_of: str) -> Path:
         "week_of": week_of,
         "rows": rows,
         "recommendations": [str(item) for item in report.get("recommendations", []) if str(item).strip()],
+        "experiment_brief": report.get("experiment_brief", build_experiment_brief(report)),
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -241,13 +307,17 @@ def build_youtube_report(weekly: dict[str, Any]) -> dict[str, Any]:
         current = latest.get(video_id)
         if not current or str(snapshot.get("collected_at", "")) > str(current.get("collected_at", "")):
             latest[video_id] = snapshot
-    buckets: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    buckets: dict[tuple[str, str, int], list[dict[str, Any]]] = defaultdict(list)
     for snapshot in latest.values():
-        buckets[(str(snapshot.get("category", "unknown")), str(snapshot.get("format_name", "unknown")))].append(
-            snapshot
-        )
+        buckets[
+            (
+                str(snapshot.get("category", "unknown")),
+                str(snapshot.get("format_name", "unknown")),
+                max(0, int(snapshot.get("variant", 0) or 0)),
+            )
+        ].append(snapshot)
     rows = []
-    for (category, format_name), snapshots in sorted(buckets.items()):
+    for (category, format_name, variant), snapshots in sorted(buckets.items()):
         bucket = _metric_bucket()
         for snapshot in snapshots:
             bucket["videos"] += 1
@@ -257,10 +327,11 @@ def build_youtube_report(weekly: dict[str, Any]) -> dict[str, Any]:
                 "category": category,
                 "format_name": format_name,
                 "platform": "youtube",
-                "variant": 0,
+                "variant": variant,
                 **_metric_row(bucket),
             }
         )
     report = {"rows": rows, "matched_rows": len(latest), "unmatched_rows": 0}
     report["recommendations"] = tuning_recommendations(report)
+    report["experiment_brief"] = build_experiment_brief(report)
     return report

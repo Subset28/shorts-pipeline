@@ -7,7 +7,13 @@ import pytest
 from PIL import Image
 
 import shorts_pipeline.cli as cli
-from shorts_pipeline.analytics import archive_report, build_report, build_youtube_report, tuning_recommendations
+from shorts_pipeline.analytics import (
+    archive_report,
+    build_experiment_brief,
+    build_report,
+    build_youtube_report,
+    tuning_recommendations,
+)
 from shorts_pipeline.analytics_schedule import load_publications
 from shorts_pipeline.asset_library import load_asset_manifest, sync_backgrounds
 from shorts_pipeline.captions import (
@@ -1091,6 +1097,77 @@ def test_tuning_recommendations_ignore_malformed_metric_values():
     assert recommendations[0].startswith("Keep testing CS")
 
 
+def test_experiment_brief_turns_repeated_metrics_into_concrete_changes():
+    report = {
+        "rows": [
+            {
+                "category": "AI",
+                "format_name": "news_breakdown",
+                "platform": "youtube",
+                "variant": 0,
+                "videos": 3,
+                "ctr": 0.021,
+                "avg_view_percentage": 38,
+                "avg_view_duration": 22,
+                "watch_minutes": 90,
+            },
+            {
+                "category": "CS",
+                "format_name": "reddit_story",
+                "platform": "youtube",
+                "variant": 0,
+                "videos": 3,
+                "ctr": 0.064,
+                "avg_view_percentage": 71,
+                "avg_view_duration": 35,
+                "watch_minutes": 180,
+            },
+        ]
+    }
+
+    brief = build_experiment_brief(report)
+
+    assert brief["status"] == "ready"
+    assert brief["eligible_lanes"] == 2
+    assert {experiment["area"] for experiment in brief["experiments"]} == {
+        "packaging",
+        "opening_and_pacing",
+    }
+    packaging = next(item for item in brief["experiments"] if item["area"] == "packaging")
+    assert packaging["baseline"]["lane"] == "AI / news_breakdown"
+    assert packaging["reference"]["lane"] == "CS / reddit_story"
+    assert "title" in packaging["change"] and "thumbnail" in packaging["change"]
+
+
+def test_experiment_brief_refuses_to_prescribe_from_thin_data():
+    brief = build_experiment_brief(
+        {"rows": [{"category": "AI", "format_name": "news_breakdown", "videos": 1, "ctr": 0.08}]}
+    )
+
+    assert brief == {"status": "insufficient_sample", "min_videos": 2, "eligible_lanes": 0, "experiments": []}
+
+
+def test_experiment_brief_keeps_variants_as_distinct_treatments():
+    rows = [
+        {
+            "category": "AI",
+            "format_name": "fact_explainer",
+            "platform": "youtube",
+            "variant": variant,
+            "videos": 2,
+            "ctr": ctr,
+            "avg_view_percentage": retention,
+        }
+        for variant, ctr, retention in ((0, 0.02, 40), (1, 0.05, 65))
+    ]
+
+    brief = build_experiment_brief({"rows": rows})
+
+    assert brief["status"] == "ready"
+    assert brief["eligible_lanes"] == 2
+    assert all("variant" in item["baseline"]["lane"] for item in brief["experiments"])
+
+
 def test_archive_report_keeps_only_aggregate_tuning_data(tmp_path):
     output = archive_report(
         {
@@ -1105,6 +1182,12 @@ def test_archive_report_keeps_only_aggregate_tuning_data(tmp_path):
         "week_of": "2026-08-30",
         "rows": [{"category": "AI", "videos": 2}],
         "recommendations": ["Keep testing AI."],
+        "experiment_brief": {
+            "status": "insufficient_sample",
+            "min_videos": 2,
+            "eligible_lanes": 1,
+            "experiments": [],
+        },
     }
 
 
@@ -1143,6 +1226,50 @@ def test_build_youtube_report_uses_latest_snapshot_per_video():
     assert report["rows"][0]["ctr"] == 0.05
     assert report["rows"][0]["avg_view_percentage"] == 60
     assert report["rows"][0]["watch_minutes"] == 10
+
+
+def test_build_youtube_report_keeps_variant_rows_separate():
+    report = build_youtube_report(
+        {
+            "snapshots": [
+                {
+                    "video_id": "control",
+                    "category": "AI",
+                    "format_name": "fact_explainer",
+                    "variant": 0,
+                    "collected_at": "2026-08-30T01:00:00+00:00",
+                    "metrics": {"views": 100, "impressions": 1000, "impressionsCtr": 2},
+                },
+                {
+                    "video_id": "treatment",
+                    "category": "AI",
+                    "format_name": "fact_explainer",
+                    "variant": 1,
+                    "collected_at": "2026-08-30T01:00:00+00:00",
+                    "metrics": {"views": 200, "impressions": 1000, "impressionsCtr": 5},
+                },
+                {
+                    "video_id": "control-2",
+                    "category": "AI",
+                    "format_name": "fact_explainer",
+                    "variant": 0,
+                    "collected_at": "2026-08-30T01:00:00+00:00",
+                    "metrics": {"views": 100, "impressions": 1000, "impressionsCtr": 2},
+                },
+                {
+                    "video_id": "treatment-2",
+                    "category": "AI",
+                    "format_name": "fact_explainer",
+                    "variant": 1,
+                    "collected_at": "2026-08-30T01:00:00+00:00",
+                    "metrics": {"views": 200, "impressions": 1000, "impressionsCtr": 5},
+                },
+            ]
+        }
+    )
+
+    assert {row["variant"] for row in report["rows"]} == {0, 1}
+    assert report["experiment_brief"]["status"] == "ready"
 
 
 def test_background_manifest_requires_provenance_fields(tmp_path):

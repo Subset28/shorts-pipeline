@@ -104,3 +104,26 @@ def test_publications_ignore_non_youtube_and_duplicate_events(tmp_path):
         encoding="utf-8",
     )
     assert [item["video_id"] for item in load_publications(events)] == ["abc"]
+
+
+def test_publications_preserve_variant_identity(tmp_path):
+    events = tmp_path / "events.jsonl"
+    _event(events, "abc", "2026-08-30T00:00:00+00:00")
+    events.write_text(
+        events.read_text(encoding="utf-8").rstrip()
+        + "\n"
+        + json.dumps(
+            {
+                "event": "youtube_published",
+                "platform_id": "variant-video",
+                "timestamp": "2026-08-30T00:01:00+00:00",
+                "variant": 2,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    publications = load_publications(events)
+
+    assert publications[1]["variant"] == 2

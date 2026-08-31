@@ -16,6 +16,13 @@ def _timestamp(value: str) -> datetime | None:
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
+def _variant(value: object) -> int:
+    try:
+        return max(0, int(value or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 def load_publications(events_path: Path) -> list[dict[str, Any]]:
     found: dict[str, dict[str, Any]] = {}
     if not events_path.exists():
@@ -39,6 +46,7 @@ def load_publications(events_path: Path) -> list[dict[str, Any]]:
                 "source_url": event.get("source_url", ""),
                 "category": event.get("category", "unknown"),
                 "format_name": event.get("format_name", "unknown"),
+                "variant": _variant(event.get("variant")),
             },
         )
     return sorted(found.values(), key=lambda item: item["uploaded_at"])

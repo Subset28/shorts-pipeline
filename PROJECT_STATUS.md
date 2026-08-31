@@ -23,6 +23,9 @@ retry state. Verified with 109 project tests, Ruff, compileall, and diff checks.
 average view duration, average percentage viewed, watch minutes, and
 engagement. Reports now emit separate packaging and retention actions, with
 low-CTR unit handling covered by tests.
+2026-08-30: Added repository-safe analytics experiment briefs. Repeated lane
+evidence now produces explicit packaging and opening/pacing tests with
+baseline/reference metrics; thin samples produce no creative prescription.
 
 - The local pipeline is the working source of truth; NAS deployment is reserved
   for an explicitly approved finished release.
