@@ -90,6 +90,9 @@ caption evidence; Shorts additionally need a selected background visual.
 Failed metadata evidence raises an error before any platform request is made.
 The Reddit worker launchd job uses background scheduling, low-priority I/O,
 and a restart throttle to reduce load on the Mac during media generation.
+For weekly preparation, `python -m shorts_pipeline prepare-week` writes both
+private planning artifacts from one discovery pass. It is planning-only;
+`produce-week` remains the separate render/upload step.
 
 On the configured Windows host, `.\scripts\deploy-nas.ps1` performs the
 same deployment using the `synology` SSH alias. It uses legacy SCP for the

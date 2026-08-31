@@ -99,6 +99,9 @@ The unattended Reddit launchd job is configured as background/low-priority and
 throttled after exit to reduce host resource contention.
 Long-form renders include an original technical flow visual alongside the
 title card, captions, and selected background.
+Use `python -m shorts_pipeline prepare-week --week-of YYYY-MM-DD` to create
+the private research slate and scheduled production plan in one discovery
+pass; it never renders or publishes.
 
 Provision the tracked, rights-documented background library with
 `python -m shorts_pipeline backgrounds`. The command downloads only URLs in
