@@ -18,6 +18,9 @@ Analytics experiment targets now flow into research briefs as explicit,
 reviewable hook or packaging treatments with metric, role, and control context;
 the next slate can test measured CTR and retention changes rather than merely
 recording recommendations.
+Weekly production now passes the scheduled publish time into long-form
+execution and supports private YouTube upload plus thumbnail retry, matching
+Shorts behavior without enabling TikTok or public publishing.
 Weekly analytics now builds the planner-facing aggregate report automatically;
 the YouTube Reporting API Reach Basic job supplies thumbnail impressions and
 CTR while the existing activity query supplies retention and engagement.

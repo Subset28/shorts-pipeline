@@ -87,6 +87,8 @@ Execute a reviewed plan with `python -m shorts_pipeline produce-week --plan
 data/weekly_plan.json`. It renders only by default. Add `--upload-private` to
 upload Shorts as private YouTube drafts; the command never publishes publicly
 or invokes TikTok.
+With `--upload-private`, the long-form entry is also uploaded as a private
+YouTube draft and keeps its planned publish time.
 
 Provision the tracked, rights-documented background library with
 `python -m shorts_pipeline backgrounds`. The command downloads only URLs in
