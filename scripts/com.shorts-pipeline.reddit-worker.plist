@@ -13,6 +13,14 @@
     <string>/Volumes/n2me/Developer/shorts-pipeline</string>
     <key>StartInterval</key>
     <integer>21600</integer>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>LowPriorityIO</key>
+    <true/>
+    <key>Nice</key>
+    <integer>10</integer>
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
     <key>StandardOutPath</key>
     <string>/Volumes/n2me/Developer/shorts-pipeline/data/reddit-worker.log</string>
     <key>StandardErrorPath</key>
