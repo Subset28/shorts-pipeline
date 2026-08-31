@@ -69,6 +69,12 @@ rotates categories when enough source-backed topics exist, writes private UTC
 publish times, and only plans work. Render and inspect the entries before
 using the separate schedule or long-form commands.
 
+Run `python -m shorts_pipeline produce-week --plan data/weekly_plan.json` to
+execute a reviewed slate. It is render-only by default, caps the slate at
+seven Shorts plus one long-form entry, rejects non-private plans, and never
+invokes TikTok. Add `--upload-private` only when private YouTube drafts are
+intended.
+
 On the configured Windows host, `.\scripts\deploy-nas.ps1` performs the
 same deployment using the `synology` SSH alias. It uses legacy SCP for the
 Synology SSH server, creates the project directories if needed, preserves an
