@@ -23,6 +23,12 @@ experiment brief to prefer the measured reference category and annotate only
 unambiguous baseline/reference targets. Format and variant remain explicit in
 the plan; insufficient evidence leaves the normal rotation unchanged.
 
+`editorial.py` turns each selected topic into a private research brief with a
+source claim, creative treatment, visual and caption direction, metadata,
+long-form bridge, and rights gate. `research-week` writes those briefs for
+review; `plan-week --research` attaches them to the private production plan.
+The research layer does not render or publish.
+
 The free path uses RSS, deterministic fallback copy, local Pillow rendering,
 FFmpeg, and a required narration track. Optional LLM and TTS adapters improve quality without
 changing the pipeline contract.

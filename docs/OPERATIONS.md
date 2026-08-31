@@ -69,6 +69,13 @@ rotates categories when enough source-backed topics exist, writes private UTC
 publish times, and only plans work. Render and inspect the entries before
 using the separate schedule or long-form commands.
 
+Before planning, use `python -m shorts_pipeline research-week --week-of
+YYYY-MM-DD --out data/research_week.json` to create a private editorial brief
+for each candidate. Review the source claim, URL, hook, format, visual
+direction, metadata, long-form bridge, and rights gate. Then pass
+`--research data/research_week.json` to `plan-week`; malformed research data
+is rejected, and the plan remains private.
+
 Run `python -m shorts_pipeline produce-week --plan data/weekly_plan.json` to
 execute a reviewed slate. It is render-only by default, caps the slate at
 seven Shorts plus one long-form entry, rejects non-private plans, and never

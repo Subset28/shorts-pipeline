@@ -1,9 +1,15 @@
 # Project status
 
+2026-08-31: Added private editorial research slates. `research-week` now
+turns source-backed topics into reviewable briefs containing evidence, hook,
+format, visual direction, captions, metadata, long-form bridge, and rights
+gates; `plan-week --research` attaches those briefs without rendering or
+publishing.
+
 ## Shorts pipeline
 
 2026-08-30: Added a deterministic weekly content planner that balances
-categories, reserves a distinct long-form slot from approved Reddit sources,
+categories, reserves a distinct long-form slot from source-backed topics,
 writes private UTC publishing times, and separates planning from rendering and
 uploading.
 2026-08-30: Added bounded weekly production dispatch. Reviewed plans now have
