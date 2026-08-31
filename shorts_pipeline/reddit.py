@@ -288,6 +288,6 @@ def load_approved_reddit_topics(path: Path) -> list[Topic]:
             )
         ):
             topics.append(
-                Topic(source.title, _story_category(source.community), (source,), float(record.get("score", 0)))
+                Topic(source.title, _story_category(source.community), (source,), _score_value(record.get("score", 0)))
             )
     return topics

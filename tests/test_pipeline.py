@@ -617,12 +617,14 @@ def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
         "reuse_permission": False,
     }
     path.write_text(
-        json.dumps([{"source": source}, {"source": {**source, "reuse_permission": True}}]), encoding="utf-8"
+        json.dumps([{"source": source}, {"source": {**source, "reuse_permission": True}, "score": "not-a-score"}]),
+        encoding="utf-8",
     )
     topics = load_approved_reddit_topics(path)
     assert len(topics) == 1
     assert topics[0].sources[0].reuse_permission is True
     assert topics[0].category == "CS"
+    assert topics[0].score == 0.0
 
 
 def test_variant_publish_state_keys_are_isolated_but_legacy_default_survives():
