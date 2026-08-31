@@ -82,6 +82,19 @@ def test_fallback_package_preserves_source_url():
     assert "one-minute version" not in package.narration
 
 
+def test_fallback_package_adds_source_terms_to_search_tags():
+    source = Source(
+        "Compiler optimization improves Rust performance",
+        "https://example.test/compiler",
+        "A compiler optimization reduces Rust latency in production workloads.",
+    )
+    package = fallback_package(Topic(source.title, "CS", (source,)))
+
+    assert "compiler" in {tag.casefold() for tag in package.tags}
+    assert "optimization" in {tag.casefold() for tag in package.tags}
+    assert len(package.tags) <= 12
+
+
 def test_nonreddit_source_recency_bonus_tracks_actual_age():
     from datetime import datetime, timezone
 

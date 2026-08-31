@@ -38,9 +38,39 @@ _SOURCE_STOPWORDS = {
     "with",
 }
 
+_TAG_STOPWORDS = _SOURCE_STOPWORDS | {
+    "about",
+    "after",
+    "again",
+    "also",
+    "from",
+    "into",
+    "just",
+    "more",
+    "only",
+    "over",
+    "that",
+    "their",
+    "these",
+    "this",
+    "what",
+    "when",
+    "with",
+}
+
 
 def _content_terms(value: str) -> set[str]:
     return {term for term in re.findall(r"[a-z0-9]+", value.lower()) if len(term) > 3 and term not in _SOURCE_STOPWORDS}
+
+
+def _source_keyword_tags(title: str) -> list[str]:
+    """Extract bounded, human-readable search terms from a source headline."""
+    terms: list[str] = []
+    for term in re.findall(r"[a-z0-9]+", title.lower()):
+        if len(term) < 4 or term in _TAG_STOPWORDS or term in terms:
+            continue
+        terms.append(term)
+    return terms[:4]
 
 
 def _has_source_fidelity(source_title: str, source_summary: str, narration: str) -> bool:
@@ -234,6 +264,9 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         attribution = f"\nReddit attribution: u/{source.author} in r/{source.community}"
     description = f"{narration}\n\nSource: {source.url}{attribution}\n{disclaimer}"
     tags = [topic.category, "technology", "science", "explained", "shorts"]
+    for term in _source_keyword_tags(source.title):
+        if term.casefold() not in {tag.casefold() for tag in tags}:
+            tags.append(term)
     if topic.category == "Finance":
         tags.extend(["markets", "business"])
     return ScriptPackage(
