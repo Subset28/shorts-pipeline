@@ -4,7 +4,7 @@ from dataclasses import replace
 from datetime import date
 from typing import Any
 
-from .content_calendar import _longform_sort_key, _select_short_topics
+from .content_calendar import _experiment_targets, _longform_sort_key, _select_short_topics
 from .models import ScriptPackage, Topic
 from .seo import eligible_formats, fallback_package
 
@@ -40,6 +40,36 @@ def build_editorial_brief(topic: Topic, analytics_target: dict[str, Any] | None 
         raise ValueError("editorial brief requires explicit Reddit reuse permission")
     package = fallback_package(topic)
     formats = eligible_formats(topic)
+    creative = {
+        "category": topic.category,
+        "format_name": package.format_name,
+        "eligible_formats": list(formats),
+        "hook": package.hook,
+        "visual_direction": _VISUAL_DIRECTIONS.get(
+            topic.category, "Use footage that directly illustrates the source claim."
+        ),
+        "caption_plan": "One readable idea per caption burst; emphasize the hook, concrete result, and final takeaway.",
+    }
+    metadata = {"title": package.title, "description": package.description, "tags": list(package.tags)}
+    if isinstance(analytics_target, dict) and analytics_target.get("area") in {"packaging", "opening_and_pacing"}:
+        area = analytics_target["area"]
+        if area == "packaging":
+            metadata["title"] = f"{package.title[:82]} | {topic.category} explained"
+            creative["caption_plan"] += (
+                " Test the single-promise title and thumbnail against the prior packaging control."
+            )
+        else:
+            creative["hook"] = f"The part most people miss: {package.hook}"
+            creative["caption_plan"] += (
+                " Test the front-loaded hook and faster first information beat against the pacing control."
+            )
+        creative["analytics_experiment"] = {
+            "area": area,
+            "metric": str(analytics_target.get("metric", "")),
+            "role": str(analytics_target.get("role", "")),
+            "change": str(analytics_target.get("change", "")),
+            "control": analytics_target.get("lane", ""),
+        }
     return {
         "source": {
             "title": source.title,
@@ -53,21 +83,8 @@ def build_editorial_brief(topic: Topic, analytics_target: dict[str, Any] | None 
             "claim": source.summary,
             "verification": "Recheck the source immediately before narration and preserve the source URL in metadata.",
         },
-        "creative": {
-            "category": topic.category,
-            "format_name": package.format_name,
-            "eligible_formats": list(formats),
-            "hook": package.hook,
-            "visual_direction": _VISUAL_DIRECTIONS.get(
-                topic.category, "Use footage that directly illustrates the source claim."
-            ),
-            "caption_plan": "One readable idea per caption burst; emphasize the hook, concrete result, and final takeaway.",
-        },
-        "metadata": {
-            "title": package.title,
-            "description": package.description,
-            "tags": list(package.tags),
-        },
+        "creative": creative,
+        "metadata": metadata,
         "longform_bridge": {
             "question": f"What does this source reveal about {topic.category.lower()} beyond the headline?",
             "chapters": [
@@ -129,7 +146,11 @@ def _unique_topics(topics: list[Topic]) -> list[Topic]:
 
 
 def build_research_week(
-    topics: list[Topic], week_start: date, shorts_count: int = 7, include_longform: bool = True
+    topics: list[Topic],
+    week_start: date,
+    shorts_count: int = 7,
+    include_longform: bool = True,
+    experiment_brief: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create a private, source-backed editorial slate without rendering or publishing."""
     if not 1 <= shorts_count <= 7:
@@ -145,8 +166,13 @@ def build_research_week(
         topic for topic in unique if not longform_topic or topic.sources[0].url != longform_topic.sources[0].url
     ]
     short_topics = _select_short_topics(short_pool, shorts_count, CHANNEL_CATEGORY_ORDER)
-    shorts = [build_editorial_brief(topic) for topic in short_topics]
-    longform = [build_editorial_brief(longform_topic)] if longform_topic else []
+    targets = _experiment_targets(experiment_brief)
+    shorts = [build_editorial_brief(topic, targets.get(topic.category, [None])[0]) for topic in short_topics]
+    longform = (
+        [build_editorial_brief(longform_topic, targets.get(longform_topic.category, [None])[0])]
+        if longform_topic
+        else []
+    )
     return {
         "week_of": week_start.isoformat(),
         "privacy_status": "private",

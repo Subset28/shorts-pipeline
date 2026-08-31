@@ -48,7 +48,15 @@ def _experiment_targets(experiment_brief: dict[str, Any] | None) -> dict[str, li
         for role in ("reference", "baseline"):
             target = experiment.get(role)
             if isinstance(target, dict) and str(target.get("category", "")).strip():
-                targets.setdefault(str(target["category"]), []).append({"role": role, **target})
+                targets.setdefault(str(target["category"]), []).append(
+                    {
+                        "role": role,
+                        "area": experiment.get("area", ""),
+                        "metric": experiment.get("metric", ""),
+                        "change": experiment.get("change", ""),
+                        **target,
+                    }
+                )
     return targets
 
 

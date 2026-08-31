@@ -79,6 +79,9 @@ the private weekly plan. Research and planning never render or publish.
 When `produce-week` consumes that plan, the validated brief shapes the
 Short's hook and metadata plus the long-form question, chapters, and packaging
 before narration/rendering; a mismatched or public brief is rejected.
+If `research-week` finds a ready analytics experiment in
+`data/analytics_report.json`, it records a concrete hook or packaging treatment
+in the private brief for the next controlled test.
 
 Execute a reviewed plan with `python -m shorts_pipeline produce-week --plan
 data/weekly_plan.json`. It renders only by default. Add `--upload-private` to

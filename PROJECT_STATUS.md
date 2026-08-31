@@ -14,6 +14,10 @@ production, so approved hooks and metadata are applied only after source,
 format, and private-status validation.
 Long-form weekly entries now execute the reviewed question, chapter bridge,
 source-linked metadata, and tags during narration/package creation.
+Analytics experiment targets now flow into research briefs as explicit,
+reviewable hook or packaging treatments with metric, role, and control context;
+the next slate can test measured CTR and retention changes rather than merely
+recording recommendations.
 Weekly analytics now builds the planner-facing aggregate report automatically;
 the YouTube Reporting API Reach Basic job supplies thumbnail impressions and
 CTR while the existing activity query supplies retention and engagement.
