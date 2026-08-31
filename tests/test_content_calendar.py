@@ -208,6 +208,34 @@ def test_weekly_plan_rejects_malformed_editorial_entry(tmp_path):
 def test_weekly_plan_rejects_invalid_inputs():
     with pytest.raises(ValueError, match="shorts_count"):
         build_weekly_plan([], date(2026, 9, 7), shorts_count=0)
+
+
+def test_prepare_week_reddit_only_skips_general_discovery(tmp_path, monkeypatch):
+    topics = [_topic(f"Reddit story {index}", "Cyber", 10 - index) for index in range(2)]
+    settings = SimpleNamespace(
+        data_dir=tmp_path,
+        topic_limit=10,
+        reddit_approved_file=tmp_path / "approved.json",
+    )
+    monkeypatch.setattr(cli, "load_settings", lambda: settings)
+    monkeypatch.setattr(cli, "discover_topics", lambda _limit: pytest.fail("general discovery was used"))
+    monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda _path: topics)
+    monkeypatch.setattr(
+        cli,
+        "build_research_week",
+        lambda selected, *_args: {
+            "privacy_status": "private",
+            "shorts": [{"source": {"url": topic.sources[0].url}} for topic in selected],
+            "longform": [],
+        },
+    )
+
+    research_path = tmp_path / "research.json"
+    plan_path = tmp_path / "plan.json"
+    assert cli.run_prepare_week("2026-09-07", 2, research_path, plan_path, False, reddit_only=True) == 0
+    payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    assert payload["reddit_only"] is True
+    assert len(payload["entries"]) == 2
     with pytest.raises(ValueError, match="between 1 and 7"):
         build_weekly_plan([], date(2026, 9, 7), shorts_count=8)
     with pytest.raises(ValueError, match="Monday"):

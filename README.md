@@ -104,6 +104,8 @@ title card, captions, and selected background.
 Use `python -m shorts_pipeline prepare-week --week-of YYYY-MM-DD` to create
 the private research slate and scheduled production plan in one discovery
 pass; it never renders or publishes.
+Use `--reddit-only` to build the slate exclusively from the approved Reddit
+queue, without changing permission records.
 The plan is constrained to the same source set as the research slate, so every
 scheduled entry retains its matching editorial brief.
 
