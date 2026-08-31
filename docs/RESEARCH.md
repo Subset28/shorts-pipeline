@@ -30,6 +30,13 @@ posting schedule guarantees reach.
   thumbnail with the upload scope and limits the image to 2 MB. Thumbnail setup
   is therefore a post-upload step; a failure is logged without discarding the
   already-created video ID.
+- **Separate packaging from retention evidence.** YouTube defines impressions
+  and CTR as reach/packaging signals, while average view duration, average
+  percentage viewed, and watch time describe viewing behavior. The analytics
+  report now preserves those fields when supplied by Studio exports and
+  produces separate CTR and retention actions instead of treating views as a
+  proxy for every outcome. The targeted API query continues to request the
+  supported video activity and watch-time metrics.
 
 ## Sources
 
@@ -40,6 +47,9 @@ posting schedule guarantees reach.
 - [YouTube: title and thumbnail tips](https://support.google.com/youtube/answer/12340300)
 - [YouTube: recommendation performance and metadata](https://support.google.com/youtube/answer/16559650?hl=en)
 - [YouTube Data API: set a custom thumbnail](https://developers.google.com/youtube/v3/docs/thumbnails/set)
+- [YouTube: impressions and CTR guidance](https://support.google.com/youtube/answer/16767369?hl=en)
+- [YouTube Analytics metrics reference](https://developers.google.com/youtube/analytics/metrics)
+- [YouTube Reporting API metric mapping](https://developers.google.com/youtube/reporting?hl=en)
 
 These sources support the workflow and measurement choices; they do not support
 any forecast of a particular view count.

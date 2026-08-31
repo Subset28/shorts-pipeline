@@ -14,7 +14,18 @@ from .analytics_schedule import _snapshots, due_videos, week_videos
 
 ANALYTICS_SCOPE = "https://www.googleapis.com/auth/yt-analytics.readonly"
 METRICS = ",".join(
-    ("views", "likes", "comments", "shares", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage")
+    (
+        "views",
+        "engagedViews",
+        "likes",
+        "comments",
+        "shares",
+        "subscribersGained",
+        "subscribersLost",
+        "estimatedMinutesWatched",
+        "averageViewDuration",
+        "averageViewPercentage",
+    )
 )
 
 
