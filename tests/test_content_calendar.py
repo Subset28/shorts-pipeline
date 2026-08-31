@@ -234,7 +234,8 @@ def test_weekly_production_dispatches_render_only_entries(tmp_path, monkeypatch)
         '{"privacy_status":"private","entries":['
         '{"kind":"short","source_url":"https://reddit.test/story","privacy_status":"private",'
         '"editorial_brief":{"source":{"url":"https://reddit.test/story"}}},'
-        '{"kind":"longform","source_url":"https://reddit.test/story","privacy_status":"private"}]}',
+        '{"kind":"longform","source_url":"https://reddit.test/story","privacy_status":"private",'
+        '"editorial_brief":{"source":{"url":"https://reddit.test/story"}}}]}',
         encoding="utf-8",
     )
     monkeypatch.setattr(
@@ -247,7 +248,11 @@ def test_weekly_production_dispatches_render_only_entries(tmp_path, monkeypatch)
     calls = []
     monkeypatch.setattr(cli, "run", lambda **kwargs: calls.append(kwargs))
     monkeypatch.setattr(
-        cli, "run_longform", lambda source_url, output: calls.append({"longform": source_url, "output": output})
+        cli,
+        "run_longform",
+        lambda source_url, output, editorial_brief=None: calls.append(
+            {"longform": source_url, "output": output, "editorial_brief": editorial_brief}
+        ),
     )
     assert cli.run_weekly_production(plan, tmp_path / "output") == 0
     assert calls[0]["force_dry_run"] is True
@@ -255,6 +260,7 @@ def test_weekly_production_dispatches_render_only_entries(tmp_path, monkeypatch)
     assert calls[0]["youtube_only"] is True
     assert calls[0]["editorial_brief"]["source"]["url"] == source.url
     assert calls[1]["longform"] == source.url
+    assert calls[1]["editorial_brief"]["source"]["url"] == source.url
 
 
 def test_weekly_production_preflights_all_sources_before_rendering(tmp_path, monkeypatch):
@@ -305,6 +311,8 @@ def test_weekly_production_allows_discovered_nonreddit_longform_source(tmp_path,
     monkeypatch.setattr(cli, "discover_topics", lambda limit: [topic])
     monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda path: [])
     calls = []
-    monkeypatch.setattr(cli, "run_longform", lambda source_url, output: calls.append((source_url, output)))
+    monkeypatch.setattr(
+        cli, "run_longform", lambda source_url, output, editorial_brief=None: calls.append((source_url, output))
+    )
     assert cli.run_weekly_production(plan, tmp_path / "output") == 0
     assert calls[0][0] == source.url
