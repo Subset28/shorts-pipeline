@@ -398,6 +398,7 @@ def test_private_draft_reddit_worker_keeps_polling_without_approved_queue(monkey
     calls = []
     monkeypatch.setattr(cli, "load_settings", lambda: object())
     monkeypatch.setattr(cli, "_has_unseen_reddit_topic", lambda _settings: False)
+
     def fake_run(**kwargs):
         calls.append(kwargs)
         raise StopLoop()
