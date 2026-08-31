@@ -25,6 +25,8 @@ def load_publications(events_path: Path) -> list[dict[str, Any]]:
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
+        if not isinstance(event, dict):
+            continue
         video_id = str(event.get("platform_id", "")).strip()
         uploaded_at = _timestamp(event.get("timestamp", ""))
         if event.get("event") != "youtube_published" or not video_id or not uploaded_at:
