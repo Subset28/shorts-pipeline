@@ -234,8 +234,10 @@ def test_weekly_production_dispatches_render_only_entries(tmp_path, monkeypatch)
     plan.write_text(
         '{"privacy_status":"private","entries":['
         '{"kind":"short","source_url":"https://reddit.test/story","privacy_status":"private",'
+        '"publish_at":"2099-01-01T18:00:00+00:00",'
         '"editorial_brief":{"source":{"url":"https://reddit.test/story"}}},'
         '{"kind":"longform","source_url":"https://reddit.test/story","privacy_status":"private",'
+        '"publish_at":"2099-01-02T15:00:00+00:00",'
         '"editorial_brief":{"source":{"url":"https://reddit.test/story"}}}]}',
         encoding="utf-8",
     )
@@ -265,11 +267,12 @@ def test_weekly_production_dispatches_render_only_entries(tmp_path, monkeypatch)
     assert calls[0]["force_dry_run"] is True
     assert calls[0]["private_drafts"] is False
     assert calls[0]["youtube_only"] is True
+    assert calls[0]["publish_at"] == "2099-01-01T18:00:00+00:00"
     assert calls[0]["editorial_brief"]["source"]["url"] == source.url
     assert calls[1]["longform"] == source.url
     assert calls[1]["editorial_brief"]["source"]["url"] == source.url
     assert calls[1]["upload_private"] is False
-    assert calls[1]["publish_at"] is None
+    assert calls[1]["publish_at"] == "2099-01-02T15:00:00+00:00"
 
 
 def test_longform_private_upload_uses_private_youtube_status(tmp_path, monkeypatch):

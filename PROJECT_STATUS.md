@@ -21,6 +21,8 @@ recording recommendations.
 Weekly production now passes the scheduled publish time into long-form
 execution and supports private YouTube upload plus thumbnail retry, matching
 Shorts behavior without enabling TikTok or public publishing.
+Weekly dispatch now also passes each plan entry's scheduled time into the
+Short upload path, so the full private slate preserves its intended calendar.
 Weekly analytics now builds the planner-facing aggregate report automatically;
 the YouTube Reporting API Reach Basic job supplies thumbnail impressions and
 CTR while the existing activity query supplies retention and engagement.
