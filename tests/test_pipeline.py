@@ -550,6 +550,12 @@ def test_topic_selection_refuses_repeating_seen_reddit_story():
         cli._select_topic([topic], {topic.sources[0].url}, reddit_only=True)
 
 
+def test_private_draft_worker_pauses_between_successful_runs():
+    assert cli._should_pause_after_success(reddit_only=True, private_drafts=True) is True
+    assert cli._should_pause_after_success(reddit_only=True, private_drafts=False) is False
+    assert cli._should_pause_after_success(reddit_only=False, private_drafts=False) is True
+
+
 def test_longform_package_has_argument_structure_and_source_link():
     source = Source(
         "A production incident",
