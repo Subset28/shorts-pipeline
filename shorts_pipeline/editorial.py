@@ -3,10 +3,12 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+from .content_calendar import _longform_sort_key, _select_short_topics
 from .models import Topic
 from .seo import eligible_formats, fallback_package
 
 REDDIT_URL_PREFIXES = ("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")
+CHANNEL_CATEGORY_ORDER = ["AI", "AI News", "AI/ML", "ML", "Cyber", "CS", "Aerospace", "Finance"]
 
 _VISUAL_DIRECTIONS = {
     "AI": "Use intentional AI/ML development footage, then add a simple diagram or product UI that explains the claim.",
@@ -108,11 +110,11 @@ def build_research_week(
     required_topics = shorts_count + (1 if include_longform else 0)
     if len(unique) < required_topics:
         raise ValueError(f"research slate needs at least {required_topics} unique topics")
-    longform_topic = unique[0] if include_longform and unique else None
-    short_topics = [
+    longform_topic = max(unique, key=_longform_sort_key) if include_longform and unique else None
+    short_pool = [
         topic for topic in unique if not longform_topic or topic.sources[0].url != longform_topic.sources[0].url
     ]
-    short_topics = short_topics[:shorts_count]
+    short_topics = _select_short_topics(short_pool, shorts_count, CHANNEL_CATEGORY_ORDER)
     shorts = [build_editorial_brief(topic) for topic in short_topics]
     longform = [build_editorial_brief(longform_topic)] if longform_topic else []
     return {

@@ -5,6 +5,17 @@ from typing import Any
 
 from .models import Topic
 
+_LONGFORM_CATEGORY_PRIORITY = {
+    "AI": 7,
+    "AI News": 7,
+    "AI/ML": 7,
+    "ML": 6,
+    "Cyber": 6,
+    "CS": 5,
+    "Aerospace": 4,
+    "Finance": 2,
+}
+
 
 def _publish_at(day: date, hour: int) -> str:
     return datetime.combine(day, time(hour, tzinfo=timezone.utc)).isoformat()
@@ -18,6 +29,10 @@ def _unique_topics(topics: list[Topic]) -> list[Topic]:
             if source_url not in found or topic.score > found[source_url].score:
                 found[source_url] = topic
     return list(found.values())
+
+
+def _longform_sort_key(topic: Topic) -> tuple[int, float]:
+    return (_LONGFORM_CATEGORY_PRIORITY.get(topic.category, 1), topic.score)
 
 
 def _experiment_targets(experiment_brief: dict[str, Any] | None) -> dict[str, list[dict[str, Any]]]:
@@ -74,7 +89,7 @@ def build_weekly_plan(
     unique = _unique_topics(topics)
     eligible_longform = _unique_topics(longform_topics or [])
     reserved_longform = (
-        max(eligible_longform, key=lambda item: item.score) if include_longform and eligible_longform else None
+        max(eligible_longform, key=_longform_sort_key) if include_longform and eligible_longform else None
     )
     short_pool = [
         topic for topic in unique if not reserved_longform or topic.sources[0].url != reserved_longform.sources[0].url

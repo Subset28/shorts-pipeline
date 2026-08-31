@@ -48,6 +48,23 @@ def test_weekly_plan_balances_categories_and_reserves_longform_slot():
     assert all(item["source_url"].startswith("https://example.test/") for item in plan)
 
 
+def test_weekly_plan_prefers_channel_core_category_for_longform():
+    topics = [
+        _topic("Aerospace story", "Aerospace", 100),
+        _topic("AI story", "AI", 2),
+    ]
+
+    plan = build_weekly_plan(
+        topics,
+        date(2026, 9, 7),
+        shorts_count=1,
+        include_longform=True,
+        longform_topics=topics,
+    )
+
+    assert plan[-1]["category"] == "AI"
+
+
 def test_weekly_plan_deduplicates_sources_and_limits_count():
     topic = _topic("One story", "CS", 4)
     duplicate = Topic(topic.title, topic.category, topic.sources, 99)

@@ -107,6 +107,75 @@ def test_research_week_deduplicates_and_reserves_longform():
     assert all(item["privacy_status"] == "private" for item in result["shorts"] + result["longform"])
 
 
+def test_research_week_rotates_categories_before_filling_by_score():
+    topics = [
+        Topic(
+            "High score CS incident",
+            "CS",
+            (
+                Source(
+                    "High score CS incident",
+                    "https://example.test/cs",
+                    "A detailed software incident with a measurable outcome.",
+                ),
+            ),
+            100,
+        ),
+        Topic(
+            "AI model on a tiny device",
+            "AI/ML",
+            (
+                Source(
+                    "AI model on a tiny device",
+                    "https://example.test/ml",
+                    "A detailed machine learning result explains the model and its measured outcome.",
+                ),
+            ),
+            10,
+        ),
+        Topic(
+            "Cyber defense catches an attack",
+            "Cyber",
+            (
+                Source(
+                    "Cyber defense catches an attack",
+                    "https://example.test/cyber",
+                    "A detailed defensive security incident explains detection and containment.",
+                ),
+            ),
+            9,
+        ),
+        Topic(
+            "Small model runs locally",
+            "AI/ML",
+            (
+                Source(
+                    "Small model runs locally",
+                    "https://example.test/ml-2",
+                    "A detailed machine learning result explains local inference and its measured outcome.",
+                ),
+            ),
+            7,
+        ),
+        Topic(
+            "Another CS incident",
+            "CS",
+            (
+                Source(
+                    "Another CS incident",
+                    "https://example.test/cs-2",
+                    "A detailed software incident explains the failure and its final outcome.",
+                ),
+            ),
+            8,
+        ),
+    ]
+
+    result = build_research_week(topics, date(2026, 9, 7), shorts_count=2, include_longform=True)
+
+    assert [item["creative"]["category"] for item in result["shorts"]] == ["AI/ML", "Cyber"]
+
+
 def test_research_week_rejects_invalid_count():
     with pytest.raises(ValueError, match="shorts_count"):
         build_research_week([_topic()], date(2026, 9, 7), shorts_count=0)

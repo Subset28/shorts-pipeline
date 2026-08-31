@@ -5,6 +5,10 @@ turns source-backed topics into reviewable briefs containing evidence, hook,
 format, visual direction, captions, metadata, long-form bridge, and rights
 gates; `plan-week --research` attaches those briefs without rendering or
 publishing.
+The selector now prioritizes the channel's AI/ML, cyber, CS, and engineering
+lanes before using score to fill the remaining slots, and chooses long-form by
+channel relevance instead of raw source score. The 2026-09-07 slate was
+generated and retained as a private review artifact.
 
 ## Shorts pipeline
 
