@@ -32,6 +32,8 @@ def synthesize(text: str, settings: Settings, output: Path) -> Path | None:
         ]
         try:
             subprocess.run(command, check=True, capture_output=True, text=True, timeout=120)
+            if output.exists() and output.stat().st_size:
+                return output
         except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
             print(f"ElevenLabs unavailable; trying free edge-tts fallback: {exc}")
     try:
