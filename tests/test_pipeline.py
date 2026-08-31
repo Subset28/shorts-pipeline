@@ -538,6 +538,12 @@ def test_private_draft_reddit_worker_keeps_polling_without_approved_queue(monkey
     assert calls == [{"force_dry_run": False, "reddit_only": True, "private_drafts": True, "youtube_only": False}]
 
 
+def test_worker_interval_rejects_non_finite_or_non_positive_values():
+    for value in (0, -1, float("nan"), float("inf")):
+        with pytest.raises(ValueError, match="interval_hours"):
+            cli._interval_seconds(value)
+
+
 def test_longform_package_has_argument_structure_and_source_link():
     source = Source(
         "A production incident",
