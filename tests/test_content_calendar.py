@@ -276,6 +276,31 @@ def test_weekly_production_dispatches_render_only_entries(tmp_path, monkeypatch)
     assert calls[1]["publish_at"] == "2099-01-02T15:00:00+00:00"
 
 
+def test_weekly_production_preflight_skips_media_work(tmp_path, monkeypatch):
+    source = Source("Approved story", "https://example.test/story", "A complete story.")
+    topic = Topic(source.title, "CS", (source,), 10)
+    plan = tmp_path / "plan.json"
+    plan.write_text(
+        '{"privacy_status":"private","entries":[{"kind":"short",'
+        '"source_url":"https://example.test/story","privacy_status":"private",'
+        '"publish_at":"2099-01-01T18:00:00+00:00"}]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        cli,
+        "load_settings",
+        lambda: type("Settings", (), {"topic_limit": 10, "reddit_approved_file": tmp_path / "approved.json"})(),
+    )
+    monkeypatch.setattr(cli, "discover_topics", lambda _limit: [topic])
+    monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda _path: [])
+    calls = []
+    monkeypatch.setattr(cli, "run", lambda **kwargs: calls.append(kwargs))
+    monkeypatch.setattr(cli, "run_longform", lambda *args, **kwargs: calls.append((args, kwargs)))
+
+    assert cli.run_weekly_production(plan, tmp_path / "output", preflight_only=True) == 0
+    assert calls == []
+
+
 def test_longform_private_upload_uses_private_youtube_status(tmp_path, monkeypatch):
     source = Source("Long-form source", "https://example.test/longform", "A complete technical account.")
     topic = Topic(source.title, "CS", (source,))

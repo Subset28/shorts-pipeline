@@ -85,6 +85,8 @@ The same flag uploads the reviewed long-form entry as a private YouTube draft
 and preserves its planned publish time; long-form remains render-only without
 the flag.
 Each Short also receives its own planned publish time from the reviewed slate.
+Run `produce-week --preflight` before production to validate the plan without
+starting media generation or platform requests.
 Uploads are blocked unless the manifest has valid source-linked metadata and
 caption evidence; Shorts additionally need a selected background visual.
 Failed metadata evidence raises an error before any platform request is made.

@@ -23,6 +23,9 @@ execution and supports private YouTube upload plus thumbnail retry, matching
 Shorts behavior without enabling TikTok or public publishing.
 Weekly dispatch now also passes each plan entry's scheduled time into the
 Short upload path, so the full private slate preserves its intended calendar.
+Added `produce-week --preflight`, which validates a weekly plan and source
+availability without invoking TTS, FFmpeg, or platform APIs. The real
+2026-09-07 plan passed this preflight for all 8 entries.
 Fresh source research on 2026-08-31 produced a private three-story AI,
 cybersecurity, and networking slate with primary links, hooks, long-form
 questions, visual treatments, and explicit fact boundaries in
