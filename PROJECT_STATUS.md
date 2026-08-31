@@ -358,3 +358,9 @@ the normal rotation unchanged.
 - Notification delivery now has a three-second subprocess limit and reports failure without hanging the monitor.
 - Event state advances only after all notifications succeed, so launchd retries missed alerts instead of silently dropping them.
 - Verification: direct notification-failure/state-preservation assertion and `git diff --check` passed.
+
+## 2026-08-31 — supervised full-duration render evidence
+
+- Completed a single-thread, low-priority 51.936-second Reddit-style smoke render using existing narration, Minecraft footage, animated Reddit card, and captions.
+- Artifact verified as 1080x1920 H.264/AAC at 30 fps; video/audio duration delta was 0.000 seconds, with 44 caption dialogues reaching the final timestamp.
+- No upload occurred. Weekly production remains gated on reviewing the artifact and keeping the host resource-safe.
