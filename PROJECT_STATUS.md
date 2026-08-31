@@ -30,6 +30,8 @@ questions, visual treatments, and explicit fact boundaries in
 Upload paths now enforce a source-linked metadata gate: title, description,
 tags, captions, category, and format are required, and Shorts must carry a
 background visual before YouTube upload.
+The enforcement path now raises on failed metadata evidence instead of merely
+returning a failed report, so invalid packages cannot proceed to upload.
 Weekly analytics now builds the planner-facing aggregate report automatically;
 the YouTube Reporting API Reach Basic job supplies thumbnail impressions and
 CTR while the existing activity query supplies retention and engagement.

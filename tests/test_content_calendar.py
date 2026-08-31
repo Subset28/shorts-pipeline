@@ -1,3 +1,4 @@
+import json
 from datetime import date
 from types import SimpleNamespace
 
@@ -296,7 +297,6 @@ def test_longform_private_upload_uses_private_youtube_status(tmp_path, monkeypat
     monkeypatch.setattr(cli, "create_longform_package", lambda _topic, editorial_brief=None: package)
     monkeypatch.setattr(cli, "synthesize", lambda _text, _settings, path: path if path.write_bytes(b"audio") else path)
     monkeypatch.setattr(cli, "_select_backgrounds_for_topic", lambda *args, **kwargs: [])
-    monkeypatch.setattr(cli, "metadata_quality_gate", lambda _path: {"passed": True, "issues": []})
     monkeypatch.setattr(
         cli,
         "render_longform_video",
@@ -312,7 +312,19 @@ def test_longform_private_upload_uses_private_youtube_status(tmp_path, monkeypat
         "save_manifest",
         lambda *args: (
             tmp_path / "manifest.json"
-            if tmp_path.joinpath("manifest.json").write_text("{}")
+            if tmp_path.joinpath("manifest.json").write_text(
+                json.dumps(
+                    {
+                        "title": package.title,
+                        "description": f"Source: {source.url}",
+                        "sources": [source.url],
+                        "tags": package.tags,
+                        "category": package.category,
+                        "format_name": package.format_name,
+                        "captions": str(tmp_path / "captions.srt"),
+                    }
+                )
+            )
             else tmp_path / "manifest.json"
         ),
     )

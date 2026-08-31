@@ -178,6 +178,14 @@ def metadata_quality_gate(manifest: Path) -> dict[str, object]:
     return {"passed": not issues, "issues": issues}
 
 
+def enforce_metadata_quality_gate(manifest: Path) -> dict[str, object]:
+    result = metadata_quality_gate(manifest)
+    if result["passed"] is not True:
+        issues = ", ".join(str(issue) for issue in result["issues"])
+        raise RuntimeError(f"Content metadata gate failed: {issues or 'unknown issue'}")
+    return result
+
+
 def _youtube_credentials(client_secrets: Path, token_file: Path) -> Credentials:
     credentials = None
     if token_file.exists():

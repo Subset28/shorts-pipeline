@@ -30,6 +30,7 @@ from shorts_pipeline.longform import create_longform_package, render_longform_vi
 from shorts_pipeline.media import build_background_reel, select_background, select_backgrounds
 from shorts_pipeline.models import ScriptPackage, Source, Topic
 from shorts_pipeline.publish import (
+    enforce_metadata_quality_gate,
     fetch_tiktok_status,
     metadata,
     metadata_quality_gate,
@@ -1636,6 +1637,13 @@ def test_metadata_quality_gate_rejects_missing_captions_and_citation(tmp_path):
     result = metadata_quality_gate(manifest)
     assert result["passed"] is False
     assert {"description_missing_source", "tags_missing", "captions_missing"} <= set(result["issues"])
+
+
+def test_metadata_quality_gate_enforcer_blocks_failed_manifest(tmp_path):
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(json.dumps({"title": "not enough"}), encoding="utf-8")
+    with pytest.raises(RuntimeError, match="Content metadata gate failed"):
+        enforce_metadata_quality_gate(manifest)
 
 
 def test_tts_does_not_reuse_stale_audio_after_provider_failure(tmp_path, monkeypatch):
