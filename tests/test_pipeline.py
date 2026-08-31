@@ -559,6 +559,15 @@ def test_reddit_rejects_generic_career_advice_but_keeps_technical_incidents():
     )
 
 
+def test_reddit_rejects_generic_aerospace_and_prompt_stories():
+    assert _is_niche_relevant("flying", "What my PPL cost", "Training cost a lot and I learned patience.") is False
+    assert (
+        _is_niche_relevant("aviation", "First inflight scare", "The engine sensor alarm failed after takeoff.") is True
+    )
+    assert _is_niche_relevant("flying", "Flying over the Cascades", "A scenic flight with no incident.") is False
+    assert _is_niche_relevant("sysadmin", "Difficult coworker", "I need advice about communication.") is False
+
+
 def test_reddit_quality_prefers_specific_story_arcs_over_generic_high_scores():
     strong = Source(
         "Our deploy deleted production data",

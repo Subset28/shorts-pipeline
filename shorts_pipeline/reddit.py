@@ -36,6 +36,7 @@ RANKED_STORY_SUBREDDITS = (
 MIN_STORY_WORDS = 80
 GENERIC_COMMUNITIES = {"askreddit"}
 CAREER_COMMUNITIES = {"cscareerquestions", "experienceddevs"}
+AEROSPACE_COMMUNITIES = {"aviation", "flying", "aerospaceengineering", "rocketry", "spacex"}
 NICHE_SIGNALS = re.compile(
     r"\b(ai|artificial intelligence|machine learning|software|program(?:mer|ming)|"
     r"coding|computer|database|server|production|devops|sysadmin|cyber|security|"
@@ -47,25 +48,49 @@ STORY_SIGNALS = re.compile(
     r"\b(after|before|then|eventually|finally|turned out|ended up|restored|fixed|failed|broke|lesson|takeaway|incident|outage)\b",
     re.IGNORECASE,
 )
+CONCRETE_OUTCOME_SIGNALS = re.compile(
+    r"\b(restored|fixed|failed|broke|outage|incident|ended up|turned out|resolved|detected|"
+    r"discovered|caused|recovered|crashed|alarm)\b",
+    re.IGNORECASE,
+)
+NEGATED_STORY_SIGNALS = re.compile(
+    r"\b(?:no|not|never|without)\s+(?:an?\s+)?(?:after|before|then|eventually|finally|"
+    r"turned out|ended up|restored|fixed|failed|broke|lesson|takeaway|incident|outage)\b",
+    re.IGNORECASE,
+)
 GENERIC_TITLE = re.compile(
     r"\b(anyone else|are we doomed|does anyone|what do you think|thoughts|help me)\b", re.IGNORECASE
 )
 LOW_SIGNAL_ADVICE_TITLE = re.compile(
     r"\b(career|interview|motivation|recruiter|new graduates?|unemployment|sabbatical|"
-    r"masters? degree|how (?:do|to)|should i|what should i|where should i start|not senior enough)\b",
+    r"masters? degree|how (?:do|does|to)|should i|what should i|where should i start|"
+    r"not senior enough|cost|statement|discouraged|career suicide|future prospects|too old|"
+    r"difficult coworker|not really sure)\b",
     re.IGNORECASE,
 )
+INTERPERSONAL_TITLE = re.compile(r"\b(difficult coworker|not really sure how to approach)\b", re.IGNORECASE)
 CAREER_ADVICE = re.compile(
     r"\b(career advice|career question|should i become|how do i become|"
     r"is it worth|looking for advice|job advice|what should i do)\b",
     re.IGNORECASE,
 )
 TECHNICAL_MECHANISM = re.compile(
-    r"\b(api|automation|bug|code|database|debug|deployment|firmware|incident|"
+    r"\b(api|automation|bug|code|database|debug|deployment|firmware|incident|program(?:mer|ming)|"
     r"instrument|latency|malware|model|outage|pipeline|production|server|"
-    r"software|system|technical|testing|vulnerability)\b",
+    r"software|system|technical|testing|vulnerability|engine|sensor|avionics|"
+    r"telemetry|propulsion|flight|aircraft)\b",
     re.IGNORECASE,
 )
+
+
+def _has_story_signal(value: str) -> bool:
+    """Detect an event arc without treating negated incidents as events."""
+    return bool(STORY_SIGNALS.search(NEGATED_STORY_SIGNALS.sub("", value)))
+
+
+def _has_concrete_outcome(value: str) -> bool:
+    """Require an observable result for career and aerospace anecdotes."""
+    return bool(CONCRETE_OUTCOME_SIGNALS.search(NEGATED_STORY_SIGNALS.sub("", value)))
 
 
 def _story_category(community: str) -> str:
@@ -96,10 +121,23 @@ def _is_niche_relevant(community: str, title: str, body: str) -> bool:
     text = f"{title} {body}"
     if community.lower() in GENERIC_COMMUNITIES and not NICHE_SIGNALS.search(text):
         return False
+    if INTERPERSONAL_TITLE.search(title):
+        return False
+    if GENERIC_TITLE.search(title) and not _has_story_signal(body):
+        return False
     if CAREER_ADVICE.search(title) and not TECHNICAL_MECHANISM.search(body):
         return False
-    if (community.lower() in CAREER_COMMUNITIES or LOW_SIGNAL_ADVICE_TITLE.search(title)) and not (
-        TECHNICAL_MECHANISM.search(body) and STORY_SIGNALS.search(body)
+    if community.lower() in CAREER_COMMUNITIES:
+        if not TECHNICAL_MECHANISM.search(title) or not (
+            TECHNICAL_MECHANISM.search(body) and _has_concrete_outcome(body) and _has_story_signal(body)
+        ):
+            return False
+    elif LOW_SIGNAL_ADVICE_TITLE.search(title) and not (
+        TECHNICAL_MECHANISM.search(body) and _has_concrete_outcome(body)
+    ):
+        return False
+    if community.lower() in AEROSPACE_COMMUNITIES and not (
+        TECHNICAL_MECHANISM.search(body) and _has_concrete_outcome(body)
     ):
         return False
     return True
@@ -242,6 +280,7 @@ def discover_reddit_topics(
         client.headers.update({"Authorization": f"bearer {token}"})
         topics: list[Topic] = []
         seen_urls: set[str] = set()
+        accepted_post_ids: set[str] = set()
         for subreddit in subreddits:
             response = _get_with_retries(
                 client,
@@ -280,6 +319,7 @@ def discover_reddit_topics(
                             )
                         )
                         seen_urls.add(source_url)
+                        accepted_post_ids.add(str(post.get("id", "")).strip())
                 # Prompt threads often contain the best first-person stories in
                 # comments rather than in the post body itself.
                 prompt_thread = (
@@ -288,7 +328,7 @@ def discover_reddit_topics(
                     or community.lower() in {"askreddit", "aviation", "flying", "askengineers"}
                 )
                 post_id = str(post.get("id", "")).strip()
-                if not prompt_thread or not post_id:
+                if not prompt_thread or not post_id or post_id in accepted_post_ids:
                     continue
                 comments = _get_with_retries(
                     client,
