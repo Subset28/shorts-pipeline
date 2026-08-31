@@ -149,6 +149,8 @@ report normalizer accepts those names as well as Studio CSV aliases.
 Install or refresh all Mac jobs with `scripts/install-launchd-jobs.sh`. The
 installer copies each plist, registers it in the current user's launchd
 domain, and stops with the copied file path if macOS rejects a job.
+It also verifies each label is visible after registration; a successful install
+therefore proves the analytics supervisor is loaded, not merely copied.
 
 ## Background library
 

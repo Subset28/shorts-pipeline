@@ -22,6 +22,10 @@ for plist in \
         echo "Unable to register $label; plist was copied to $target" >&2
         exit 1
     fi
+    if ! launchctl print "$domain/$label" >/dev/null 2>&1; then
+        echo "Job was not visible after registration: $label" >&2
+        exit 1
+    fi
 done
 
 echo "Installed and registered Shorts Pipeline launchd jobs"

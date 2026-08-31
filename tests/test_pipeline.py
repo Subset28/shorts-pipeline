@@ -1982,6 +1982,12 @@ def test_nas_deploy_script_preserves_remote_environment():
     assert 'Filter "user_*.mp4"' in text
 
 
+def test_launchd_installer_verifies_registered_jobs():
+    script = Path(__file__).parents[1] / "scripts" / "install-launchd-jobs.sh"
+    text = script.read_text(encoding="utf-8")
+    assert 'launchctl print "$domain/$label"' in text
+
+
 def test_feed_summary_removes_markup_urls_and_link_aggregator_boilerplate():
     cleaned = _clean_summary(
         '<p>Article URL: <a href="https://example.test">https://example.test</a></p><p>Points: 27</p># Comments: 11'
