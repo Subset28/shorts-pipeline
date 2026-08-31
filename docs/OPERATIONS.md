@@ -63,6 +63,12 @@ Use `python -m shorts_pipeline schedule --file data/reddit_next_week_schedule.js
 for approved entries. YouTube requires scheduled uploads to use private status
 with a future RFC 3339 `publishAt`; YouTube makes them public at that time.
 
+Use `python -m shorts_pipeline plan-week --week-of YYYY-MM-DD` to create a
+balanced weekly slate. It targets seven Shorts plus one long-form entry,
+rotates categories when enough source-backed topics exist, writes private UTC
+publish times, and only plans work. Render and inspect the entries before
+using the separate schedule or long-form commands.
+
 On the configured Windows host, `.\scripts\deploy-nas.ps1` performs the
 same deployment using the `synology` SSH alias. It uses legacy SCP for the
 Synology SSH server, creates the project directories if needed, preserves an

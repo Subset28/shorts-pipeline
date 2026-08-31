@@ -6,12 +6,14 @@ import math
 import time
 import traceback
 from dataclasses import replace
+from datetime import date
 from pathlib import Path
 
 from .analytics import archive_report, build_report, build_youtube_report, write_report
 from .asset_library import sync_backgrounds
 from .captions import create_captions
 from .config import load_settings
+from .content_calendar import build_weekly_plan
 from .history import load_publish_state, load_seen, mark_seen, save_publish_state
 from .llm import create_package
 from .longform import create_longform_package, render_longform_video
@@ -423,6 +425,27 @@ def run_longform(source_url: str | None, output_dir: Path) -> int:
     return 0
 
 
+def run_weekly_plan(week_of: str, shorts_count: int, output: Path, include_longform: bool = True) -> int:
+    try:
+        week_start = date.fromisoformat(week_of)
+    except ValueError as exc:
+        raise ValueError("week_of must be an ISO date") from exc
+    settings = load_settings()
+    topics = discover_topics(max(settings.topic_limit, shorts_count + 3))
+    approved_topics = load_approved_reddit_topics(settings.reddit_approved_file)
+    topics.extend(approved_topics)
+    entries = build_weekly_plan(topics, week_start, shorts_count, include_longform, approved_topics)
+    if not entries:
+        raise RuntimeError("No source-backed topics were available for the weekly plan")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        json.dumps({"week_of": week_of, "privacy_status": "private", "entries": entries}, indent=2),
+        encoding="utf-8",
+    )
+    print(f"Wrote {output} ({len(entries)} entries)")
+    return 0
+
+
 def run_analytics(authorize: bool = False, weekly: bool = False) -> int:
     settings = load_settings()
     snapshots = settings.data_dir / "youtube_analytics.json"
@@ -484,6 +507,11 @@ def main() -> None:
     longform_parser = sub.add_parser("longform")
     longform_parser.add_argument("--source-url")
     longform_parser.add_argument("--out", default="output/longform")
+    weekly_parser = sub.add_parser("plan-week")
+    weekly_parser.add_argument("--week-of", required=True, help="Monday ISO date for the planned week")
+    weekly_parser.add_argument("--shorts", type=int, default=7)
+    weekly_parser.add_argument("--out", default="data/weekly_plan.json")
+    weekly_parser.add_argument("--no-longform", action="store_true")
     analytics_parser = sub.add_parser("analytics")
     analytics_parser.add_argument(
         "--authorize", action="store_true", help="Perform one-time read-only YouTube Analytics OAuth"
@@ -518,6 +546,8 @@ def main() -> None:
         raise SystemExit(run_schedule(Path(args.file), force_dry_run=args.dry_run))
     if args.command == "longform":
         raise SystemExit(run_longform(args.source_url, Path(args.out)))
+    if args.command == "plan-week":
+        raise SystemExit(run_weekly_plan(args.week_of, args.shorts, Path(args.out), not args.no_longform))
     if args.command == "analytics":
         raise SystemExit(run_analytics(authorize=args.authorize, weekly=args.weekly))
     if args.command == "backgrounds":
