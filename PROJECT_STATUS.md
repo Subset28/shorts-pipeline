@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Bounded background-reel decoder fan-out after a render safety audit observed 22 simultaneous looping inputs and excessive CPU. Full-duration reels now use at most eight segments/inputs with adjusted pacing, preserving motion and coverage while reducing resource pressure; focused tests pass.
+
 2026-08-31: Added an explicit `run --preflight` mode that validates Reddit queue, background, YouTube OAuth files, and TTS configuration without TTS, FFmpeg, or platform calls. Documented that `--dry-run` is render-only after a resource-safety audit observed high-CPU background generation.
 
 2026-08-31: Strengthened source-backed YouTube packaging by adding up to four concrete terms from each source headline to the generated search tags, while retaining bounded metadata and existing source-link requirements. Focused metadata/editorial tests pass.
