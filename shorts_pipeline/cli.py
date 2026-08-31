@@ -682,8 +682,7 @@ def run_weekly_production(
         if kind == "longform" and _is_reddit_url(source_url) and source_url not in approved_by_url:
             raise ValueError(f"Long-form source is not approved: {source_url}")
         editorial_brief = entry.get("editorial_brief")
-        if editorial_brief is not None and not isinstance(editorial_brief, dict):
-            raise ValueError("Weekly plan editorial_brief must be an object")
+        _validate_weekly_editorial_brief(editorial_brief, source_url, kind)
         prepared.append(
             (
                 kind,
@@ -720,6 +719,40 @@ def run_weekly_production(
             raise ValueError(f"Unsupported weekly plan entry kind: {kind}")
     print(f"Produced {len(entries)} weekly entries")
     return 0
+
+
+def _validate_weekly_editorial_brief(brief: object, source_url: str, kind: str) -> None:
+    """Require reviewed, source-linked packaging before weekly production."""
+    if not isinstance(brief, dict):
+        raise ValueError("Every weekly entry requires an editorial_brief")
+    if brief.get("privacy_status") != "private":
+        raise ValueError("Weekly editorial brief must be private")
+    source = brief.get("source")
+    if not isinstance(source, dict) or source.get("url") != source_url:
+        raise ValueError("Weekly editorial brief source URL does not match plan")
+    creative = brief.get("creative")
+    metadata = brief.get("metadata")
+    if not isinstance(creative, dict) or not isinstance(metadata, dict):
+        raise ValueError("Weekly editorial brief requires creative and metadata objects")
+    if not all(isinstance(creative.get(key), str) and creative[key].strip() for key in ("format_name", "hook")):
+        raise ValueError("Weekly editorial brief creative fields are incomplete")
+    if not all(isinstance(metadata.get(key), str) and metadata[key].strip() for key in ("title", "description")):
+        raise ValueError("Weekly editorial brief metadata fields are incomplete")
+    if source_url not in metadata["description"]:
+        raise ValueError("Weekly editorial brief metadata is not source-linked")
+    if not isinstance(metadata.get("tags"), list) or not any(str(tag).strip() for tag in metadata["tags"]):
+        raise ValueError("Weekly editorial brief requires metadata tags")
+    if kind == "longform":
+        bridge = brief.get("longform_bridge")
+        if (
+            not isinstance(bridge, dict)
+            or not isinstance(bridge.get("question"), str)
+            or not bridge["question"].strip()
+        ):
+            raise ValueError("Long-form weekly entry requires a reviewed question")
+        chapters = bridge.get("chapters")
+        if not isinstance(chapters, list) or len(chapters) < 3 or not all(str(chapter).strip() for chapter in chapters):
+            raise ValueError("Long-form weekly entry requires at least three reviewed chapters")
 
 
 def run_analytics(authorize: bool = False, weekly: bool = False) -> int:
