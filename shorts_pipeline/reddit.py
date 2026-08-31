@@ -137,6 +137,32 @@ def _get_with_retries(client, url: str, params: dict) -> object | None:
     return None
 
 
+def _post_with_retries(client, url: str, auth, data: dict) -> object | None:
+    """Fetch an OAuth response while tolerating transient request failures."""
+    for attempt in range(3):
+        try:
+            response = client.post(url, auth=auth, data=data)
+        except httpx.RequestError:
+            if attempt == 2:
+                return None
+            time.sleep(1.0)
+            continue
+        status = getattr(response, "status_code", None)
+        if status == 429 or isinstance(status, int) and status >= 500:
+            if attempt == 2:
+                return None
+            headers = getattr(response, "headers", {}) or {}
+            try:
+                delay = float(headers.get("retry-after", "1"))
+            except (TypeError, ValueError):
+                delay = 1.0
+            time.sleep(min(max(delay, 1.0), 8.0))
+            continue
+        response.raise_for_status()
+        return response
+    return None
+
+
 def discover_reddit_topics(
     subreddits: tuple[str, ...],
     client_id: str,
@@ -155,12 +181,14 @@ def discover_reddit_topics(
         return []
     headers = {"User-Agent": user_agent or "shorts-pipeline/1.0 (research client)"}
     with httpx.Client(timeout=30, headers=headers, follow_redirects=True) as client:
-        token_response = client.post(
+        token_response = _post_with_retries(
+            client,
             "https://www.reddit.com/api/v1/access_token",
             auth=(client_id, client_secret),
             data={"grant_type": "client_credentials"},
         )
-        token_response.raise_for_status()
+        if token_response is None:
+            raise RuntimeError("Reddit OAuth request failed after retries")
         token = token_response.json().get("access_token")
         if not token:
             raise RuntimeError("Reddit OAuth response did not contain an access token")

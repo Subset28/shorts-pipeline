@@ -26,6 +26,7 @@ from shorts_pipeline.quality import assess_render
 from shorts_pipeline.reddit import (
     _get_with_retries,
     _is_niche_relevant,
+    _post_with_retries,
     _reddit_quality_score,
     _score_value,
     discover_reddit_topics,
@@ -508,6 +509,24 @@ def test_reddit_fetch_retries_transient_request_errors(monkeypatch):
     client = Client()
     monkeypatch.setattr("shorts_pipeline.reddit.time.sleep", lambda _delay: None)
     response = _get_with_retries(client, "https://example.test", {})
+    assert response is not None
+    assert client.calls == 3
+
+
+def test_reddit_token_fetch_retries_transient_request_errors(monkeypatch):
+    class Client:
+        def __init__(self):
+            self.calls = 0
+
+        def post(self, *_args, **_kwargs):
+            self.calls += 1
+            if self.calls < 3:
+                raise httpx.RequestError("temporary network failure")
+            return SimpleNamespace(status_code=200, raise_for_status=lambda: None)
+
+    client = Client()
+    monkeypatch.setattr("shorts_pipeline.reddit.time.sleep", lambda _delay: None)
+    response = _post_with_retries(client, "https://example.test", None, {})
     assert response is not None
     assert client.calls == 3
 
