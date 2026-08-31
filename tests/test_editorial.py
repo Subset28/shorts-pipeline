@@ -36,6 +36,22 @@ def test_editorial_brief_keeps_evidence_and_creative_contract():
     assert brief["longform_bridge"]["question"]
 
 
+def test_editorial_brief_executes_analytics_treatment():
+    target = {
+        "area": "packaging",
+        "metric": "ctr",
+        "role": "reference",
+        "change": "Use one clear technical promise.",
+        "lane": "AI / news_breakdown",
+    }
+    brief = build_editorial_brief(_topic(), analytics_target=target)
+    assert brief["metadata"]["title"].endswith("| AI explained")
+    experiment = brief["creative"]["analytics_experiment"]
+    assert experiment["metric"] == "ctr"
+    assert experiment["role"] == "reference"
+    assert "single-promise" in brief["creative"]["caption_plan"]
+
+
 def test_editorial_brief_changes_package_metadata_after_validation():
     topic = _topic()
     package = fallback_package(topic)
@@ -208,6 +224,29 @@ def test_research_week_rotates_categories_before_filling_by_score():
     result = build_research_week(topics, date(2026, 9, 7), shorts_count=2, include_longform=True)
 
     assert [item["creative"]["category"] for item in result["shorts"]] == ["AI/ML", "Cyber"]
+
+
+def test_research_week_applies_analytics_treatment_to_selected_lane():
+    result = build_research_week(
+        [_topic("AI")],
+        date(2026, 9, 7),
+        shorts_count=1,
+        include_longform=False,
+        experiment_brief={
+            "status": "ready",
+            "experiments": [
+                {
+                    "area": "opening_and_pacing",
+                    "metric": "avg_view_percentage",
+                    "change": "Front-load the hook.",
+                    "reference": {"category": "AI", "format_name": "news_breakdown", "lane": "AI / news_breakdown"},
+                    "baseline": {"category": "CS", "format_name": "fact_explainer", "lane": "CS / fact_explainer"},
+                }
+            ],
+        },
+    )
+    assert result["shorts"][0]["creative"]["hook"].startswith("The part most people miss:")
+    assert result["shorts"][0]["creative"]["analytics_experiment"]["area"] == "opening_and_pacing"
 
 
 def test_research_week_rejects_invalid_count():

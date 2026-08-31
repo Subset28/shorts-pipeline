@@ -448,7 +448,7 @@ def run_weekly_plan(
         raise ValueError("week_of must be an ISO date") from exc
     settings = load_settings()
     brief: dict[str, Any] | None = None
-    report_path = analytics_path or settings.data_dir / "analytics_report.json"
+    report_path = analytics_path or getattr(settings, "data_dir", Path("data")) / "analytics_report.json"
     if report_path.exists():
         try:
             report = json.loads(report_path.read_text(encoding="utf-8"))
@@ -501,7 +501,13 @@ def run_weekly_plan(
     return 0
 
 
-def run_research_week(week_of: str, shorts_count: int, output: Path, include_longform: bool = True) -> int:
+def run_research_week(
+    week_of: str,
+    shorts_count: int,
+    output: Path,
+    include_longform: bool = True,
+    analytics_path: Path | None = None,
+) -> int:
     try:
         week_start = date.fromisoformat(week_of)
     except ValueError as exc:
@@ -509,7 +515,20 @@ def run_research_week(week_of: str, shorts_count: int, output: Path, include_lon
     settings = load_settings()
     topics = discover_topics(max(settings.topic_limit, shorts_count + 3))
     topics.extend(load_approved_reddit_topics(settings.reddit_approved_file))
-    payload = build_research_week(topics, week_start, shorts_count, include_longform)
+    experiment_brief = None
+    report_path = analytics_path or getattr(settings, "data_dir", Path("data")) / "analytics_report.json"
+    if report_path.exists():
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            if analytics_path is not None:
+                raise ValueError(f"Could not read analytics report: {analytics_path}") from exc
+        else:
+            if isinstance(report, dict) and isinstance(report.get("experiment_brief"), dict):
+                experiment_brief = report["experiment_brief"]
+    elif analytics_path is not None:
+        raise ValueError(f"Analytics report does not exist: {analytics_path}")
+    payload = build_research_week(topics, week_start, shorts_count, include_longform, experiment_brief)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(f"Wrote {output} ({len(payload['shorts'])} Shorts, {len(payload['longform'])} long-form)")
@@ -656,6 +675,7 @@ def main() -> None:
     research_parser.add_argument("--shorts", type=int, default=7)
     research_parser.add_argument("--out", default="data/research_week.json")
     research_parser.add_argument("--no-longform", action="store_true")
+    research_parser.add_argument("--analytics", help="Analytics report used to shape the next treatments")
     production_parser = sub.add_parser("produce-week")
     production_parser.add_argument("--plan", required=True)
     production_parser.add_argument("--out", default="output/weekly")
@@ -708,7 +728,15 @@ def main() -> None:
             )
         )
     if args.command == "research-week":
-        raise SystemExit(run_research_week(args.week_of, args.shorts, Path(args.out), not args.no_longform))
+        raise SystemExit(
+            run_research_week(
+                args.week_of,
+                args.shorts,
+                Path(args.out),
+                not args.no_longform,
+                Path(args.analytics) if args.analytics else None,
+            )
+        )
     if args.command == "produce-week":
         raise SystemExit(run_weekly_production(Path(args.plan), Path(args.out), args.upload_private))
     if args.command == "analytics":
