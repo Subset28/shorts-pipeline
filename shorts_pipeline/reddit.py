@@ -100,6 +100,14 @@ def _clean_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
+def _score_value(value: object) -> float:
+    """Normalize an optional Reddit score without aborting discovery."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _get_with_retries(client, url: str, params: dict) -> object | None:
     """Fetch a Reddit listing while tolerating stale communities and throttling."""
     for attempt in range(3):
@@ -187,7 +195,9 @@ def discover_reddit_topics(
                             title, source_url, body[:4000], str(post.get("created_utc", "")), author, community, False
                         )
                         topics.append(
-                            Topic(source.title, _story_category(community), (source,), float(post.get("score", 0)))
+                            Topic(
+                                source.title, _story_category(community), (source,), _score_value(post.get("score", 0))
+                            )
                         )
                         seen_urls.add(source_url)
                 # Prompt threads often contain the best first-person stories in
@@ -239,7 +249,7 @@ def discover_reddit_topics(
                             comment_source.title,
                             _story_category(community),
                             (comment_source,),
-                            float(comment.get("score", 0)),
+                            _score_value(comment.get("score", 0)),
                         )
                     )
                     seen_urls.add(comment_url)
