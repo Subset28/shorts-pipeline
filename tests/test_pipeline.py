@@ -31,6 +31,7 @@ from shorts_pipeline.reddit import (
     _post_with_retries,
     _reddit_quality_score,
     _score_value,
+    _token_value,
     discover_reddit_topics,
     load_approved_reddit_topics,
 )
@@ -552,6 +553,12 @@ def test_reddit_listing_children_requires_a_list_payload():
     assert _listing_children({"data": {"children": [{"data": {}}]}}) == [{"data": {}}]
     assert _listing_children({"data": {"children": "malformed"}}) == []
     assert _listing_children({"data": "malformed"}) == []
+
+
+def test_reddit_token_value_requires_a_nonempty_string():
+    assert _token_value({"access_token": "token"}) == "token"
+    assert _token_value({"access_token": None}) == ""
+    assert _token_value(["malformed"]) == ""
 
 
 def test_private_draft_reddit_worker_keeps_polling_without_approved_queue(monkeypatch):

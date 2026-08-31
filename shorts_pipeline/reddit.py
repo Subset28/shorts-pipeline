@@ -125,6 +125,13 @@ def _score_value(value: object) -> float:
     return score if math.isfinite(score) else 0.0
 
 
+def _token_value(payload: object) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    token = payload.get("access_token")
+    return token if isinstance(token, str) and token else ""
+
+
 def _get_with_retries(client, url: str, params: dict) -> object | None:
     """Fetch a Reddit listing while tolerating stale communities and throttling."""
     for attempt in range(3):
@@ -205,7 +212,7 @@ def discover_reddit_topics(
         )
         if token_response is None:
             raise RuntimeError("Reddit OAuth request failed after retries")
-        token = token_response.json().get("access_token")
+        token = _token_value(token_response.json())
         if not token:
             raise RuntimeError("Reddit OAuth response did not contain an access token")
         client.headers.update({"Authorization": f"bearer {token}"})
