@@ -534,6 +534,23 @@ def test_generic_reddit_prompts_must_match_a_channel_topic():
     assert _is_niche_relevant("TalesFromTechSupport", "My strangest ticket", "The printer became sentient.") is True
 
 
+def test_reddit_rejects_generic_career_advice_but_keeps_technical_incidents():
+    assert (
+        _is_niche_relevant(
+            "flying", "Free career advice for Australian pilots", "Work hard, network, and apply everywhere."
+        )
+        is False
+    )
+    assert (
+        _is_niche_relevant(
+            "cscareerquestions",
+            "Should I become a programmer after an outage?",
+            "I debugged the deployment pipeline, found a database bug, and restored production.",
+        )
+        is True
+    )
+
+
 def test_reddit_quality_prefers_specific_story_arcs_over_generic_high_scores():
     strong = Source(
         "Our deploy deleted production data",

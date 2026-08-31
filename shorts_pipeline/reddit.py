@@ -49,6 +49,17 @@ STORY_SIGNALS = re.compile(
 GENERIC_TITLE = re.compile(
     r"\b(anyone else|are we doomed|does anyone|what do you think|thoughts|help me)\b", re.IGNORECASE
 )
+CAREER_ADVICE = re.compile(
+    r"\b(career advice|career question|should i become|how do i become|"
+    r"is it worth|looking for advice|job advice|what should i do)\b",
+    re.IGNORECASE,
+)
+TECHNICAL_MECHANISM = re.compile(
+    r"\b(api|automation|bug|code|database|debug|deployment|firmware|incident|"
+    r"instrument|latency|malware|model|outage|pipeline|production|server|"
+    r"software|system|technical|testing|vulnerability)\b",
+    re.IGNORECASE,
+)
 
 
 def _story_category(community: str) -> str:
@@ -76,9 +87,12 @@ def _story_category(community: str) -> str:
 
 def _is_niche_relevant(community: str, title: str, body: str) -> bool:
     """Reject generic prompt answers that do not fit the channel promise."""
-    if community.lower() not in GENERIC_COMMUNITIES:
-        return True
-    return bool(NICHE_SIGNALS.search(f"{title} {body}"))
+    text = f"{title} {body}"
+    if community.lower() in GENERIC_COMMUNITIES and not NICHE_SIGNALS.search(text):
+        return False
+    if CAREER_ADVICE.search(title) and not TECHNICAL_MECHANISM.search(body):
+        return False
+    return True
 
 
 def _reddit_quality_score(topic: Topic) -> float:
