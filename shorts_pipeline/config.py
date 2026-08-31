@@ -29,6 +29,7 @@ class Settings:
     background_video: Path
     background_dir: Path
     reddit_background_dir: Path
+    background_reel_enabled: bool
     background_manifest: Path
     background_video_url: str
     topic_limit: int
@@ -64,6 +65,7 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
         background_video=Path(os.getenv("BACKGROUND_VIDEO", "")),
         background_dir=Path(os.getenv("BACKGROUND_VIDEO_DIR", "data/backgrounds")),
         reddit_background_dir=Path(os.getenv("REDDIT_BACKGROUND_DIR", "data/backgrounds/minecraft_parkour_chunks")),
+        background_reel_enabled=os.getenv("BACKGROUND_REEL_ENABLED", "false").lower() in {"1", "true", "yes"},
         background_manifest=Path(os.getenv("BACKGROUND_MANIFEST", "assets/backgrounds.json")),
         background_video_url=os.getenv("BACKGROUND_VIDEO_URL", ""),
         topic_limit=int(os.getenv("TOPIC_LIMIT", "10")),

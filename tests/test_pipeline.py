@@ -2008,6 +2008,22 @@ def test_reddit_background_directory_is_configurable(monkeypatch):
     assert load_settings().reddit_background_dir == Path("data/backgrounds/reddit")
 
 
+def test_background_reel_is_opt_in_for_unattended_runs(monkeypatch):
+    monkeypatch.delenv("BACKGROUND_REEL_ENABLED", raising=False)
+    assert load_settings().background_reel_enabled is False
+    monkeypatch.setenv("BACKGROUND_REEL_ENABLED", "true")
+    assert load_settings().background_reel_enabled is True
+
+
+def test_background_render_defaults_to_one_selected_source(monkeypatch, tmp_path):
+    source = tmp_path / "selected.mp4"
+    source.write_bytes(b"video")
+    settings = SimpleNamespace(background_reel_enabled=False)
+    monkeypatch.setattr(cli, "_build_background_reel_for_render", lambda *_args: pytest.fail("reel was built"))
+
+    assert cli._background_for_render(settings, [source], None, tmp_path / "reel.mp4", "source", 0) == source
+
+
 def test_cli_background_selection_passes_configured_manifest(tmp_path, monkeypatch):
     manifest = tmp_path / "backgrounds.json"
     settings = type("Settings", (), {"background_manifest": manifest})()

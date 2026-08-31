@@ -109,6 +109,9 @@ queue, without changing permission records.
 Use `run --preflight` to validate local credentials, backgrounds, and TTS
 configuration without starting TTS, FFmpeg, or an upload. `run --dry-run`
 still renders media and only skips platform uploads.
+Unattended runs use one selected moving background by default; set
+`BACKGROUND_REEL_ENABLED=true` only after benchmarking the host to enable the
+more expensive multi-segment reel.
 The plan is constrained to the same source set as the research slate, so every
 scheduled entry retains its matching editorial brief.
 

@@ -130,6 +130,17 @@ def _build_background_reel_for_render(sources: list[Path], output: Path, source_
     )
 
 
+def _background_for_render(
+    settings, sources: list[Path], fallback: Path | None, output: Path, source_url: str, variant: int
+):
+    """Use one moving source by default; opt into the expensive reel graph."""
+    if not sources:
+        return fallback
+    if not getattr(settings, "background_reel_enabled", False):
+        return sources[0]
+    return _build_background_reel_for_render(sources, output, source_url, variant)
+
+
 def is_youtube_upload_limit_error(error: Exception) -> bool:
     return "uploadLimitExceeded" in str(error)
 
@@ -247,15 +258,14 @@ def run(
         category=package.category,
         provenance=topic.sources[0].community,
     )
-    if background_sources:
-        background = _build_background_reel_for_render(
-            background_sources,
-            output_dir / "background-reel.mp4",
-            source_url,
-            package.variant,
-        )
-    else:
-        background = fallback_background
+    background = _background_for_render(
+        settings,
+        background_sources,
+        fallback_background,
+        output_dir / "background-reel.mp4",
+        source_url,
+        package.variant,
+    )
     video = render_video(package, output_dir, audio, captions, background)
     thumbnail = render_thumbnail(package, output_dir / "thumbnail.jpg")
     manifest = save_manifest(package, video, output_dir, background, background_sources, audio, captions, thumbnail)

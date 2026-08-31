@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Made multi-segment background generation opt-in. Unattended runs now use one category/provenance-selected moving source by default, while `BACKGROUND_REEL_ENABLED=true` retains the richer reel for explicitly benchmarked hosts; this prevents the observed high-CPU reel path from running by default.
+
 2026-08-31: Added a dedicated low-resource background encoding profile after a single-segment smoke render still reached roughly 568% CPU. Background segments now use one FFmpeg thread, bilinear scaling, and ultrafast encoding before stream-copy concatenation; final foreground/caption rendering settings remain unchanged.
 
 2026-08-31: Replaced the multi-input background-reel graph with sequential per-segment renders plus stream-copy concatenation after an 8-input smoke render still reached roughly 430% CPU. The reel keeps source rotation, crop motion, and full duration while decoding one source at a time; focused tests pass.
