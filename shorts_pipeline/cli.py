@@ -923,7 +923,6 @@ def main() -> None:
                 Path(args.out),
                 not args.no_longform,
                 Path(args.analytics) if args.analytics else None,
-                args.reddit_only,
             )
         )
     if args.command == "prepare-week":
@@ -935,6 +934,7 @@ def main() -> None:
                 Path(args.plan_out),
                 not args.no_longform,
                 Path(args.analytics) if args.analytics else None,
+                args.reddit_only,
             )
         )
     if args.command == "produce-week":
