@@ -30,7 +30,7 @@ from shorts_pipeline.reddit import (
     discover_reddit_topics,
     load_approved_reddit_topics,
 )
-from shorts_pipeline.render import AUDIO_NORMALIZATION_FILTER, _card, _reddit_post_card, _render_duration, render_video
+from shorts_pipeline.render import _card, _reddit_post_card, _render_duration, render_video
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.sources import (
     _clean_summary,
