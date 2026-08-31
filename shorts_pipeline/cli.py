@@ -8,6 +8,7 @@ import traceback
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 from .analytics import archive_report, build_report, build_youtube_report, write_report
 from .asset_library import sync_backgrounds
@@ -425,21 +426,37 @@ def run_longform(source_url: str | None, output_dir: Path) -> int:
     return 0
 
 
-def run_weekly_plan(week_of: str, shorts_count: int, output: Path, include_longform: bool = True) -> int:
+def run_weekly_plan(
+    week_of: str, shorts_count: int, output: Path, include_longform: bool = True, analytics_path: Path | None = None
+) -> int:
     try:
         week_start = date.fromisoformat(week_of)
     except ValueError as exc:
         raise ValueError("week_of must be an ISO date") from exc
     settings = load_settings()
+    brief: dict[str, Any] | None = None
+    report_path = analytics_path or settings.data_dir / "analytics_report.json"
+    if report_path.exists():
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            if isinstance(report, dict) and isinstance(report.get("experiment_brief"), dict):
+                brief = report["experiment_brief"]
+        except (OSError, json.JSONDecodeError) as exc:
+            if analytics_path is not None:
+                raise ValueError(f"Could not read analytics report: {analytics_path}") from exc
+    elif analytics_path is not None:
+        raise ValueError(f"Analytics report does not exist: {analytics_path}")
     topics = discover_topics(max(settings.topic_limit, shorts_count + 3))
     approved_topics = load_approved_reddit_topics(settings.reddit_approved_file)
     topics.extend(approved_topics)
-    entries = build_weekly_plan(topics, week_start, shorts_count, include_longform, approved_topics)
+    entries = build_weekly_plan(topics, week_start, shorts_count, include_longform, approved_topics, brief)
     if not entries:
         raise RuntimeError("No source-backed topics were available for the weekly plan")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
-        json.dumps({"week_of": week_of, "privacy_status": "private", "entries": entries}, indent=2),
+        json.dumps(
+            {"week_of": week_of, "privacy_status": "private", "entries": entries, "experiment_brief": brief}, indent=2
+        ),
         encoding="utf-8",
     )
     print(f"Wrote {output} ({len(entries)} entries)")
@@ -566,6 +583,7 @@ def main() -> None:
     weekly_parser.add_argument("--shorts", type=int, default=7)
     weekly_parser.add_argument("--out", default="data/weekly_plan.json")
     weekly_parser.add_argument("--no-longform", action="store_true")
+    weekly_parser.add_argument("--analytics", help="Analytics report used to shape the next slate")
     production_parser = sub.add_parser("produce-week")
     production_parser.add_argument("--plan", required=True)
     production_parser.add_argument("--out", default="output/weekly")
@@ -607,7 +625,15 @@ def main() -> None:
     if args.command == "longform":
         raise SystemExit(run_longform(args.source_url, Path(args.out)))
     if args.command == "plan-week":
-        raise SystemExit(run_weekly_plan(args.week_of, args.shorts, Path(args.out), not args.no_longform))
+        raise SystemExit(
+            run_weekly_plan(
+                args.week_of,
+                args.shorts,
+                Path(args.out),
+                not args.no_longform,
+                Path(args.analytics) if args.analytics else None,
+            )
+        )
     if args.command == "produce-week":
         raise SystemExit(run_weekly_production(Path(args.plan), Path(args.out), args.upload_private))
     if args.command == "analytics":

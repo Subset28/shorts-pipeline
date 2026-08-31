@@ -65,6 +65,10 @@ Build a balanced weekly slate with seven Shorts and one long-form slot using
 `python -m shorts_pipeline plan-week --week-of YYYY-MM-DD`. The command writes
 source URLs, categories, private status, and UTC publish times to
 `data/weekly_plan.json`; it plans only and never uploads or publishes.
+When `data/analytics_report.json` contains a ready experiment brief, planning
+prefers the measured reference category while preserving rotation and records
+the exact review target. Use `--analytics path/to/report.json` to select a
+different report; incomplete samples do not alter the slate.
 
 Execute a reviewed plan with `python -m shorts_pipeline produce-week --plan
 data/weekly_plan.json`. It renders only by default. Add `--upload-private` to

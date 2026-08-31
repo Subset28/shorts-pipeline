@@ -18,6 +18,11 @@ weekly slate with explicit private UTC publish times. Planning is separate from
 rendering and publishing, so the operator can review the source and rights
 fields before media work begins.
 
+When an analytics report contains repeated evidence, the planner consumes its
+experiment brief to prefer the measured reference category and annotate only
+unambiguous baseline/reference targets. Format and variant remain explicit in
+the plan; insufficient evidence leaves the normal rotation unchanged.
+
 The free path uses RSS, deterministic fallback copy, local Pillow rendering,
 FFmpeg, and a required narration track. Optional LLM and TTS adapters improve quality without
 changing the pipeline contract.
