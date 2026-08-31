@@ -2,6 +2,10 @@
 
 ## Shorts pipeline
 
+2026-08-30: Added channel-level YouTube packaging with bounded metadata,
+category-aware tags, generated custom thumbnails, and idempotent thumbnail
+retry state. Verified with 109 project tests, Ruff, compileall, and diff checks.
+
 - The local pipeline is the working source of truth; NAS deployment is reserved
   for an explicitly approved finished release.
 - The Synology NAS deployment was fully decommissioned on 2026-08-30. The
@@ -15,6 +19,12 @@
   the returned YouTube ID is persisted on the Mac. TikTok remains disabled until
   its Direct Post access token is configured, and the persistent Mac `.env`
   remains `DRY_RUN=true`.
+- Added channel-level YouTube packaging: titles are normalized to the platform
+  limit, descriptions preserve readable paragraphs and topic context, tags are
+  deduplicated and category-aware, and each short or long-form render gets a
+  1280x720 custom thumbnail recorded in its manifest and sent to YouTube.
+- Packaging follows current YouTube guidance: accurate titles/thumbnails,
+  clear descriptions, and retention/CTR measurement over keyword stuffing.
 - Current work adds source-gated content lanes: news breakdown, fact explainer,
   myth bust, technical joke/POV, question/answer, and conditional surprising
   fact, timeline, and prediction watch.

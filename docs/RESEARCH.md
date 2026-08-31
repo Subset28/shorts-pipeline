@@ -21,6 +21,15 @@ posting schedule guarantees reach.
 - **Keep captions readable and accurate.** Captions are burned into the video,
   limited to short bursts, and can use local Whisper timing when available.
   Speaker colors are used only when diarization supplies speaker labels.
+- **Package for the viewer, not a keyword loophole.** YouTube identifies the
+  title, thumbnail, and description as important metadata, says tags are mainly
+  useful for spelling variants, and recommends accurate, succinct titles and
+  thumbnails. The publisher now keeps descriptions readable, deduplicates
+  bounded tags, and generates a consistent custom thumbnail for each format.
+- **Protect the upload state.** The YouTube Data API supports setting a custom
+  thumbnail with the upload scope and limits the image to 2 MB. Thumbnail setup
+  is therefore a post-upload step; a failure is logged without discarding the
+  already-created video ID.
 
 ## Sources
 
@@ -28,6 +37,9 @@ posting schedule guarantees reach.
 - [YouTube: Shorts search and discovery](https://support.google.com/youtube/answer/11914225?co=YOUTUBE._YTVideoType%3Dshorts&hl=en)
 - [YouTube: retention analytics](https://support.google.com/youtube/answer/9314415?hl=en)
 - [YouTube: Shorts analytics metrics](https://support.google.com/youtube/answer/12942217?co=YOUTUBE._YTVideoType%3Dshorts&hl=en)
+- [YouTube: title and thumbnail tips](https://support.google.com/youtube/answer/12340300)
+- [YouTube: recommendation performance and metadata](https://support.google.com/youtube/answer/16559650?hl=en)
+- [YouTube Data API: set a custom thumbnail](https://developers.google.com/youtube/v3/docs/thumbnails/set)
 
 These sources support the workflow and measurement choices; they do not support
 any forecast of a particular view count.

@@ -77,6 +77,33 @@ def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.I
     return ImageFont.load_default()
 
 
+def render_thumbnail(package: ScriptPackage, path: Path) -> Path:
+    """Create a readable custom thumbnail for YouTube packaging."""
+    image = Image.new("RGB", (1280, 720), (8, 16, 32))
+    draw = ImageDraw.Draw(image)
+    for y in range(720):
+        shade = int(8 + (y / 720) * 18)
+        draw.line((0, y, 1280, y), fill=(shade, shade + 8, shade + 24))
+    draw.rectangle((0, 0, 24, 720), fill=(255, 92, 38))
+    draw.rounded_rectangle((72, 70, 370, 122), radius=18, fill=(255, 92, 38))
+    draw.text((96, 82), "SIGNAL LAB", fill="white", font=_font(28, bold=True))
+    draw.text((78, 610), package.category.upper(), fill=(180, 205, 230), font=_font(26, bold=True))
+    hook = " ".join(package.hook.split()).strip()
+    lines = textwrap.wrap(hook, width=24)[:3] or ["TECHNOLOGY EXPLAINED"]
+    draw.multiline_text(
+        (78, 205),
+        "\n".join(lines),
+        fill="white",
+        font=_font(72, bold=True),
+        spacing=14,
+        stroke_width=3,
+        stroke_fill=(0, 0, 0),
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(path, format="JPEG", quality=92, optimize=True)
+    return path
+
+
 def _asset(path: Path, size: tuple[int, int]) -> Image.Image | None:
     """Load an optional transparent card asset without making it mandatory."""
     if not path.exists():
