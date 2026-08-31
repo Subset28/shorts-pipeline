@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Fixed the unattended analytics archive script to set the detached worktree on `PYTHONPATH` for both archive commands, so launchd can run from any working directory without import failures. Verified with shell syntax checks and the full test suite.
+
 2026-08-31: Added a repository-safe weekly tuning log generator. The analytics archive workflow now records lane metrics, recommendations, and the structured experiment brief in readable Markdown alongside the aggregate JSON, making the next creative/SEO test explicit for review and Windows/NAS sync.
 
 2026-08-31: Expanded the private research slate with a current AI-security candidate based on official OpenAI and UK AISI reporting. The brief labels vendor benchmark claims, separates incidents, and restricts visuals to defensive explanations; merged via PR #90.
