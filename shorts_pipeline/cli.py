@@ -140,6 +140,31 @@ def _has_unseen_reddit_topic(settings) -> bool:
     return any(topic.sources[0].url not in seen for topic in topics)
 
 
+def run_preflight(reddit_only: bool = False, private_drafts: bool = False, youtube_only: bool = False) -> int:
+    """Validate local production inputs without TTS, rendering, or uploads."""
+    settings = load_settings()
+    issues: list[str] = []
+    if reddit_only:
+        if not settings.reddit_approved_file.exists():
+            issues.append("reddit_approved_file_missing")
+        if not settings.reddit_client_id or not settings.reddit_client_secret:
+            issues.append("reddit_credentials_missing")
+    if not settings.reddit_background_dir.exists() or not any(settings.reddit_background_dir.iterdir()):
+        issues.append("reddit_backgrounds_missing")
+    if not settings.youtube_client_secrets.exists():
+        issues.append("youtube_client_secrets_missing")
+    if not settings.youtube_token_file.exists():
+        issues.append("youtube_token_missing")
+    if not (settings.elevenlabs_rotator_path.exists() or settings.elevenlabs_voice_id or settings.edge_tts_voice):
+        issues.append("tts_configuration_missing")
+    if issues:
+        raise RuntimeError(f"Preflight failed: {', '.join(issues)}")
+    privacy = "private" if private_drafts else settings.youtube_privacy_status
+    destination = "YouTube only" if youtube_only else "configured platforms"
+    print(f"Preflight passed: privacy={privacy}, destination={destination}; no media or uploads started")
+    return 0
+
+
 def run_worker(
     force_dry_run: bool = False,
     reddit_only: bool = False,
@@ -800,6 +825,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     run_parser = sub.add_parser("run")
     run_parser.add_argument("--dry-run", action="store_true")
+    run_parser.add_argument("--preflight", action="store_true", help="Validate production inputs without media work")
     run_parser.add_argument("--reddit-only", action="store_true")
     run_parser.add_argument(
         "--private-drafts",
@@ -966,6 +992,8 @@ def main() -> None:
         print(f"Wrote {output} ({len(topics)} candidates; none are cleared for publishing)")
         return
     if args.daemon:
+        if args.preflight:
+            raise SystemExit("--preflight cannot be combined with --daemon")
         raise SystemExit(
             run_worker(
                 force_dry_run=args.dry_run,
@@ -975,6 +1003,8 @@ def main() -> None:
                 interval_hours=args.interval_hours,
             )
         )
+    if args.preflight:
+        raise SystemExit(run_preflight(args.reddit_only, args.private_drafts, args.youtube_only))
     raise SystemExit(
         run(
             force_dry_run=args.dry_run,

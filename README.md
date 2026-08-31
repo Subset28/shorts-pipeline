@@ -106,6 +106,9 @@ the private research slate and scheduled production plan in one discovery
 pass; it never renders or publishes.
 Use `--reddit-only` to build the slate exclusively from the approved Reddit
 queue, without changing permission records.
+Use `run --preflight` to validate local credentials, backgrounds, and TTS
+configuration without starting TTS, FFmpeg, or an upload. `run --dry-run`
+still renders media and only skips platform uploads.
 The plan is constrained to the same source set as the research slate, so every
 scheduled entry retains its matching editorial brief.
 
