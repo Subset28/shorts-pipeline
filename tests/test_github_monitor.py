@@ -63,3 +63,16 @@ def test_monitor_fetches_events_over_bounded_https(monkeypatch):
     assert request.get_header("Accept") == "application/vnd.github+json"
     assert request.get_header("User-agent") == "shorts-pipeline-monitor"
     assert timeout == 15
+
+
+def test_monitor_does_not_advance_state_when_notification_fails(tmp_path, monkeypatch):
+    monitor = _module()
+    state = tmp_path / "state.json"
+    state.write_text('["event-old"]', encoding="utf-8")
+    monkeypatch.setattr(monitor, "STATE", state)
+    monkeypatch.setattr(monitor, "fetch_events", lambda: [{"id": "event-new", "type": "PushEvent"}])
+    monkeypatch.setattr(monitor, "notify", lambda *_args: False)
+
+    with __import__("pytest").raises(SystemExit, match="75"):
+        monitor.main()
+    assert json.loads(state.read_text(encoding="utf-8")) == ["event-old"]

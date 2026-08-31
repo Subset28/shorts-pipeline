@@ -30,14 +30,26 @@ def fetch_events() -> list[dict]:
     return [item for item in payload if isinstance(item, dict) and item.get("id")]
 
 
-def notify(title: str, message: str) -> None:
-    subprocess.run(
-        ["osascript", "-e", "display notification (item 2 of argv) with title (item 1 of argv)", "--", title, message],
-        check=True,
-        capture_output=True,
-        text=True,
-        timeout=15,
-    )
+def notify(title: str, message: str) -> bool:
+    try:
+        subprocess.run(
+            [
+                "osascript",
+                "-e",
+                "display notification (item 2 of argv) with title (item 1 of argv)",
+                "--",
+                title,
+                message,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        print(f"GitHub notification unavailable: {type(exc).__name__}", file=sys.stderr)
+        return False
+    return True
 
 
 def _load_state() -> set[str]:
@@ -84,11 +96,13 @@ def main() -> None:
         previous = _load_state()
         current = {str(event["id"]) for event in watched}
         new_events = [event for event in reversed(watched) if str(event["id"]) not in previous]
-        _save_state(current)
         if not previous:
+            _save_state(current)
             return
         for event in new_events:
-            notify(*_event_message(event))
+            if not notify(*_event_message(event)):
+                raise SystemExit(75)
+        _save_state(current)
     except TimeoutError as exc:
         print(str(exc), file=sys.stderr)
         raise SystemExit(75) from exc

@@ -352,3 +352,9 @@ the normal rotation unchanged.
 - Replaced the monitor's third-party HTTP import with Python's standard-library URL client, retaining the 15-second network timeout and 45-second process deadline.
 - This reduces launchd startup work and avoids import-time hangs on the external-volume source checkout.
 - Verification: mocked URL request contract, Python compilation, plist lint, and `git diff --check` passed.
+
+## 2026-08-31 — bound launchd notification delivery
+
+- Notification delivery now has a three-second subprocess limit and reports failure without hanging the monitor.
+- Event state advances only after all notifications succeed, so launchd retries missed alerts instead of silently dropping them.
+- Verification: direct notification-failure/state-preservation assertion and `git diff --check` passed.
