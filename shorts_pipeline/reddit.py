@@ -103,9 +103,10 @@ def _clean_text(value: str) -> str:
 def _score_value(value: object) -> float:
     """Normalize an optional Reddit score without aborting discovery."""
     try:
-        return float(value)
+        score = float(value)
     except (TypeError, ValueError):
         return 0.0
+    return score if math.isfinite(score) else 0.0
 
 
 def _get_with_retries(client, url: str, params: dict) -> object | None:
