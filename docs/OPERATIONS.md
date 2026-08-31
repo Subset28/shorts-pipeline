@@ -92,6 +92,8 @@ caption evidence; Shorts additionally need a selected background visual.
 Failed metadata evidence raises an error before any platform request is made.
 The Reddit worker launchd job uses background scheduling, low-priority I/O,
 and a restart throttle to reduce load on the Mac during media generation.
+FFmpeg also defaults to two worker threads with single-threaded filter graphs;
+set `FFMPEG_THREADS` between 1 and 4 when tuning resource use on a host.
 For weekly preparation, `python -m shorts_pipeline prepare-week` writes both
 private planning artifacts from one discovery pass. It is planning-only;
 `produce-week` remains the separate render/upload step.

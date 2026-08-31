@@ -9,6 +9,8 @@ from pathlib import Path
 
 import httpx
 
+from .resources import ffmpeg_resource_args
+
 
 def _video_candidates(directory: Path) -> list[Path]:
     """Return only non-empty local video files usable by FFmpeg."""
@@ -131,7 +133,7 @@ def build_background_reel(
     else:
         filters.append("".join(labels) + f"concat=n={segment_count}:v=1:a=0[v]")
         final_label = "[v]"
-    command = ["ffmpeg", "-y"]
+    command = ["ffmpeg", "-y", *ffmpeg_resource_args()]
     selected_sources = [sources[(start_index + index) % len(sources)] for index in range(segment_count)]
     for source in selected_sources:
         command += ["-stream_loop", "-1", "-i", str(source)]
@@ -237,6 +239,7 @@ def split_authorized_clip(source: Path, output_dir: Path, parts: int = 4) -> lis
             [
                 "ffmpeg",
                 "-y",
+                *ffmpeg_resource_args(),
                 "-ss",
                 f"{start:.3f}",
                 "-i",

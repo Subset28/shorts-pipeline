@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Added bounded FFmpeg resource controls for unattended renders. Video, background-reel, split, and long-form commands now default to two threads and single-threaded filter graphs; `FFMPEG_THREADS` is documented and clamped to 1-4 to reduce resource contention after the prior Mac crash report.
+
 2026-08-31: Fixed the unattended analytics archive script to set the detached worktree on `PYTHONPATH` for both archive commands, so launchd can run from any working directory without import failures. Verified with shell syntax checks and the full test suite.
 
 2026-08-31: Added a repository-safe weekly tuning log generator. The analytics archive workflow now records lane metrics, recommendations, and the structured experiment brief in readable Markdown alongside the aggregate JSON, making the next creative/SEO test explicit for review and Windows/NAS sync.
