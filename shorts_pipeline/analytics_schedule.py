@@ -51,7 +51,9 @@ def _snapshots(path: Path) -> dict[str, list[dict[str, Any]]]:
         value = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return {}
-    return value if isinstance(value, dict) else {}
+    if not isinstance(value, dict):
+        return {}
+    return {video_id: snapshots for video_id, snapshots in value.items() if isinstance(snapshots, list)}
 
 
 def due_videos(events_path: Path, snapshots_path: Path, now: datetime | None = None) -> list[dict[str, Any]]:
