@@ -15,13 +15,20 @@ ALLOWED_FORMATS = (
     "reddit_story",
 )
 
+_TECHNICAL_JOKE_SIGNAL = re.compile(
+    r"\b(joke|funny|hilarious|absurd|ridiculous|meme|humou?r|satire|"
+    r"developer life|programmer life|tech support|rubber duck|"
+    r"production incident|debugging nightmare)\b",
+    re.IGNORECASE,
+)
+
 
 def eligible_formats(topic: Topic) -> tuple[str, ...]:
     """Return lanes whose promise can be supported by this source."""
     source = topic.sources[0]
     text = f"{topic.title} {topic.sources[0].summary}".lower()
     formats = ["news_breakdown", "fact_explainer", "question_answer"]
-    if topic.category in {"AI", "ML", "CS", "AI News", "Cyber"}:
+    if topic.category in {"AI", "ML", "CS", "AI News", "Cyber"} and _TECHNICAL_JOKE_SIGNAL.search(text):
         formats.insert(2, "technical_joke")
     myth_signal = re.search(
         r"\b(myth|false|wrong|debunk|misconception|claim|actually|really|true|doesn['’]t|not)\b", text

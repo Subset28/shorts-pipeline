@@ -28,9 +28,11 @@ surprising technology stories told quickly.
     The script must add original commentary and frame the post as one person's
     account, not verified industry fact.
 
-The deterministic fallback rotates formats by source URL. An LLM provider may
-choose among the same formats, but it must preserve source links, avoid claims
-not supported by the source, and avoid instructions that enable wrongdoing.
+The deterministic fallback rotates formats by source URL, but only makes the
+technical-joke lane eligible when the source contains an explicit humor or
+technical-culture signal. An LLM provider may choose among the same formats,
+but it must preserve source links, avoid claims not supported by the source,
+and avoid instructions that enable wrongdoing.
 
 The source layer combines research feeds with fast-moving CS and AI-news feeds.
 Each draft appends a local `data/events.jsonl` record containing its source,

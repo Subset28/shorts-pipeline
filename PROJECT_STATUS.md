@@ -174,5 +174,11 @@
 
 - Continue improving the creative quality from retention evidence rather than
   assuming any lane will go viral.
+- Improved the no-Whisper caption fallback to break on natural punctuation and
+  allocate timing by phrase length plus pause weight, while preserving the
+  existing Whisper/WhisperX alignment paths.
+- Restricted the technical-joke lane to sources with explicit humor or
+  technical-culture signals, preventing serious AI and CS announcements from
+  receiving mismatched generic POV scripts.
 - Finish platform OAuth/configuration and perform a deliberate final-release
   review before deploying to the NAS.

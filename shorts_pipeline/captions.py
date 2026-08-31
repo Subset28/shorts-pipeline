@@ -45,15 +45,46 @@ def _fallback_segments(text: str, duration: float) -> list[tuple[float, float, s
     words = _clean(text).split()
     if not words:
         return []
-    chunks = [words[i : i + 6] for i in range(0, len(words), 6)]
-    step = max(duration, 1.0) / len(chunks)
+    # Keep caption beats short enough for mobile reading, but prefer natural
+    # phrase boundaries when punctuation gives us one. Equal-sized chunks
+    # make a pause after a sentence look like the voice is ahead of its text.
+    chunks: list[list[str]] = []
+    current: list[str] = []
+    for word in words:
+        current.append(word)
+        if len(current) >= 4 or (len(current) >= 2 and re.search(r"[.!?,;:]$", word)):
+            chunks.append(current)
+            current = []
+    if current:
+        chunks.append(current)
+
+    def weight(chunk: list[str]) -> float:
+        # Punctuation approximates the pauses used by TTS. Give those beats
+        # a little more time while keeping the allocation deterministic.
+        punctuation = chunk[-1][-1:] if chunk else ""
+        pause = 0.35 if punctuation in ",;:" else 0.7 if punctuation in ".!?" else 0.0
+        return len(chunk) + pause
+
+    weights = [weight(chunk) for chunk in chunks]
+    total_weight = sum(weights)
+    available_duration = max(duration, 1.0)
+    boundaries: list[float] = []
+    elapsed = 0.0
+    for item_weight in weights:
+        elapsed += available_duration * item_weight / total_weight
+        boundaries.append(elapsed)
     # TTS often has a short lead-in before the first spoken phoneme. A small
     # delay makes fallback captions feel aligned instead of leading the voice.
     lead_in = 0.18
-    return [
-        (0.0 if i == 0 else min(duration, i * step + lead_in), min(duration, (i + 1) * step + lead_in), " ".join(chunk))
-        for i, chunk in enumerate(chunks)
-    ]
+    segments = []
+    start = 0.0
+    for index, (chunk, boundary) in enumerate(zip(chunks, boundaries)):
+        end = min(available_duration, boundary + lead_in)
+        if index == len(chunks) - 1:
+            end = available_duration
+        segments.append((start, max(end, start + 0.2), " ".join(chunk)))
+        start = min(available_duration, boundary + lead_in)
+    return segments
 
 
 def _write_srt(segments: list[tuple[float, float, str]], output: Path) -> Path | None:
