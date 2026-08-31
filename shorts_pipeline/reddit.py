@@ -106,6 +106,16 @@ def _clean_story_text(value: str) -> str:
     return _clean_text(re.sub(r"https?://\S+", "", value))
 
 
+def _listing_children(payload: object) -> list:
+    if not isinstance(payload, dict):
+        return []
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        return []
+    children = data.get("children")
+    return children if isinstance(children, list) else []
+
+
 def _score_value(value: object) -> float:
     """Normalize an optional Reddit score without aborting discovery."""
     try:
@@ -209,7 +219,7 @@ def discover_reddit_topics(
             )
             if response is None:
                 continue
-            children = response.json().get("data", {}).get("children", [])
+            children = _listing_children(response.json())
             for child in children:
                 if not isinstance(child, dict):
                     continue
@@ -259,7 +269,7 @@ def discover_reddit_topics(
                 listings = comments.json()
                 if not isinstance(listings, list) or len(listings) < 2:
                     continue
-                for comment_child in listings[1].get("data", {}).get("children", []):
+                for comment_child in _listing_children(listings[1]):
                     if not isinstance(comment_child, dict):
                         continue
                     comment = comment_child.get("data", {})

@@ -27,6 +27,7 @@ from shorts_pipeline.reddit import (
     _clean_story_text,
     _get_with_retries,
     _is_niche_relevant,
+    _listing_children,
     _post_with_retries,
     _reddit_quality_score,
     _score_value,
@@ -545,6 +546,12 @@ def test_reddit_story_text_removes_markdown_url_noise():
     assert _clean_story_text("Read [the report](https://example.test/report) and https://example.test/more") == (
         "Read the report and"
     )
+
+
+def test_reddit_listing_children_requires_a_list_payload():
+    assert _listing_children({"data": {"children": [{"data": {}}]}}) == [{"data": {}}]
+    assert _listing_children({"data": {"children": "malformed"}}) == []
+    assert _listing_children({"data": "malformed"}) == []
 
 
 def test_private_draft_reddit_worker_keeps_polling_without_approved_queue(monkeypatch):
