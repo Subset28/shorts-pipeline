@@ -69,6 +69,15 @@ def _publish_state_key(source_url: str, variant: int) -> str:
     return source_url if variant == 0 else f"{source_url}#variant={variant}"
 
 
+def _select_topic(topics, seen: set[str], reddit_only: bool = False):
+    unseen = next((item for item in topics if item.sources[0].url not in seen), None)
+    if unseen:
+        return unseen
+    if reddit_only:
+        raise RuntimeError("No unseen Reddit topics available; waiting for new stories")
+    return topics[0]
+
+
 def _should_upload_tiktok(private_drafts: bool, youtube_only: bool) -> bool:
     return not private_drafts and not youtube_only
 
@@ -164,7 +173,7 @@ def run(
     publish_path = settings.data_dir / "publish_state.json"
     events_path = settings.data_dir / "events.jsonl"
     seen = load_seen(seen_path)
-    topic = next((item for item in topics if item.sources[0].url not in seen), topics[0])
+    topic = _select_topic(topics, seen, reddit_only=reddit_only)
     source_url = topic.sources[0].url
     output_dir = output_dir_override or settings.output_dir
     package = create_package(topic, settings.openai_api_key, settings.openai_model, variant)
