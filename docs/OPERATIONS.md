@@ -122,6 +122,12 @@ API keys. Install `scripts/com.shorts-pipeline.analytics-sync.plist` with
 launchd to run Sundays at 23:30; override `ANALYTICS_REMOTE_HOST` and
 `ANALYTICS_REMOTE_DIR` when the Windows/NAS SSH alias or path differs.
 
+With `--weekly`, the analytics command also converts the latest per-video
+snapshots into `data/analytics_report.json`, which the next weekly planner
+uses. Reach exports may use YouTube Reporting API field names such as
+`video_thumbnail_impressions` and `video_thumbnail_impressions_ctr`; the
+report normalizer accepts those names as well as Studio CSV aliases.
+
 Install or refresh all Mac jobs with `scripts/install-launchd-jobs.sh`. The
 installer copies each plist, registers it in the current user's launchd
 domain, and stops with the copied file path if macOS rejects a job.
