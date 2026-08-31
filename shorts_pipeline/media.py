@@ -88,7 +88,7 @@ def build_background_reel(
     variation_key: str = "",
     duration: float = 60.0,
 ) -> Path | None:
-    """Create a long, varied silent reel instead of a short repeating loop."""
+    """Create a full-duration reel with bounded decoder fan-out."""
     if not sources:
         return sources[0] if sources else None
     if not shutil.which("ffmpeg"):
@@ -98,8 +98,13 @@ def build_background_reel(
     labels = []
     transition = min(0.18, max(0.0, seconds_per_clip / 4))
     seed = int(hashlib.sha256(variation_key.encode("utf-8")).hexdigest()[:8], 16) if variation_key else 0
+    requested_duration = max(duration, seconds_per_clip)
     usable_segment_length = max(seconds_per_clip - transition, 0.1)
-    segment_count = max(1, math.ceil(max(duration, seconds_per_clip) / usable_segment_length))
+    segment_count = max(1, math.ceil(requested_duration / usable_segment_length))
+    if segment_count > 8:
+        segment_count = 8
+        seconds_per_clip = (requested_duration + transition * (segment_count - 1)) / segment_count
+        usable_segment_length = max(seconds_per_clip - transition, 0.1)
     start_index = seed % len(sources)
     for index in range(segment_count):
         label = f"v{index}"
