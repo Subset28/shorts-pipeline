@@ -70,6 +70,75 @@ def test_weekly_plan_omits_duplicate_longform_source():
     assert [item["kind"] for item in plan] == ["longform"]
 
 
+def test_weekly_plan_uses_reference_category_from_experiment_brief():
+    topics = [
+        _topic("AI story", "AI", 10),
+        _topic("CS story", "CS", 9),
+        _topic("Cyber story", "Cyber", 8),
+    ]
+    brief = {
+        "status": "ready",
+        "experiments": [
+            {
+                "area": "opening_and_pacing",
+                "reference": {"category": "CS", "format_name": "reddit_story"},
+                "baseline": {"category": "AI", "format_name": "news_breakdown"},
+            }
+        ],
+    }
+
+    plan = build_weekly_plan(topics, date(2026, 9, 7), shorts_count=3, experiment_brief=brief)
+
+    assert [item["category"] for item in plan] == ["CS", "AI", "Cyber"]
+    assert plan[0]["analytics_target"]["role"] == "reference"
+    assert plan[0]["analytics_target"]["format_name"] == "reddit_story"
+    assert plan[1]["analytics_target"]["role"] == "baseline"
+
+
+def test_weekly_plan_ignores_incomplete_experiment_brief():
+    topic = _topic("AI story", "AI", 10)
+
+    plan = build_weekly_plan(
+        [topic], date(2026, 9, 7), shorts_count=1, experiment_brief={"status": "insufficient_sample"}
+    )
+
+    assert "analytics_role" not in plan[0]
+
+
+def test_weekly_plan_does_not_mislabel_same_category_experiment_lanes():
+    topic = _topic("AI story", "AI", 10)
+    brief = {
+        "status": "ready",
+        "experiments": [
+            {
+                "reference": {"category": "AI", "format_name": "fact_explainer", "variant": 0},
+                "baseline": {"category": "AI", "format_name": "news_breakdown", "variant": 1},
+            }
+        ],
+    }
+
+    plan = build_weekly_plan([topic], date(2026, 9, 7), shorts_count=1, experiment_brief=brief)
+
+    assert "analytics_target" not in plan[0]
+
+
+def test_weekly_plan_ignores_malformed_experiment_list():
+    topic = _topic("AI story", "AI", 10)
+
+    plan = build_weekly_plan([topic], date(2026, 9, 7), shorts_count=1, experiment_brief={"status": "ready"})
+
+    assert "analytics_target" not in plan[0]
+
+
+def test_weekly_plan_rejects_missing_explicit_analytics_report(tmp_path, monkeypatch):
+    monkeypatch.setattr(cli, "load_settings", lambda: type("Settings", (), {"data_dir": tmp_path})())
+    monkeypatch.setattr(cli, "discover_topics", lambda _limit: [])
+    monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda _path: [])
+
+    with pytest.raises(ValueError, match="does not exist"):
+        cli.run_weekly_plan("2026-09-07", 1, tmp_path / "plan.json", False, tmp_path / "missing.json")
+
+
 def test_weekly_plan_rejects_invalid_inputs():
     with pytest.raises(ValueError, match="shorts_count"):
         build_weekly_plan([], date(2026, 9, 7), shorts_count=0)

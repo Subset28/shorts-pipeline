@@ -221,7 +221,15 @@ def _experiment_row(row: dict[str, Any], metric: str, duplicate_lanes: set[str])
     lane = _lane(row)
     if lane in duplicate_lanes:
         lane = f"{lane} / {row.get('platform', 'unknown')} / variant {int(row.get('variant', 0))}"
-    return {"lane": lane, metric: row.get(metric, 0), "videos": int(row.get("videos", 0))}
+    return {
+        "lane": lane,
+        "category": str(row.get("category", "unknown")),
+        "format_name": str(row.get("format_name", "unknown")),
+        "platform": str(row.get("platform", "unknown")),
+        "variant": int(row.get("variant", 0)),
+        metric: row.get(metric, 0),
+        "videos": int(row.get("videos", 0)),
+    }
 
 
 def build_experiment_brief(report: dict[str, Any], min_videos: int = 2) -> dict[str, Any]:
