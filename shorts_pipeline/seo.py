@@ -225,12 +225,13 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
     required = ("hook", "narration", "title", "description")
     if any(not isinstance(data.get(field), str) or not data[field].strip() for field in required):
         raise ValueError("model output is missing required text fields")
-    narration = _clip_narration(data["narration"])
-    if len(narration.split()) < 12:
-        raise ValueError("model narration is too short")
     format_name = data.get("format_name", "news_breakdown")
     if format_name not in eligible_formats(topic):
         raise ValueError(f"unsupported format: {format_name!r}")
+    narration = _clip_narration(data["narration"])
+    minimum_words = 12 if format_name == "reddit_story" else 70
+    if len(narration.split()) < minimum_words:
+        raise ValueError("model narration is too short")
     if format_name == "reddit_story":
         # Keep model-generated Reddit treatments source-faithful: exact title,
         # then the original body. The fallback adds the narrative transitions.
