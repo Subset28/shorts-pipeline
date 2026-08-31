@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Tightened Reddit relevance filtering for the channel promise. Career/advice-shaped titles now require a concrete technical mechanism; generic career guidance is rejected while technical incidents remain eligible. The regenerated 2026-09-07 private plan contains 8 entries and no generic career-advice candidate.
+
 2026-08-31: Added private editorial research slates. `research-week` now
 turns source-backed topics into reviewable briefs containing evidence, hook,
 format, visual direction, captions, metadata, long-form bridge, and rights
