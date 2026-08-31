@@ -346,3 +346,9 @@ the normal rotation unchanged.
 - Replaced the launchd monitor's `gh` subprocess with a direct GitHub Events API request using the existing HTTP client and a 15-second request timeout.
 - This avoids the launchd-only subprocess hang while preserving watched pull-request, review, comment, and push notifications without reading credentials.
 - Verification: mocked HTTPS request contract passed with the runtime virtualenv; Python compilation and `git diff --check` passed.
+
+## 2026-08-31 — make monitor startup dependency-light
+
+- Replaced the monitor's third-party HTTP import with Python's standard-library URL client, retaining the 15-second network timeout and 45-second process deadline.
+- This reduces launchd startup work and avoids import-time hangs on the external-volume source checkout.
+- Verification: mocked URL request contract, Python compilation, plist lint, and `git diff --check` passed.

@@ -42,26 +42,24 @@ def test_monitor_fetches_events_over_bounded_https(monkeypatch):
     calls = []
 
     class Response:
-        def raise_for_status(self):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
             return None
 
-        def json(self):
-            return [{"id": "event-1", "type": "PushEvent"}]
+        def read(self):
+            return b'[{"id": "event-1", "type": "PushEvent"}]'
 
-    def fake_get(url, **kwargs):
-        calls.append((url, kwargs))
+    def fake_urlopen(request, timeout):
+        calls.append((request, timeout))
         return Response()
 
-    monkeypatch.setattr(monitor.httpx, "get", fake_get)
+    monkeypatch.setattr(monitor, "urlopen", fake_urlopen)
 
     assert monitor.fetch_events() == [{"id": "event-1", "type": "PushEvent"}]
-    assert calls == [
-        (
-            "https://api.github.com/repos/Subset28/shorts-pipeline/events",
-            {
-                "params": {"per_page": 30},
-                "headers": {"Accept": "application/vnd.github+json", "User-Agent": "shorts-pipeline-monitor"},
-                "timeout": 15,
-            },
-        )
-    ]
+    request, timeout = calls[0]
+    assert request.full_url == "https://api.github.com/repos/Subset28/shorts-pipeline/events?per_page=30"
+    assert request.get_header("Accept") == "application/vnd.github+json"
+    assert request.get_header("User-agent") == "shorts-pipeline-monitor"
+    assert timeout == 15
