@@ -22,6 +22,7 @@ from .longform import create_longform_package, render_longform_video
 from .media import build_background_reel, ensure_background_video, select_backgrounds, split_authorized_clip
 from .publish import (
     fetch_tiktok_status,
+    metadata_quality_gate,
     quality_gate,
     save_manifest,
     set_youtube_thumbnail,
@@ -249,6 +250,7 @@ def run(
         print("Dry run: YouTube and TikTok uploads skipped")
         return 0
     quality_gate(manifest)
+    metadata_quality_gate(manifest)
     privacy = "private" if private_drafts else settings.youtube_privacy_status
     youtube_id = published.get("youtube_id")
     if youtube_id:
@@ -440,6 +442,7 @@ def run_longform(
     if not upload_private:
         return 0
     quality_gate(output_dir / "manifest.json")
+    metadata_quality_gate(output_dir / "manifest.json")
     publish_path = settings.data_dir / "publish_state.json"
     events_path = settings.data_dir / "events.jsonl"
     published = load_publish_state(publish_path).get(source_url or topic.sources[0].url, {})

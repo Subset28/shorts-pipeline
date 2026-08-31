@@ -296,6 +296,7 @@ def test_longform_private_upload_uses_private_youtube_status(tmp_path, monkeypat
     monkeypatch.setattr(cli, "create_longform_package", lambda _topic, editorial_brief=None: package)
     monkeypatch.setattr(cli, "synthesize", lambda _text, _settings, path: path if path.write_bytes(b"audio") else path)
     monkeypatch.setattr(cli, "_select_backgrounds_for_topic", lambda *args, **kwargs: [])
+    monkeypatch.setattr(cli, "metadata_quality_gate", lambda _path: {"passed": True, "issues": []})
     monkeypatch.setattr(
         cli,
         "render_longform_video",

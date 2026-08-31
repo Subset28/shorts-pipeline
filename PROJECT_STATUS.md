@@ -27,6 +27,9 @@ Fresh source research on 2026-08-31 produced a private three-story AI,
 cybersecurity, and networking slate with primary links, hooks, long-form
 questions, visual treatments, and explicit fact boundaries in
 `docs/research/2026-08-31-tech-story-slate.md`.
+Upload paths now enforce a source-linked metadata gate: title, description,
+tags, captions, category, and format are required, and Shorts must carry a
+background visual before YouTube upload.
 Weekly analytics now builds the planner-facing aggregate report automatically;
 the YouTube Reporting API Reach Basic job supplies thumbnail impressions and
 CTR while the existing activity query supplies retention and engagement.
