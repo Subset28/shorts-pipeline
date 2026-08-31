@@ -22,7 +22,15 @@ from shorts_pipeline.history import load_publish_state, save_publish_state
 from shorts_pipeline.longform import create_longform_package, render_longform_video
 from shorts_pipeline.media import build_background_reel, select_background, select_backgrounds
 from shorts_pipeline.models import ScriptPackage, Source, Topic
-from shorts_pipeline.publish import fetch_tiktok_status, metadata, quality_gate, save_manifest, youtube_status
+from shorts_pipeline.publish import (
+    fetch_tiktok_status,
+    metadata,
+    quality_gate,
+    save_manifest,
+    set_youtube_thumbnail,
+    upload_youtube,
+    youtube_status,
+)
 from shorts_pipeline.quality import assess_render
 from shorts_pipeline.reddit import (
     _clean_story_text,
@@ -36,7 +44,7 @@ from shorts_pipeline.reddit import (
     discover_reddit_topics,
     load_approved_reddit_topics,
 )
-from shorts_pipeline.render import _card, _reddit_post_card, _render_duration, render_video
+from shorts_pipeline.render import _card, _reddit_post_card, _render_duration, render_thumbnail, render_video
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.sources import (
     _clean_summary,
@@ -290,9 +298,47 @@ def test_metadata_description_is_youtube_safe():
     source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
     package = fallback_package(Topic("A breakthrough", "AI", (source,)))
     package.description = "Valid\x00 description\u2028 – café"
-    assert metadata(package)["description"] == "Valid description cafe"
+    safe = metadata(package)
+    assert safe["description"].startswith("A breakthrough\n\nValid description cafe")
+    assert "Topics: " in safe["description"]
     package.description = "A *marked* > description"
-    assert metadata(package)["description"] == "A marked  description"
+    marked = metadata(package)["description"]
+    assert "A marked description" in marked
+    assert "Topics: AI, technology" in marked
+
+
+def test_metadata_is_searchable_and_bounded():
+    package = ScriptPackage(
+        "A hook",
+        "A narration",
+        "How a compiler optimization changes software performance for large production systems and teams",
+        "A source-backed explanation.\n\nSource: https://example.test/compiler",
+        ["AI", "ai", "technology"],
+        ["https://example.test/compiler"],
+        "fact_explainer",
+        "AI",
+    )
+    data = metadata(package)
+    assert len(data["title"]) <= 100
+    assert "\n\n" in data["description"]
+    assert "artificial intelligence" in data["tags"]
+    assert len({tag.casefold() for tag in data["tags"]}) == len(data["tags"])
+    assert sum(len(tag) + 1 for tag in data["tags"]) <= 451
+
+
+def test_metadata_preserves_long_single_token_title():
+    title = "x" * 120
+    data = metadata(ScriptPackage("Hook", "Narration", title, "Description", category="AI"))
+    assert data["title"] == ("x" * 97) + "..."
+
+
+def test_thumbnail_is_landscape_and_jpeg(tmp_path):
+    source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
+    package = fallback_package(Topic(source.title, "AI", (source,)))
+    output = render_thumbnail(package, tmp_path / "thumbnail.jpg")
+    assert output.exists()
+    assert Image.open(output).size == (1280, 720)
+    assert Image.open(output).format == "JPEG"
 
 
 def test_scheduled_youtube_upload_is_private_until_publish_time():
@@ -1082,6 +1128,129 @@ def test_manifest_records_audio_and_caption_paths(tmp_path):
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     assert payload["audio"] == str(audio)
     assert payload["captions"] == str(captions)
+
+
+def test_manifest_records_thumbnail_path(tmp_path):
+    source = Source("A breakthrough", "https://example.test/source", "A useful finding.")
+    thumbnail = tmp_path / "thumbnail.jpg"
+    manifest = save_manifest(
+        fallback_package(Topic("A breakthrough", "AI", (source,))),
+        tmp_path / "short.mp4",
+        tmp_path,
+        thumbnail=thumbnail,
+    )
+    assert json.loads(manifest.read_text(encoding="utf-8"))["thumbnail"] == str(thumbnail)
+
+
+def test_youtube_upload_does_not_handle_thumbnail(tmp_path, monkeypatch):
+    video = tmp_path / "short.mp4"
+    thumbnail = tmp_path / "thumbnail.jpg"
+    token = tmp_path / "token.json"
+    video.write_bytes(b"video")
+    thumbnail.write_bytes(b"thumbnail")
+    token.write_text("{}", encoding="utf-8")
+    requests = []
+
+    class FakeRequest:
+        def __init__(self, result):
+            self.result = result
+
+        def execute(self):
+            return self.result
+
+    class FakeService:
+        def videos(self):
+            return self
+
+        def insert(self, **kwargs):
+            requests.append(("insert", kwargs))
+            return FakeRequest({"id": "video-1"})
+
+        def thumbnails(self):
+            return self
+
+        def set(self, **kwargs):
+            requests.append(("thumbnail", kwargs))
+            return FakeRequest({})
+
+    monkeypatch.setattr(
+        "shorts_pipeline.publish.Credentials.from_authorized_user_file",
+        lambda *_args, **_kwargs: SimpleNamespace(valid=True, expired=False, refresh_token=None),
+    )
+    monkeypatch.setattr("shorts_pipeline.publish.build", lambda *_args, **_kwargs: FakeService())
+    monkeypatch.setattr("shorts_pipeline.publish.MediaFileUpload", lambda path, **kwargs: (path, kwargs))
+
+    result = upload_youtube(
+        video,
+        fallback_package(Topic("A breakthrough", "AI", (Source("A breakthrough", "https://example.test", "Useful."),))),
+        tmp_path / "client.json",
+        token,
+        "private",
+    )
+
+    assert result == "video-1"
+    assert requests[0][0] == "insert"
+
+
+def test_youtube_thumbnail_failure_is_nonfatal(tmp_path, monkeypatch, capsys):
+    thumbnail = tmp_path / "thumbnail.jpg"
+    token = tmp_path / "token.json"
+    thumbnail.write_bytes(b"thumbnail")
+    token.write_text("{}", encoding="utf-8")
+
+    class Request:
+        def __init__(self, result):
+            self.result = result
+
+        def execute(self):
+            return self.result
+
+    class Service:
+        def thumbnails(self):
+            return self
+
+        def set(self, **_kwargs):
+            raise RuntimeError("thumbnail quota")
+
+    monkeypatch.setattr(
+        "shorts_pipeline.publish.Credentials.from_authorized_user_file",
+        lambda *_args, **_kwargs: SimpleNamespace(valid=True, expired=False, refresh_token=None),
+    )
+    monkeypatch.setattr("shorts_pipeline.publish.build", lambda *_args, **_kwargs: Service())
+    monkeypatch.setattr("shorts_pipeline.publish.MediaFileUpload", lambda path, **kwargs: (path, kwargs))
+
+    assert not set_youtube_thumbnail("video-1", thumbnail, tmp_path / "client.json", token)
+    assert "thumbnail upload failed" in capsys.readouterr().out
+
+
+def test_existing_youtube_upload_can_retry_thumbnail(tmp_path, monkeypatch):
+    thumbnail = tmp_path / "thumbnail.jpg"
+    token = tmp_path / "token.json"
+    thumbnail.write_bytes(b"thumbnail")
+    token.write_text("{}", encoding="utf-8")
+    requests = []
+
+    class Request:
+        def execute(self):
+            return {}
+
+    class Service:
+        def thumbnails(self):
+            return self
+
+        def set(self, **kwargs):
+            requests.append(kwargs)
+            return Request()
+
+    monkeypatch.setattr(
+        "shorts_pipeline.publish.Credentials.from_authorized_user_file",
+        lambda *_args, **_kwargs: SimpleNamespace(valid=True, expired=False, refresh_token=None),
+    )
+    monkeypatch.setattr("shorts_pipeline.publish.build", lambda *_args, **_kwargs: Service())
+    monkeypatch.setattr("shorts_pipeline.publish.MediaFileUpload", lambda path, **kwargs: (path, kwargs))
+
+    assert set_youtube_thumbnail("existing-video", thumbnail, tmp_path / "client.json", token)
+    assert requests[0]["videoId"] == "existing-video"
 
 
 def test_quality_gate_rejects_failed_render(tmp_path):

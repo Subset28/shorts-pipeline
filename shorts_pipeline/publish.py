@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,6 +17,15 @@ from .models import ScriptPackage
 from .quality import assess_render
 
 YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+_TAG_STOPWORDS = {"about", "after", "because", "from", "into", "that", "this", "what", "when", "with"}
+_CATEGORY_TAGS = {
+    "AI": ("artificial intelligence", "machine learning", "AI news"),
+    "AI News": ("artificial intelligence", "machine learning", "AI news"),
+    "ML": ("machine learning", "ML news", "AI research"),
+    "CS": ("computer science", "software engineering", "programming"),
+    "Cyber": ("cybersecurity", "information security", "infosec"),
+    "Aerospace": ("aerospace engineering", "space technology", "engineering"),
+}
 
 
 def youtube_status(privacy: str, publish_at: str | None = None) -> dict:
@@ -30,19 +40,62 @@ def youtube_status(privacy: str, publish_at: str | None = None) -> dict:
     return {"privacyStatus": "private", "publishAt": publish_at, "selfDeclaredMadeForKids": False}
 
 
-def metadata(package: ScriptPackage) -> dict:
+def _safe_title(value: str) -> str:
+    title = " ".join(value.split()).strip()
+    if len(title) <= 100:
+        return title
+    prefix = title[:97].rsplit(" ", 1)[0].rstrip(" ,:;-—")
+    return (prefix or title[:97]) + "..."
+
+
+def _seo_tags(package: ScriptPackage) -> list[str]:
+    candidates = [*package.tags, *_CATEGORY_TAGS.get(package.category, ()), package.category]
+    candidates.extend(
+        term
+        for term in re.findall(r"[A-Za-z0-9][A-Za-z0-9+./-]{2,}", package.title)
+        if term.casefold() not in _TAG_STOPWORDS
+    )
+    tags: list[str] = []
+    used: set[str] = set()
+    length = 0
+    for candidate in candidates:
+        tag = re.sub(r"\s+", " ", str(candidate)).strip(" #,\n\r\t")
+        key = tag.casefold()
+        if not tag or key in used or len(tag) > 100:
+            continue
+        added = len(tag) + (1 if tags else 0)
+        if length + added > 450:
+            break
+        tags.append(tag)
+        used.add(key)
+        length += added
+    return tags
+
+
+def _safe_description(package: ScriptPackage, tags: list[str]) -> str:
     description = unicodedata.normalize("NFKD", package.description).encode("ascii", "ignore").decode("ascii")
     description = "".join(
         " " if unicodedata.category(char) in {"Zl", "Zp"} else char
         for char in description
-        if unicodedata.category(char)[0] != "C"
-    ).strip()
-    description = " ".join(description.split())
-    description = description.translate(str.maketrans("", "", ">*_<#"))
+        if unicodedata.category(char)[0] != "C" or char in {"\n", "\r", "\t"}
+    )
+    description = description.translate(str.maketrans("", "", ">*_<"))
+    paragraphs = [" ".join(part.split()) for part in re.split(r"\n\s*\n", description) if part.strip()]
+    title = _safe_title(package.title)
+    if not paragraphs or not paragraphs[0].casefold().startswith(title.casefold()):
+        paragraphs.insert(0, title)
+    if tags:
+        paragraphs.append(f"Topics: {', '.join(tags[:8])}")
+    return "\n\n".join(paragraphs)[:5000].rstrip()
+
+
+def metadata(package: ScriptPackage) -> dict:
+    title = _safe_title(package.title)
+    tags = _seo_tags(package)
     return {
-        "title": package.title,
-        "description": description[:5000],
-        "tags": package.tags,
+        "title": title,
+        "description": _safe_description(package, tags),
+        "tags": tags,
         "sources": package.sources,
         "format_name": package.format_name,
         "category": package.category,
@@ -58,6 +111,7 @@ def save_manifest(
     background_sources: list[Path] | None = None,
     audio: Path | None = None,
     captions: Path | None = None,
+    thumbnail: Path | None = None,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest = output_dir / "manifest.json"
@@ -66,6 +120,8 @@ def save_manifest(
         payload["audio"] = str(audio)
     if captions:
         payload["captions"] = str(captions)
+    if thumbnail:
+        payload["thumbnail"] = str(thumbnail)
     if background:
         payload["background"] = str(background)
     if background_sources:
@@ -88,14 +144,7 @@ def quality_gate(manifest: Path) -> dict:
     return quality
 
 
-def upload_youtube(
-    video: Path,
-    package: ScriptPackage,
-    client_secrets: Path,
-    token_file: Path,
-    privacy: str,
-    publish_at: str | None = None,
-) -> str:
+def _youtube_credentials(client_secrets: Path, token_file: Path) -> Credentials:
     credentials = None
     if token_file.exists():
         credentials = Credentials.from_authorized_user_file(str(token_file), YOUTUBE_SCOPES)
@@ -105,7 +154,49 @@ def upload_youtube(
         else:
             flow = InstalledAppFlow.from_client_secrets_file(str(client_secrets), YOUTUBE_SCOPES)
             credentials = flow.run_local_server(port=0)
+        token_file.parent.mkdir(parents=True, exist_ok=True)
         token_file.write_text(credentials.to_json(), encoding="utf-8")
+    return credentials
+
+
+def _set_youtube_thumbnail(youtube, video_id: str, thumbnail: Path) -> bool:
+    try:
+        if not thumbnail.exists() or not thumbnail.stat().st_size:
+            return False
+        youtube.thumbnails().set(
+            videoId=video_id,
+            media_body=MediaFileUpload(str(thumbnail), mimetype="image/jpeg"),
+        ).execute()
+    except Exception:
+        print("YouTube thumbnail upload failed; it will be retried later")
+        return False
+    return True
+
+
+def set_youtube_thumbnail(
+    video_id: str,
+    thumbnail: Path,
+    client_secrets: Path,
+    token_file: Path,
+) -> bool:
+    """Retry thumbnail setup without uploading the video again."""
+    try:
+        youtube = build("youtube", "v3", credentials=_youtube_credentials(client_secrets, token_file))
+    except Exception:
+        print("YouTube thumbnail authorization failed; it will be retried later")
+        return False
+    return _set_youtube_thumbnail(youtube, video_id, thumbnail)
+
+
+def upload_youtube(
+    video: Path,
+    package: ScriptPackage,
+    client_secrets: Path,
+    token_file: Path,
+    privacy: str,
+    publish_at: str | None = None,
+) -> str:
+    credentials = _youtube_credentials(client_secrets, token_file)
     youtube = build("youtube", "v3", credentials=credentials)
     safe_metadata = metadata(package)
     request = youtube.videos().insert(
@@ -121,7 +212,8 @@ def upload_youtube(
         },
         media_body=MediaFileUpload(str(video), mimetype="video/mp4", resumable=True),
     )
-    return request.execute()["id"]
+    video_id = request.execute()["id"]
+    return video_id
 
 
 def upload_tiktok(video: Path, package: ScriptPackage, access_token: str, privacy: str) -> str:

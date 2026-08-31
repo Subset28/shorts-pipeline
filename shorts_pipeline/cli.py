@@ -16,9 +16,16 @@ from .history import load_publish_state, load_seen, mark_seen, save_publish_stat
 from .llm import create_package
 from .longform import create_longform_package, render_longform_video
 from .media import build_background_reel, ensure_background_video, select_backgrounds, split_authorized_clip
-from .publish import fetch_tiktok_status, quality_gate, save_manifest, upload_tiktok, upload_youtube
+from .publish import (
+    fetch_tiktok_status,
+    quality_gate,
+    save_manifest,
+    set_youtube_thumbnail,
+    upload_tiktok,
+    upload_youtube,
+)
 from .reddit import discover_reddit_topics, load_approved_reddit_topics
-from .render import render_video
+from .render import render_thumbnail, render_video
 from .sources import discover_topics
 from .telemetry import record_event
 from .tts import synthesize
@@ -214,7 +221,8 @@ def run(
     else:
         background = fallback_background
     video = render_video(package, output_dir, audio, captions, background)
-    manifest = save_manifest(package, video, output_dir, background, background_sources, audio, captions)
+    thumbnail = render_thumbnail(package, output_dir / "thumbnail.jpg")
+    manifest = save_manifest(package, video, output_dir, background, background_sources, audio, captions, thumbnail)
     record_event(
         events_path,
         "draft_created",
@@ -232,9 +240,29 @@ def run(
         return 0
     quality_gate(manifest)
     privacy = "private" if private_drafts else settings.youtube_privacy_status
-    youtube_id = published.get("youtube_id") or upload_youtube(
-        video, package, settings.youtube_client_secrets, settings.youtube_token_file, privacy, publish_at
-    )
+    youtube_id = published.get("youtube_id")
+    if youtube_id:
+        thumbnail_ready = set_youtube_thumbnail(
+            youtube_id,
+            thumbnail,
+            settings.youtube_client_secrets,
+            settings.youtube_token_file,
+        )
+    else:
+        youtube_id = upload_youtube(
+            video,
+            package,
+            settings.youtube_client_secrets,
+            settings.youtube_token_file,
+            privacy,
+            publish_at,
+        )
+        thumbnail_ready = set_youtube_thumbnail(
+            youtube_id,
+            thumbnail,
+            settings.youtube_client_secrets,
+            settings.youtube_token_file,
+        )
     save_publish_state(publish_path, state_key, youtube_id=youtube_id)
     record_event(
         events_path,
@@ -246,6 +274,9 @@ def run(
         platform_id=youtube_id,
         publish_at=publish_at,
     )
+    if not thumbnail_ready:
+        print("Thumbnail is pending; source will be retried later")
+        return 0
     if private_drafts:
         mark_seen(seen_path, source_url)
         print(f"Uploaded private YouTube draft: {youtube_id}")
@@ -377,7 +408,17 @@ def run_longform(source_url: str | None, output_dir: Path) -> int:
         provenance=topic.sources[0].community,
     )
     video = render_longform_video(package, output_dir, audio, captions, background[0] if background else None)
-    save_manifest(package, video, output_dir, background[0] if background else None, background, audio, captions)
+    thumbnail = render_thumbnail(package, output_dir / "thumbnail.jpg")
+    save_manifest(
+        package,
+        video,
+        output_dir,
+        background[0] if background else None,
+        background,
+        audio,
+        captions,
+        thumbnail,
+    )
     print(f"Created {video}")
     return 0
 

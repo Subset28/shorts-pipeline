@@ -25,6 +25,14 @@ Each render manifest includes a quality report with duration sync, background
 coverage, caption coverage, and any failed checks. Treat `quality.passed=false`
 as a review gate before publishing.
 
+Every short and long-form render also creates `thumbnail.jpg` at 1280x720 and
+records it in the manifest. YouTube uploads attempt to set that custom
+thumbnail after the video upload; if thumbnail setup fails, the video ID is
+kept so a retry cannot create a duplicate upload. Titles are capped at the
+YouTube limit, descriptions retain readable paragraphs, and tags are cleaned,
+deduplicated, and kept bounded. Treat these as packaging aids, not a reason to
+stuff keywords or make claims the video does not support.
+
 For source footage with multiple speakers, install WhisperX and set
 `WHISPERX_DIARIZATION=true` plus a Hugging Face token (`HF_TOKEN`). The
 pipeline then writes the same SRT timing alongside speaker-colored ASS
