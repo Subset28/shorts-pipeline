@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Hardened the GitHub activity monitor for multi-agent work. It now watches PR/review/comment/push events, formats PR context in notifications, bounds `gh` and notification subprocesses, recovers from corrupt state, and writes state atomically.
+
 2026-08-31: Made dotenv loading explicit for unattended jobs. `load_settings()` accepts `DOTENV_PATH`, and the YouTube analytics launchd script points to the verified runtime environment without printing or copying credentials.
 
 2026-08-31: Added bounded FFmpeg resource controls for unattended renders. Video, background-reel, split, and long-form commands now default to two threads and single-threaded filter graphs; `FFMPEG_THREADS` is documented and clamped to 1-4 to reduce resource contention after the prior Mac crash report.
