@@ -1955,22 +1955,23 @@ def test_background_reel_builds_long_sequence_instead_of_short_loop(tmp_path, mo
     sources = [tmp_path / "a.mp4", tmp_path / "b.mp4"]
     for source in sources:
         source.write_bytes(b"video")
-    captured = {}
+    captured = []
     monkeypatch.setattr("shorts_pipeline.media.shutil.which", lambda name: "ffmpeg")
 
     def fake_run(command, **kwargs):
-        captured["command"] = command
+        captured.append(command)
         return None
 
     monkeypatch.setattr("shorts_pipeline.media.subprocess.run", fake_run)
     result = build_background_reel(sources, tmp_path / "reel.mp4", duration=60, variation_key="demo")
     assert result == tmp_path / "reel.mp4"
-    command = captured["command"]
-    assert command.count("-i") == 8
-    filter_graph = command[command.index("-filter_complex") + 1]
-    assert "xfade=transition=fade:duration=0.180" in filter_graph
-    assert "sin(2*PI*t/7.657)" in filter_graph
-    assert command[command.index("-map") + 1] == "[x7]"
+    assert len(captured) == 9
+    segment_commands = captured[:-1]
+    assert all(command.count("-i") == 1 for command in segment_commands)
+    assert all("-vf" in command for command in segment_commands)
+    concat_command = captured[-1]
+    assert concat_command[concat_command.index("-f") + 1] == "concat"
+    assert concat_command[concat_command.index("-c") + 1] == "copy"
 
 
 def test_background_selection_maps_editorial_aliases_to_asset_categories(tmp_path):
