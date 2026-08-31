@@ -35,6 +35,7 @@ RANKED_STORY_SUBREDDITS = (
 
 MIN_STORY_WORDS = 80
 GENERIC_COMMUNITIES = {"askreddit"}
+CAREER_COMMUNITIES = {"cscareerquestions", "experienceddevs"}
 NICHE_SIGNALS = re.compile(
     r"\b(ai|artificial intelligence|machine learning|software|program(?:mer|ming)|"
     r"coding|computer|database|server|production|devops|sysadmin|cyber|security|"
@@ -48,6 +49,11 @@ STORY_SIGNALS = re.compile(
 )
 GENERIC_TITLE = re.compile(
     r"\b(anyone else|are we doomed|does anyone|what do you think|thoughts|help me)\b", re.IGNORECASE
+)
+LOW_SIGNAL_ADVICE_TITLE = re.compile(
+    r"\b(career|interview|motivation|recruiter|new graduates?|unemployment|sabbatical|"
+    r"masters? degree|how (?:do|to)|should i|what should i|where should i start|not senior enough)\b",
+    re.IGNORECASE,
 )
 CAREER_ADVICE = re.compile(
     r"\b(career advice|career question|should i become|how do i become|"
@@ -91,6 +97,10 @@ def _is_niche_relevant(community: str, title: str, body: str) -> bool:
     if community.lower() in GENERIC_COMMUNITIES and not NICHE_SIGNALS.search(text):
         return False
     if CAREER_ADVICE.search(title) and not TECHNICAL_MECHANISM.search(body):
+        return False
+    if (community.lower() in CAREER_COMMUNITIES or LOW_SIGNAL_ADVICE_TITLE.search(title)) and not (
+        TECHNICAL_MECHANISM.search(body) and STORY_SIGNALS.search(body)
+    ):
         return False
     return True
 
@@ -304,6 +314,7 @@ def discover_reddit_topics(
                         or comment_author in {"", "[deleted]"}
                         or len(comment_body.split()) < MIN_STORY_WORDS
                         or not comment_permalink
+                        or not _is_niche_relevant(community, title, comment_body)
                     ):
                         continue
                     comment_url = f"https://www.reddit.com{comment_permalink}"

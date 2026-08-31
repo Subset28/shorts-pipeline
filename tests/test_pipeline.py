@@ -552,6 +552,11 @@ def test_reddit_rejects_generic_career_advice_but_keeps_technical_incidents():
         )
         is True
     )
+    assert _is_niche_relevant("ExperiencedDevs", "How to revive career?", "Network and keep applying.") is False
+    assert (
+        _is_niche_relevant("cybersecurity", "Security engineer interview: what should I expect?", "I used tools.")
+        is False
+    )
 
 
 def test_reddit_quality_prefers_specific_story_arcs_over_generic_high_scores():
