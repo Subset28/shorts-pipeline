@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import time
 import traceback
 from dataclasses import replace
@@ -24,6 +25,12 @@ from .tts import synthesize
 from .youtube_analytics import collect_due, write_weekly_report
 
 YOUTUBE_QUOTA_RETRY_HOURS = 24.0
+
+
+def _interval_seconds(interval_hours: float) -> float:
+    if not math.isfinite(interval_hours) or interval_hours <= 0:
+        raise ValueError("interval_hours must be finite and greater than zero")
+    return max(interval_hours, 0.25) * 3600
 
 
 def _discover_topics(settings, limit: int, reddit_only: bool = False, private_drafts: bool = False):
@@ -110,7 +117,7 @@ def run_worker(
     youtube_only: bool = False,
     interval_hours: float = 6.0,
 ) -> int:
-    retry_seconds = max(interval_hours, 0.25) * 3600
+    retry_seconds = _interval_seconds(interval_hours)
     quota_retry_seconds = max(YOUTUBE_QUOTA_RETRY_HOURS, interval_hours) * 3600
     while True:
         if reddit_only and not private_drafts and not _has_unseen_reddit_topic(load_settings()):
