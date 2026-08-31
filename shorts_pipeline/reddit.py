@@ -211,7 +211,11 @@ def discover_reddit_topics(
                 continue
             children = response.json().get("data", {}).get("children", [])
             for child in children:
+                if not isinstance(child, dict):
+                    continue
                 post = child.get("data", {})
+                if not isinstance(post, dict):
+                    continue
                 body = _clean_story_text(str(post.get("selftext", "")))
                 if post.get("stickied") or post.get("over_18"):
                     continue
@@ -256,7 +260,11 @@ def discover_reddit_topics(
                 if not isinstance(listings, list) or len(listings) < 2:
                     continue
                 for comment_child in listings[1].get("data", {}).get("children", []):
+                    if not isinstance(comment_child, dict):
+                        continue
                     comment = comment_child.get("data", {})
+                    if not isinstance(comment, dict):
+                        continue
                     comment_body = _clean_story_text(str(comment.get("body", "")))
                     comment_author = str(comment.get("author", "")).strip()
                     comment_permalink = str(comment.get("permalink", "")).strip()
