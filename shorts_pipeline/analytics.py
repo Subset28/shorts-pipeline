@@ -7,7 +7,21 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-ARCHIVE_FIELDS = ("category", "format_name", "platform", "variant", "videos", "views", "avg_views", "engagement_rate")
+ARCHIVE_FIELDS = (
+    "category",
+    "format_name",
+    "platform",
+    "variant",
+    "videos",
+    "views",
+    "impressions",
+    "avg_views",
+    "ctr",
+    "avg_view_duration",
+    "avg_view_percentage",
+    "watch_minutes",
+    "engagement_rate",
+)
 
 
 def _metric_value(value: object) -> float:
@@ -18,9 +32,79 @@ def _metric_value(value: object) -> float:
     return max(0.0, metric) if math.isfinite(metric) else 0.0
 
 
-def _number(row: dict[str, str], name: str) -> float:
-    value = (row.get(name) or "0").strip().replace(",", "")
-    return _metric_value(value)
+def _raw_number(row: dict[str, Any], name: str, *aliases: str) -> tuple[float, bool]:
+    value = next((row.get(key) for key in (name, *aliases) if row.get(key) not in (None, "")), "0")
+    text = str(value).strip().replace(",", "")
+    return _metric_value(text.removesuffix("%")), text.endswith("%")
+
+
+def _number(row: dict[str, Any], name: str, *aliases: str) -> float:
+    return _raw_number(row, name, *aliases)[0]
+
+
+def _rate(row: dict[str, Any], name: str, *aliases: str) -> float:
+    value, has_percent_sign = _raw_number(row, name, *aliases)
+    if has_percent_sign:
+        return value / 100
+    return value / 100 if value > 1 else value
+
+
+def _metric_bucket() -> dict[str, float]:
+    return {
+        "videos": 0.0,
+        "views": 0.0,
+        "impressions": 0.0,
+        "likes": 0.0,
+        "comments": 0.0,
+        "shares": 0.0,
+        "watch_minutes": 0.0,
+        "ctr_weight": 0.0,
+        "ctr_base": 0.0,
+        "duration_weight": 0.0,
+        "duration_base": 0.0,
+        "percentage_weight": 0.0,
+        "percentage_base": 0.0,
+    }
+
+
+def _add_metrics(bucket: dict[str, float], row: dict[str, Any]) -> None:
+    views = _number(row, "views")
+    impressions = _number(row, "impressions", "thumbnail_impressions", "videoThumbnailImpressions")
+    watch_minutes = _number(row, "watch_minutes", "estimated_minutes_watched", "estimatedMinutesWatched")
+    bucket["views"] += views
+    bucket["impressions"] += impressions
+    bucket["watch_minutes"] += watch_minutes
+    for field in ("likes", "comments", "shares"):
+        bucket[field] += _number(row, field)
+    ctr = _rate(row, "ctr", "impressions_ctr", "impressionsCtr", "videoThumbnailImpressionsClickRate")
+    ctr_base = impressions or views
+    bucket["ctr_weight"] += ctr * ctr_base
+    bucket["ctr_base"] += ctr_base
+    duration = _number(row, "avg_view_duration", "average_view_duration", "averageViewDuration")
+    bucket["duration_weight"] += duration * views
+    bucket["duration_base"] += views
+    percentage = _number(row, "avg_view_percentage", "average_view_percentage", "averageViewPercentage")
+    bucket["percentage_weight"] += percentage * views
+    bucket["percentage_base"] += views
+
+
+def _metric_row(bucket: dict[str, float]) -> dict[str, Any]:
+    views = bucket["views"]
+    return {
+        "videos": int(bucket["videos"]),
+        "views": int(views),
+        "impressions": int(bucket["impressions"]),
+        "avg_views": round(views / bucket["videos"], 2) if bucket["videos"] else 0,
+        "ctr": round(bucket["ctr_weight"] / bucket["ctr_base"], 4) if bucket["ctr_base"] else 0,
+        "avg_view_duration": round(bucket["duration_weight"] / bucket["duration_base"], 2)
+        if bucket["duration_base"]
+        else 0,
+        "avg_view_percentage": round(bucket["percentage_weight"] / bucket["percentage_base"], 2)
+        if bucket["percentage_base"]
+        else 0,
+        "watch_minutes": round(bucket["watch_minutes"], 2),
+        "engagement_rate": round((bucket["likes"] + bucket["comments"] + bucket["shares"]) / views, 4) if views else 0,
+    }
 
 
 def _variant(row: dict[str, str], name: str = "variant") -> int:
@@ -55,9 +139,7 @@ def build_report(events_path: Path, metrics_path: Path) -> dict[str, Any]:
                 }
                 variants_by_source[source_url].add(variant)
 
-    aggregates: dict[tuple[str, str, str, int], dict[str, float]] = defaultdict(
-        lambda: {"videos": 0.0, "views": 0.0, "likes": 0.0, "comments": 0.0, "shares": 0.0}
-    )
+    aggregates: dict[tuple[str, str, str, int], dict[str, float]] = defaultdict(_metric_bucket)
     unmatched = 0
     with metrics_path.open(newline="", encoding="utf-8-sig") as handle:
         for row in csv.DictReader(handle):
@@ -78,24 +160,17 @@ def build_report(events_path: Path, metrics_path: Path) -> dict[str, Any]:
             key = (event["category"], event["format_name"], platform, variant)
             bucket = aggregates[key]
             bucket["videos"] += 1
-            for field in ("views", "likes", "comments", "shares"):
-                bucket[field] += _number(row, field)
+            _add_metrics(bucket, row)
 
     rows = []
     for (category, format_name, platform, variant), values in sorted(aggregates.items()):
-        views = values["views"]
         rows.append(
             {
                 "category": category,
                 "format_name": format_name,
                 "platform": platform,
                 "variant": variant,
-                "videos": int(values["videos"]),
-                "views": int(views),
-                "avg_views": round(views / values["videos"], 2) if values["videos"] else 0,
-                "engagement_rate": round((values["likes"] + values["comments"] + values["shares"]) / views, 4)
-                if views
-                else 0,
+                **_metric_row(values),
             }
         )
     report = {"rows": rows, "matched_rows": sum(row["videos"] for row in rows), "unmatched_rows": unmatched}
@@ -114,6 +189,18 @@ def tuning_recommendations(report: dict[str, Any], min_videos: int = 2) -> list[
         f"Keep testing {by_views['category']} / {by_views['format_name']}; it leads repeated lanes by average views.",
         f"Study the hook and pacing of {by_engagement['category']} / {by_engagement['format_name']}; it leads repeated lanes by engagement rate.",
     ]
+    ctr_rows = [row for row in rows if _metric_value(row.get("ctr", 0)) > 0]
+    if ctr_rows:
+        weakest_ctr = min(ctr_rows, key=lambda row: _metric_value(row.get("ctr", 0)))
+        recommendations.append(
+            f"Revise the thumbnail/title promise for {weakest_ctr['category']} / {weakest_ctr['format_name']}; it has the weakest measured CTR."
+        )
+    retention_rows = [row for row in rows if _metric_value(row.get("avg_view_percentage", 0)) > 0]
+    if retention_rows:
+        strongest_retention = max(retention_rows, key=lambda row: _metric_value(row.get("avg_view_percentage", 0)))
+        recommendations.append(
+            f"Reuse the opening and pacing pattern from {strongest_retention['category']} / {strongest_retention['format_name']}; it leads measured retention."
+        )
     if by_views["category"] != by_engagement["category"] or by_views["format_name"] != by_engagement["format_name"]:
         recommendations.append(
             "Views and engagement favor different lanes; keep both in rotation instead of optimizing for one metric."
@@ -161,21 +248,17 @@ def build_youtube_report(weekly: dict[str, Any]) -> dict[str, Any]:
         )
     rows = []
     for (category, format_name), snapshots in sorted(buckets.items()):
-        metrics = [item.get("metrics", {}) for item in snapshots]
-        views = sum(_number({"value": str(metric.get("views", 0))}, "value") for metric in metrics)
-        likes = sum(_number({"value": str(metric.get("likes", 0))}, "value") for metric in metrics)
-        comments = sum(_number({"value": str(metric.get("comments", 0))}, "value") for metric in metrics)
-        shares = sum(_number({"value": str(metric.get("shares", 0))}, "value") for metric in metrics)
+        bucket = _metric_bucket()
+        for snapshot in snapshots:
+            bucket["videos"] += 1
+            _add_metrics(bucket, snapshot.get("metrics", {}))
         rows.append(
             {
                 "category": category,
                 "format_name": format_name,
                 "platform": "youtube",
                 "variant": 0,
-                "videos": len(snapshots),
-                "views": int(views),
-                "avg_views": round(views / len(snapshots), 2),
-                "engagement_rate": round((likes + comments + shares) / views, 4) if views else 0,
+                **_metric_row(bucket),
             }
         )
     report = {"rows": rows, "matched_rows": len(latest), "unmatched_rows": 0}

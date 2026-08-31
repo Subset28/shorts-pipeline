@@ -922,6 +922,68 @@ def test_analytics_joins_platform_metrics_to_experiment_metadata(tmp_path):
     assert report["rows"][0]["engagement_rate"] == 0.065
 
 
+def test_analytics_preserves_reach_retention_and_watch_time(tmp_path):
+    events = tmp_path / "events.jsonl"
+    events.write_text(
+        json.dumps(
+            {
+                "event": "draft_created",
+                "source_url": "https://example.test/source",
+                "category": "AI",
+                "format_name": "fact_explainer",
+                "variant": 0,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    metrics = tmp_path / "metrics.csv"
+    metrics.write_text(
+        "source_url,platform,views,impressions,impressions_ctr,average_view_duration,average_view_percentage,estimated_minutes_watched,likes,comments,shares\n"
+        "https://example.test/source,youtube,1000,20000,0.5%,36,60,600,50,10,5\n",
+        encoding="utf-8",
+    )
+
+    row = build_report(events, metrics)["rows"][0]
+
+    assert row["impressions"] == 20000
+    assert row["ctr"] == 0.005
+    assert row["avg_view_duration"] == 36
+    assert row["avg_view_percentage"] == 60
+    assert row["watch_minutes"] == 600
+    assert row["engagement_rate"] == 0.065
+
+
+def test_tuning_recommendations_use_reach_and_retention_signals():
+    report = {
+        "rows": [
+            {
+                "category": "AI",
+                "format_name": "fact_explainer",
+                "videos": 3,
+                "avg_views": 1000,
+                "ctr": 0.02,
+                "avg_view_percentage": 72,
+                "engagement_rate": 0.03,
+            },
+            {
+                "category": "CS",
+                "format_name": "news_breakdown",
+                "videos": 3,
+                "avg_views": 900,
+                "ctr": 0.07,
+                "avg_view_percentage": 38,
+                "engagement_rate": 0.02,
+            },
+        ]
+    }
+
+    recommendations = tuning_recommendations(report)
+
+    assert any("thumbnail/title" in item and "AI" in item for item in recommendations)
+    assert any("retention" in item and "AI" in item for item in recommendations)
+
+
 def test_analytics_keeps_variants_separate(tmp_path):
     events = tmp_path / "events.jsonl"
     events.write_text(
@@ -1034,13 +1096,25 @@ def test_build_youtube_report_uses_latest_snapshot_per_video():
                     "category": "AI",
                     "format_name": "fact_explainer",
                     "collected_at": "2026-08-30T02:00:00+00:00",
-                    "metrics": {"views": 20, "likes": 2},
+                    "metrics": {
+                        "views": 20,
+                        "likes": 2,
+                        "impressions": 400,
+                        "impressionsCtr": 5,
+                        "averageViewDuration": 30,
+                        "averageViewPercentage": 60,
+                        "estimatedMinutesWatched": 10,
+                    },
                 },
             ]
         }
     )
     assert report["rows"][0]["videos"] == 1
     assert report["rows"][0]["views"] == 20
+    assert report["rows"][0]["impressions"] == 400
+    assert report["rows"][0]["ctr"] == 0.05
+    assert report["rows"][0]["avg_view_percentage"] == 60
+    assert report["rows"][0]["watch_minutes"] == 10
 
 
 def test_background_manifest_requires_provenance_fields(tmp_path):

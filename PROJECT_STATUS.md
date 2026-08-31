@@ -5,6 +5,10 @@
 2026-08-30: Added channel-level YouTube packaging with bounded metadata,
 category-aware tags, generated custom thumbnails, and idempotent thumbnail
 retry state. Verified with 109 project tests, Ruff, compileall, and diff checks.
+2026-08-30: Expanded analytics aggregation to preserve impressions, CTR,
+average view duration, average percentage viewed, watch minutes, and
+engagement. Reports now emit separate packaging and retention actions, with
+low-CTR unit handling covered by tests.
 
 - The local pipeline is the working source of truth; NAS deployment is reserved
   for an explicitly approved finished release.
