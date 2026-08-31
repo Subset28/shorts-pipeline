@@ -1,5 +1,7 @@
 # Project status
 
+2026-08-31: Extended Reddit relevance tuning to aerospace and generic prompt threads after the second live audit. Aviation candidates now require a concrete mechanism plus an event arc, prompt-shaped titles need the same narrative evidence, and duplicate parent/comment stories are collapsed; technical flight incidents remain eligible.
+
 2026-08-31: Tightened live Reddit selection after a 20-candidate discovery audit showed career and motivation prompts dominating the queue. Career-community and advice-shaped posts now require both a concrete technical mechanism and an event arc; the rule also applies to comment-derived stories.
 
 2026-08-31: Verified the YouTube analytics launchd job was missing and loaded it successfully. Hardened the installer to verify every registered label with `launchctl print`; the analytics supervisor is now confirmed loaded without starting media production.
