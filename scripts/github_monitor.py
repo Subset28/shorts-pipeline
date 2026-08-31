@@ -7,8 +7,8 @@ import signal
 import subprocess
 import sys
 from pathlib import Path
-
-import httpx
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 REPO = os.getenv("GITHUB_MONITOR_REPO", "Subset28/shorts-pipeline")
 STATE = Path(
@@ -19,14 +19,12 @@ MONITOR_TIMEOUT_SECONDS = 45
 
 
 def fetch_events() -> list[dict]:
-    response = httpx.get(
-        f"https://api.github.com/repos/{REPO}/events",
-        params={"per_page": 30},
+    request = Request(
+        f"https://api.github.com/repos/{REPO}/events?{urlencode({'per_page': 30})}",
         headers={"Accept": "application/vnd.github+json", "User-Agent": "shorts-pipeline-monitor"},
-        timeout=15,
     )
-    response.raise_for_status()
-    payload = response.json()
+    with urlopen(request, timeout=15) as response:
+        payload = json.loads(response.read())
     if not isinstance(payload, list):
         raise RuntimeError("GitHub events response was not a list")
     return [item for item in payload if isinstance(item, dict) and item.get("id")]
