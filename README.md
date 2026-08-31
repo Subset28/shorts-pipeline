@@ -96,3 +96,7 @@ After publishing, export platform metrics to a CSV containing `source_url`,
 `platform`, and `views` (optionally `variant`, `likes`, `comments`, and `shares`), then
 run `python -m shorts_pipeline report --metrics metrics.csv`. The report joins
 metrics to category/format telemetry so future batches can follow evidence.
+The scheduled `analytics --weekly` path also writes the planner-facing
+`data/analytics_report.json`. It uses a persisted YouTube Reporting API Reach
+Basic job for thumbnail impressions and CTR; the job ID is stored in ignored
+data, never in source control.

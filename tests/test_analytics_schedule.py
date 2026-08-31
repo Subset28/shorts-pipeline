@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from shorts_pipeline.analytics_schedule import due_videos, load_publications, week_videos
-from shorts_pipeline.youtube_analytics import write_weekly_report
+from shorts_pipeline.youtube_analytics import collect_due, write_weekly_report
 
 
 def _event(path, video_id, timestamp):
@@ -127,3 +127,47 @@ def test_publications_preserve_variant_identity(tmp_path):
     publications = load_publications(events)
 
     assert publications[1]["variant"] == 2
+
+
+def test_collect_due_preserves_prior_reach_when_reporting_is_delayed(tmp_path, monkeypatch):
+    now = datetime(2026, 8, 31, 12, tzinfo=timezone.utc)
+    events = tmp_path / "events.jsonl"
+    _event(events, "abc", (now - timedelta(hours=48)).isoformat())
+    snapshots = tmp_path / "snapshots.json"
+    snapshots.write_text(
+        json.dumps(
+            {
+                "abc": [
+                    {
+                        "collected_at": (now - timedelta(hours=24)).isoformat(),
+                        "metrics": {
+                            "video_thumbnail_impressions": 1200,
+                            "video_thumbnail_impressions_ctr": 0.03,
+                        },
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "shorts_pipeline.youtube_analytics.fetch_video_metrics",
+        lambda *args: {
+            "video_id": "abc",
+            "uploaded_at": (now - timedelta(hours=48)).isoformat(),
+            "metrics": {"views": 100},
+        },
+    )
+    monkeypatch.setattr("shorts_pipeline.youtube_analytics.collect_reach_metrics", lambda *args: {})
+
+    collected = collect_due(
+        events,
+        snapshots,
+        tmp_path / "client.json",
+        tmp_path / "token.json",
+        now=now,
+        reporting_job_path=tmp_path / "job.json",
+    )
+
+    assert collected[0]["metrics"]["video_thumbnail_impressions"] == 1200
+    assert collected[0]["metrics"]["video_thumbnail_impressions_ctr"] == 0.03

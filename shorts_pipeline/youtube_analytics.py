@@ -11,6 +11,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 from .analytics_schedule import _snapshots, due_videos, week_videos
+from .youtube_reporting import collect_reach_metrics
 
 ANALYTICS_SCOPE = "https://www.googleapis.com/auth/yt-analytics.readonly"
 METRICS = ",".join(
@@ -80,17 +81,38 @@ def collect_due(
     token_file: Path,
     authorize: bool = False,
     now: datetime | None = None,
+    reporting_job_path: Path | None = None,
 ) -> list[dict[str, Any]]:
-    collected = [
-        fetch_video_metrics(client_secrets, token_file, video, authorize)
-        for video in due_videos(events_path, snapshots_path, now)
-    ]
     existing = {}
     if snapshots_path.exists():
         try:
             existing = json.loads(snapshots_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             existing = {}
+    collected = [
+        fetch_video_metrics(client_secrets, token_file, video, authorize)
+        for video in due_videos(events_path, snapshots_path, now)
+    ]
+    if collected and reporting_job_path:
+        try:
+            reach = collect_reach_metrics(client_secrets, token_file, reporting_job_path, authorize, collected)
+        except Exception as exc:
+            print(f"YouTube Reach metrics unavailable; preserving activity metrics: {exc}")
+        else:
+            for item in collected:
+                prior_snapshots = existing.get(item["video_id"], [])
+                prior_metrics = next(
+                    (
+                        snapshot.get("metrics", {})
+                        for snapshot in reversed(prior_snapshots)
+                        if isinstance(snapshot, dict) and isinstance(snapshot.get("metrics"), dict)
+                    ),
+                    {},
+                )
+                for name in ("video_thumbnail_impressions", "video_thumbnail_impressions_ctr"):
+                    if name in prior_metrics:
+                        item["metrics"].setdefault(name, prior_metrics[name])
+                item["metrics"].update(reach.get(item["video_id"], {}))
     for item in collected:
         existing.setdefault(item["video_id"], []).append(item)
     snapshots_path.parent.mkdir(parents=True, exist_ok=True)

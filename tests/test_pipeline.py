@@ -65,6 +65,7 @@ from shorts_pipeline.sources import (
 )
 from shorts_pipeline.telemetry import record_event
 from shorts_pipeline.tts import synthesize
+from shorts_pipeline.youtube_reporting import _parse_reach_report
 
 
 def test_fallback_package_preserves_source_url():
@@ -986,6 +987,75 @@ def test_analytics_preserves_reach_retention_and_watch_time(tmp_path):
     assert row["avg_view_percentage"] == 60
     assert row["watch_minutes"] == 600
     assert row["engagement_rate"] == 0.065
+
+
+def test_youtube_report_accepts_reporting_api_reach_metric_names():
+    weekly = {
+        "snapshots": [
+            {
+                "video_id": "video-1",
+                "category": "AI",
+                "format_name": "fact_explainer",
+                "variant": 0,
+                "collected_at": "2026-08-31T12:00:00+00:00",
+                "metrics": {
+                    "views": 100,
+                    "video_thumbnail_impressions": 2000,
+                    "video_thumbnail_impressions_ctr": 0.04,
+                },
+            }
+        ]
+    }
+
+    row = build_youtube_report(weekly)["rows"][0]
+
+    assert row["impressions"] == 2000
+    assert row["ctr"] == 0.04
+
+
+def test_reporting_api_reach_csv_aggregates_daily_rows_per_video():
+    report = _parse_reach_report(
+        "date,video_id,video_thumbnail_impressions,video_thumbnail_impressions_ctr\n"
+        "2026-08-30,video-1,1000,0.02\n"
+        "2026-08-31,video-1,2000,0.04\n"
+    )
+
+    assert report["video-1"]["video_thumbnail_impressions"] == 3000
+    assert report["video-1"]["video_thumbnail_impressions_ctr"] == pytest.approx(0.033333, rel=1e-4)
+
+
+def test_run_analytics_writes_planner_report_from_weekly_snapshots(tmp_path, monkeypatch):
+    weekly_payload = {
+        "snapshots": [
+            {
+                "video_id": "video-1",
+                "category": "AI",
+                "format_name": "fact_explainer",
+                "variant": 0,
+                "collected_at": "2026-08-31T12:00:00+00:00",
+                "metrics": {"views": 100, "video_thumbnail_impressions": 2000},
+            }
+        ]
+    }
+    settings = SimpleNamespace(
+        data_dir=tmp_path,
+        youtube_client_secrets=tmp_path / "client.json",
+        youtube_analytics_token_file=tmp_path / "analytics-token.json",
+    )
+    monkeypatch.setattr(cli, "load_settings", lambda: settings)
+    monkeypatch.setattr(cli, "collect_due", lambda *args, **kwargs: [])
+
+    def write_weekly(*args):
+        path = args[2]
+        path.write_text(json.dumps(weekly_payload), encoding="utf-8")
+        return path
+
+    monkeypatch.setattr(cli, "write_weekly_report", write_weekly)
+
+    assert cli.run_analytics(weekly=True) == 0
+
+    report = json.loads((tmp_path / "analytics_report.json").read_text(encoding="utf-8"))
+    assert report["rows"][0]["impressions"] == 2000
 
 
 def test_tuning_recommendations_use_reach_and_retention_signals():

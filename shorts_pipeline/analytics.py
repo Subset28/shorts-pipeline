@@ -69,14 +69,27 @@ def _metric_bucket() -> dict[str, float]:
 
 def _add_metrics(bucket: dict[str, float], row: dict[str, Any]) -> None:
     views = _number(row, "views")
-    impressions = _number(row, "impressions", "thumbnail_impressions", "videoThumbnailImpressions")
+    impressions = _number(
+        row,
+        "impressions",
+        "thumbnail_impressions",
+        "videoThumbnailImpressions",
+        "video_thumbnail_impressions",
+    )
     watch_minutes = _number(row, "watch_minutes", "estimated_minutes_watched", "estimatedMinutesWatched")
     bucket["views"] += views
     bucket["impressions"] += impressions
     bucket["watch_minutes"] += watch_minutes
     for field in ("likes", "comments", "shares"):
         bucket[field] += _number(row, field)
-    ctr = _rate(row, "ctr", "impressions_ctr", "impressionsCtr", "videoThumbnailImpressionsClickRate")
+    ctr = _rate(
+        row,
+        "ctr",
+        "impressions_ctr",
+        "impressionsCtr",
+        "videoThumbnailImpressionsClickRate",
+        "video_thumbnail_impressions_ctr",
+    )
     ctr_base = impressions or views
     bucket["ctr_weight"] += ctr * ctr_base
     bucket["ctr_base"] += ctr_base

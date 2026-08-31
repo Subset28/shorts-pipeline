@@ -583,11 +583,20 @@ def run_analytics(authorize: bool = False, weekly: bool = False) -> int:
         settings.youtube_client_secrets,
         settings.youtube_analytics_token_file,
         authorize,
+        reporting_job_path=getattr(settings, "youtube_reporting_job_file", None),
     )
     if weekly:
-        write_weekly_report(
-            settings.data_dir / "events.jsonl", snapshots, settings.data_dir / "youtube_weekly_report.json"
-        )
+        weekly_path = settings.data_dir / "youtube_weekly_report.json"
+        write_weekly_report(settings.data_dir / "events.jsonl", snapshots, weekly_path)
+        try:
+            weekly_payload = json.loads(weekly_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError(f"Could not read weekly YouTube report: {weekly_path}") from exc
+        if not isinstance(weekly_payload, dict):
+            raise RuntimeError("Weekly YouTube report must be a JSON object")
+        report_path = settings.data_dir / "analytics_report.json"
+        write_report(build_youtube_report(weekly_payload), report_path)
+        print(f"Wrote {report_path}")
     print(f"Collected analytics for {len(collected)} due videos")
     return 0
 
