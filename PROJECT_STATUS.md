@@ -32,6 +32,8 @@ tags, captions, category, and format are required, and Shorts must carry a
 background visual before YouTube upload.
 The enforcement path now raises on failed metadata evidence instead of merely
 returning a failed report, so invalid packages cannot proceed to upload.
+The unattended Reddit launchd job now runs as a background, low-priority,
+throttled process to reduce resource contention during TTS and FFmpeg work.
 Weekly analytics now builds the planner-facing aggregate report automatically;
 the YouTube Reporting API Reach Basic job supplies thumbnail impressions and
 CTR while the existing activity query supplies retention and engagement.

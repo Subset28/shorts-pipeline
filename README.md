@@ -95,6 +95,8 @@ Before any upload, the manifest must pass both render-quality and
 source-linked metadata gates; Shorts also require a background visual and all
 uploads require captions.
 Either gate blocks the upload when it fails.
+The unattended Reddit launchd job is configured as background/low-priority and
+throttled after exit to reduce host resource contention.
 
 Provision the tracked, rights-documented background library with
 `python -m shorts_pipeline backgrounds`. The command downloads only URLs in
