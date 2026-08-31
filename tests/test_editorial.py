@@ -322,3 +322,6 @@ def test_prepare_week_writes_private_research_and_plan_once(tmp_path, monkeypatc
     assert plan["privacy_status"] == "private"
     assert len(plan["entries"]) == 2
     assert all(isinstance(entry.get("editorial_brief"), dict) for entry in plan["entries"])
+    assert {entry["source_url"] for entry in plan["entries"]} == {
+        item["source"]["url"] for item in research["shorts"] + research["longform"]
+    }

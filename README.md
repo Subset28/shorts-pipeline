@@ -102,6 +102,8 @@ title card, captions, and selected background.
 Use `python -m shorts_pipeline prepare-week --week-of YYYY-MM-DD` to create
 the private research slate and scheduled production plan in one discovery
 pass; it never renders or publishes.
+The plan is constrained to the same source set as the research slate, so every
+scheduled entry retains its matching editorial brief.
 
 Provision the tracked, rights-documented background library with
 `python -m shorts_pipeline backgrounds`. The command downloads only URLs in

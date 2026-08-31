@@ -614,7 +614,15 @@ def run_prepare_week(
     elif analytics_path is not None:
         raise ValueError(f"Analytics report does not exist: {analytics_path}")
     research = build_research_week(topics, week_start, shorts_count, include_longform, experiment_brief)
-    entries = build_weekly_plan(topics, week_start, shorts_count, include_longform, topics, experiment_brief)
+    researched_urls = {
+        item["source"]["url"]
+        for item in research["shorts"] + research["longform"]
+        if isinstance(item, dict) and isinstance(item.get("source"), dict) and item["source"].get("url")
+    }
+    researched_topics = [topic for topic in topics if topic.sources and topic.sources[0].url in researched_urls]
+    entries = build_weekly_plan(
+        researched_topics, week_start, shorts_count, include_longform, researched_topics, experiment_brief
+    )
     briefs = {item["source"]["url"]: item for item in research["shorts"] + research["longform"] if item.get("source")}
     for entry in entries:
         brief = briefs.get(entry["source_url"])

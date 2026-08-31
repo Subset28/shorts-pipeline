@@ -40,6 +40,10 @@ without requiring an unavailable Sora integration.
 Added `prepare-week`, which discovers once and writes the private research
 slate plus scheduled production plan with editorial briefs attached, reducing
 duplicate discovery work before weekly production.
+The preparation workflow now constrains the plan to the exact researched
+source set, preventing an unresearched discovery candidate from replacing a
+briefed weekly entry. The 2026-09-07 local artifacts were regenerated and
+verified as private, scheduled, and fully briefed.
 Weekly analytics now builds the planner-facing aggregate report automatically;
 the YouTube Reporting API Reach Basic job supplies thumbnail impressions and
 CTR while the existing activity query supplies retention and engagement.

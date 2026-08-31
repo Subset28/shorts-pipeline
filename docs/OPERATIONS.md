@@ -93,6 +93,8 @@ and a restart throttle to reduce load on the Mac during media generation.
 For weekly preparation, `python -m shorts_pipeline prepare-week` writes both
 private planning artifacts from one discovery pass. It is planning-only;
 `produce-week` remains the separate render/upload step.
+The generated plan is source-set checked against the research slate and keeps
+one matching brief per scheduled entry.
 
 On the configured Windows host, `.\scripts\deploy-nas.ps1` performs the
 same deployment using the `synology` SSH alias. It uses legacy SCP for the
