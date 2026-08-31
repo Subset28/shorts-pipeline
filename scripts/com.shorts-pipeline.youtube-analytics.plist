@@ -12,8 +12,8 @@
     <key>StartInterval</key>
     <integer>86400</integer>
     <key>StandardOutPath</key>
-    <string>/Volumes/n2me/Developer/shorts-pipeline/data/youtube-analytics.log</string>
+    <string>/Users/abba/Library/Logs/shorts-pipeline/youtube-analytics.log</string>
     <key>StandardErrorPath</key>
-    <string>/Volumes/n2me/Developer/shorts-pipeline/data/youtube-analytics.error.log</string>
+    <string>/Users/abba/Library/Logs/shorts-pipeline/youtube-analytics.error.log</string>
 </dict>
 </plist>

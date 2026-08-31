@@ -2105,6 +2105,16 @@ def test_launchd_installer_verifies_registered_jobs():
     script = Path(__file__).parents[1] / "scripts" / "install-launchd-jobs.sh"
     text = script.read_text(encoding="utf-8")
     assert 'launchctl print "$domain/$label"' in text
+    assert 'mkdir -p "$log_dir"' in text
+
+
+def test_launchd_logs_use_boot_volume_not_external_media_volume():
+    for plist in Path(__file__).parents[1].glob("scripts/com.shorts-pipeline.*.plist"):
+        text = plist.read_text(encoding="utf-8")
+        assert "/Volumes/" not in "\n".join(
+            line for line in text.splitlines() if "StandardOutPath" in line or "StandardErrorPath" in line
+        )
+        assert "/Users/abba/Library/Logs/shorts-pipeline/" in text
 
 
 def test_feed_summary_removes_markup_urls_and_link_aggregator_boilerplate():

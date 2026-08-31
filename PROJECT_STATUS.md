@@ -328,3 +328,9 @@ the normal rotation unchanged.
 - Long research titles now produce a concise claim hook such as `WHY THIS ML METHOD REDUCES REDUNDANT EXPLORATION` instead of a truncated, generic `...MATTERS` hook.
 - The exact source title and evidence remain in narration and metadata; this only improves the opening visual promise.
 - Verification: direct fallback-package assertion, Python compilation, and `git diff --check` passed. Full pytest remains unavailable in this checkout.
+
+## 2026-08-31 — fix launchd external-volume log failure
+
+- Moved all launchd stdout/stderr targets from `/Volumes` to `/Users/abba/Library/Logs/shorts-pipeline`.
+- The installer now creates the boot-volume log directory before registering jobs; this addresses silent `EX_CONFIG` 78 startup failures while keeping media and state on the external volume.
+- Verification: all tracked plists lint, focused monitor test passes, and the launchd log-path assertions pass. No Reddit worker was reloaded.

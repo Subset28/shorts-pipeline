@@ -21,8 +21,8 @@
     <key>StartInterval</key>
     <integer>300</integer>
     <key>StandardOutPath</key>
-    <string>/Volumes/n2me/Developer/shorts-pipeline/data/github-monitor.log</string>
+    <string>/Users/abba/Library/Logs/shorts-pipeline/github-monitor.log</string>
     <key>StandardErrorPath</key>
-    <string>/Volumes/n2me/Developer/shorts-pipeline/data/github-monitor.error.log</string>
+    <string>/Users/abba/Library/Logs/shorts-pipeline/github-monitor.error.log</string>
 </dict>
 </plist>

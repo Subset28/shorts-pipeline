@@ -20,8 +20,8 @@
         <integer>30</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Volumes/n2me/Developer/shorts-pipeline/data/analytics-sync.log</string>
+    <string>/Users/abba/Library/Logs/shorts-pipeline/analytics-sync.log</string>
     <key>StandardErrorPath</key>
-    <string>/Volumes/n2me/Developer/shorts-pipeline/data/analytics-sync.error.log</string>
+    <string>/Users/abba/Library/Logs/shorts-pipeline/analytics-sync.error.log</string>
 </dict>
 </plist>
