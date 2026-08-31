@@ -394,14 +394,14 @@ def run_schedule(schedule_path: Path, force_dry_run: bool = False) -> int:
     return 0
 
 
-def run_longform(source_url: str | None, output_dir: Path) -> int:
+def run_longform(source_url: str | None, output_dir: Path, editorial_brief: dict[str, Any] | None = None) -> int:
     settings = load_settings()
     topics = discover_topics(max(settings.topic_limit, 10))
     topics.extend(load_approved_reddit_topics(settings.reddit_approved_file))
     topic = next((item for item in topics if not source_url or item.sources[0].url == source_url), None)
     if not topic:
         raise ValueError("No source-backed topic matched the requested long-form topic")
-    package = create_longform_package(topic)
+    package = create_longform_package(topic, editorial_brief=editorial_brief)
     audio = synthesize(package.narration, settings, output_dir / "narration.mp3")
     if not audio or not audio.exists() or audio.stat().st_size == 0:
         raise RuntimeError("TTS produced no audio for long-form video")
@@ -567,7 +567,7 @@ def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: boo
                 editorial_brief=editorial_brief,
             )
         elif kind == "longform":
-            run_longform(source_url, output_dir / f"longform-{index:02d}")
+            run_longform(source_url, output_dir / f"longform-{index:02d}", editorial_brief=editorial_brief)
         else:
             raise ValueError(f"Unsupported weekly plan entry kind: {kind}")
     print(f"Produced {len(entries)} weekly entries")

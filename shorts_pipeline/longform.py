@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import textwrap
 from pathlib import Path
+from typing import Any
 
 from PIL import Image, ImageDraw
 
@@ -21,48 +22,110 @@ def _chapter_timestamp(narration: str, marker: str, duration: float | None = Non
     return f"{seconds // 60:02d}:{seconds % 60:02d}"
 
 
-def _chapter_metadata(narration: str, duration: float | None = None) -> str:
+def _chapter_metadata(
+    narration: str, duration: float | None = None, chapter_markers: tuple[str, ...] | None = None
+) -> str:
+    markers = chapter_markers or ("Context", "Why it matters", "Limits")
     chapters = (
         ("00:00", "Hook"),
-        (_chapter_timestamp(narration, "Chapter two: Context:", duration), "Context"),
-        (_chapter_timestamp(narration, "Chapter four: Why it matters:", duration), "Technical lesson"),
-        (_chapter_timestamp(narration, "Chapter five:", duration), "Limits and takeaway"),
+        (_chapter_timestamp(narration, f"Chapter two: {markers[0]}:", duration), markers[0]),
+        (_chapter_timestamp(narration, f"Chapter four: {markers[1]}:", duration), "Technical lesson"),
+        (_chapter_timestamp(narration, f"Chapter five: {markers[2]}:", duration), "Limits and takeaway"),
     )
     return "\n".join(f"{timestamp} {label}" for timestamp, label in chapters)
 
 
-def create_longform_package(topic: Topic) -> ScriptPackage:
+def _narration_chapter_markers(narration: str) -> tuple[str, str, str]:
+    defaults = ("Context", "Why it matters", "Limits")
+    markers = []
+    for chapter in (2, 4, 5):
+        match = re.search(rf"Chapter {chapter}: ([^:]+):", narration)
+        markers.append(match.group(1).strip() if match else defaults[len(markers)])
+    return tuple(markers)  # type: ignore[return-value]
+
+
+def _longform_context(topic: Topic, brief: dict[str, Any] | None) -> tuple[str, tuple[str, ...], dict[str, Any] | None]:
+    if brief is None:
+        return (
+            f"What actually happened with {topic.sources[0].title}?",
+            ("Context", "What happened", "Why it matters", "Limits", "Takeaway"),
+            None,
+        )
     source = topic.sources[0]
+    if brief.get("privacy_status") != "private":
+        raise ValueError("long-form editorial brief must be private")
+    brief_source = brief.get("source")
+    bridge = brief.get("longform_bridge")
+    metadata = brief.get("metadata")
+    if not isinstance(brief_source, dict) or brief_source.get("url") != source.url:
+        raise ValueError("long-form editorial brief source URL does not match topic")
+    if not isinstance(bridge, dict) or not isinstance(metadata, dict):
+        raise ValueError("long-form editorial brief requires bridge and metadata objects")
+    question = bridge.get("question")
+    chapters = bridge.get("chapters")
+    if not isinstance(question, str) or not question.strip() or not isinstance(chapters, list) or len(chapters) < 5:
+        raise ValueError("long-form editorial brief bridge is incomplete")
+    clean_chapters = tuple(str(label).strip()[:80] for label in chapters[:5])
+    if any(not label for label in clean_chapters):
+        raise ValueError("long-form editorial brief chapters are incomplete")
+    title = metadata.get("title")
+    description = metadata.get("description")
+    tags = metadata.get("tags")
+    if not all(isinstance(value, str) and value.strip() for value in (title, description)) or not isinstance(
+        tags, list
+    ):
+        raise ValueError("long-form editorial brief metadata is incomplete")
+    if source.url not in description:
+        raise ValueError("long-form editorial brief metadata is not source-linked")
+    return (
+        question.strip(),
+        clean_chapters,
+        {"title": title.strip()[:100], "description": description.strip(), "tags": tags},
+    )
+
+
+def create_longform_package(topic: Topic, editorial_brief: dict[str, Any] | None = None) -> ScriptPackage:
+    source = topic.sources[0]
+    question, bridge_chapters, metadata = _longform_context(topic, editorial_brief)
     sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", source.summary) if part.strip()]
     body_sentences = sentences if len(sentences) <= 40 else [*sentences[:30], *sentences[-10:]]
     body = " ".join(body_sentences)
-    hook = f"What actually happened with {source.title}?"
+    hook = question
+    context, happened, matters, limits, takeaway = bridge_chapters
     narration = (
         f"{hook}\n\n"
         f"Chapter one: the claim. Today we are breaking down {source.title}. "
         f"This is a source-backed case study in {topic.category.lower()}, not a claim that one story explains an entire field.\n\n"
-        f"Chapter two: Context: what the source says. {body}\n\n"
-        "Chapter three: What happened: reconstructing the sequence. The useful way to read this account is to identify the initial condition, "
+        f"Chapter two: {context}: what the source says. {body}\n\n"
+        f"Chapter three: {happened}: reconstructing the sequence. The useful way to read this account is to identify the initial condition, "
         "the technical decision or event that followed, and the observable result. The source gives us the reported details; "
         "our job is to connect them carefully without adding facts that are not present.\n\n"
-        "Chapter four: Why it matters: the technical lesson. A single incident can still expose a design tradeoff. Ask what assumption failed, "
+        f"Chapter four: {matters}: the technical lesson. A single incident can still expose a design tradeoff. Ask what assumption failed, "
         "what constraint shaped the outcome, and which control or test would have revealed the problem earlier. Those questions "
         "turn a headline into an engineering lesson while keeping the explanation honest about its limits.\n\n"
-        "Chapter five: what we cannot conclude. This source is evidence about the event it describes. It is not, by itself, "
+        f"Chapter five: {limits}: what we cannot conclude. This source is evidence about the event it describes. It is not, by itself, "
         "a benchmark of every system, proof that every organization works the same way, or a substitute for primary documentation. "
         "Where the source is incomplete, that uncertainty belongs in the story.\n\n"
-        "Chapter six: Takeaway: the durable lesson is to separate the reported facts from the interpretation, then test the "
+        f"Chapter six: {takeaway}: the durable lesson is to separate the reported facts from the interpretation, then test the "
         "interpretation against stronger evidence. For the full context, read the linked source and compare its claims with "
         "primary technical documentation, measurements, or follow-up reporting."
     )
     attribution = f"Reddit attribution: u/{source.author} in r/{source.community}" if source.author else ""
-    description = (f"Source: {source.url}\n{attribution}\n\n{_chapter_metadata(narration)}\n\n{narration}").strip()
+    chapter_markers = (context, matters, limits)
+    base_description = metadata["description"] if metadata else ""
+    description = (
+        f"{base_description}\n\nSource: {source.url}\n{attribution}\n\n{_chapter_metadata(narration, chapter_markers=chapter_markers)}\n\n{narration}"
+    ).strip()
+    tags = (
+        metadata["tags"] if metadata else [topic.category, "technology", "technical analysis", "deep dive", "long form"]
+    )
+    clean_tags = [str(tag).strip()[:30] for tag in tags if str(tag).strip()][:12]
     return ScriptPackage(
         hook,
         narration,
-        source.title[:100],
+        metadata["title"] if metadata else source.title[:100],
         description,
-        [topic.category, "technology", "technical analysis", "deep dive", "long form"],
+        clean_tags,
         [source.url],
         "longform_explainer",
         topic.category,
@@ -92,8 +155,10 @@ def render_longform_video(
     duration = (
         measured_audio if measured_audio and measured_audio > 0 else max(30.0, len(package.narration.split()) / 2.5)
     )
+    chapter_markers = _narration_chapter_markers(package.narration)
     package.description = package.description.replace(
-        _chapter_metadata(package.narration), _chapter_metadata(package.narration, duration)
+        _chapter_metadata(package.narration, chapter_markers=chapter_markers),
+        _chapter_metadata(package.narration, duration, chapter_markers),
     )
     command = ["ffmpeg", "-y"]
     if background and background.exists():

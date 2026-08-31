@@ -12,6 +12,8 @@ generated and retained as a private review artifact.
 Reviewed editorial briefs now flow into short-package generation and weekly
 production, so approved hooks and metadata are applied only after source,
 format, and private-status validation.
+Long-form weekly entries now execute the reviewed question, chapter bridge,
+source-linked metadata, and tags during narration/package creation.
 Weekly analytics now builds the planner-facing aggregate report automatically;
 the YouTube Reporting API Reach Basic job supplies thumbnail impressions and
 CTR while the existing activity query supplies retention and engagement.

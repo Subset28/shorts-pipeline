@@ -24,6 +24,7 @@ from shorts_pipeline.captions import (
     write_speaker_ass,
 )
 from shorts_pipeline.config import load_settings
+from shorts_pipeline.editorial import build_editorial_brief
 from shorts_pipeline.history import load_publish_state, save_publish_state
 from shorts_pipeline.longform import create_longform_package, render_longform_video
 from shorts_pipeline.media import build_background_reel, select_background, select_backgrounds
@@ -687,6 +688,31 @@ def test_longform_metadata_keeps_citation_for_long_source_body():
     assert "Hook" in metadata(package)["description"]
     assert "Takeaway" in metadata(package)["description"]
     assert "The incident exposed a measurable systems failure." in package.narration
+
+
+def test_longform_package_executes_reviewed_editorial_bridge():
+    source = Source("A reviewed incident", "https://example.test/reviewed", "The source reports a measurable result.")
+    topic = Topic(source.title, "CS", (source,))
+    brief = build_editorial_brief(topic)
+    brief["metadata"]["title"] = "Reviewed systems deep dive"
+    brief["metadata"]["tags"] = ["systems", "engineering"]
+    brief["longform_bridge"]["question"] = "What did the evidence actually show?"
+    brief["longform_bridge"]["chapters"] = ["The report", "The mechanism", "The evidence", "The limits", "The lesson"]
+    package = create_longform_package(topic, editorial_brief=brief)
+    assert package.hook == "What did the evidence actually show?"
+    assert package.title == "Reviewed systems deep dive"
+    assert "Chapter four: The evidence:" in package.narration
+    assert package.tags == ["systems", "engineering"]
+    assert source.url in package.description
+
+
+def test_longform_package_rejects_public_editorial_bridge():
+    source = Source("A reviewed incident", "https://example.test/reviewed", "The source reports a result.")
+    topic = Topic(source.title, "CS", (source,))
+    brief = build_editorial_brief(topic)
+    brief["privacy_status"] = "public"
+    with pytest.raises(ValueError, match="private"):
+        create_longform_package(topic, editorial_brief=brief)
 
 
 def test_longform_render_writes_video_with_audio_and_captions(tmp_path, monkeypatch):
