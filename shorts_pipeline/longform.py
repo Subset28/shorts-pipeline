@@ -11,6 +11,7 @@ from PIL import Image, ImageDraw
 
 from .models import ScriptPackage, Topic
 from .render import _audio_duration, _caption_filter, _font
+from .resources import ffmpeg_resource_args
 
 
 def _chapter_timestamp(narration: str, marker: str, duration: float | None = None) -> str:
@@ -193,7 +194,7 @@ def render_longform_video(
         _chapter_metadata(package.narration, chapter_markers=chapter_markers),
         _chapter_metadata(package.narration, duration, chapter_markers),
     )
-    command = ["ffmpeg", "-y"]
+    command = ["ffmpeg", "-y", *ffmpeg_resource_args()]
     if background and background.exists():
         command += ["-stream_loop", "-1", "-i", str(background)]
         background_input = "[0:v]scale=1920:1080:force_original_aspect_ratio=increase:flags=lanczos,crop=1920:1080,eq=saturation=1.05:contrast=1.04[bg]"

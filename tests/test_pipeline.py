@@ -55,6 +55,7 @@ from shorts_pipeline.reddit import (
     load_approved_reddit_topics,
 )
 from shorts_pipeline.render import _card, _reddit_post_card, _render_duration, render_thumbnail, render_video
+from shorts_pipeline.resources import ffmpeg_resource_args
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.sources import (
     _clean_summary,
@@ -816,6 +817,20 @@ def test_short_render_uses_upload_friendly_mp4_muxing(tmp_path, monkeypatch):
     command = captured["command"]
     assert command[command.index("-movflags") + 1] == "+faststart"
     assert captured["kwargs"]["timeout"] == 300
+
+
+def test_ffmpeg_resource_args_are_bounded_and_configurable(monkeypatch):
+    monkeypatch.setenv("FFMPEG_THREADS", "99")
+    assert ffmpeg_resource_args() == [
+        "-threads",
+        "4",
+        "-filter_threads",
+        "1",
+        "-filter_complex_threads",
+        "1",
+    ]
+    monkeypatch.setenv("FFMPEG_THREADS", "invalid")
+    assert ffmpeg_resource_args()[1] == "2"
 
 
 def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):

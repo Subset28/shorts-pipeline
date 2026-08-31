@@ -11,6 +11,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from .models import ScriptPackage
+from .resources import ffmpeg_resource_args
 
 AUDIO_NORMALIZATION_FILTER = "loudnorm=I=-16:TP=-1.5:LRA=11"
 
@@ -305,7 +306,19 @@ def render_video(
     output = output_dir / "short.mp4"
     duration = _render_duration(package.narration, audio)
     if background and background.exists():
-        command = ["ffmpeg", "-y", "-stream_loop", "-1", "-i", str(background), "-loop", "1", "-i", str(card)]
+        command = [
+            "ffmpeg",
+            "-y",
+            *ffmpeg_resource_args(),
+            "-stream_loop",
+            "-1",
+            "-i",
+            str(background),
+            "-loop",
+            "1",
+            "-i",
+            str(card),
+        ]
         audio_index = 2
         if package.format_name == "reddit_story":
             reddit_card = output_dir / "reddit-post-card.png"
@@ -359,7 +372,7 @@ def render_video(
             str(output),
         ]
     else:
-        command = ["ffmpeg", "-y", "-loop", "1", "-i", str(card)]
+        command = ["ffmpeg", "-y", *ffmpeg_resource_args(), "-loop", "1", "-i", str(card)]
         if audio:
             command += ["-i", str(audio), "-shortest"]
         else:
