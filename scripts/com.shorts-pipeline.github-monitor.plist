@@ -7,10 +7,10 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/abba/shorts-pipeline/.venv/bin/python</string>
-        <string>/Volumes/n2me/Developer/shorts-pipeline/scripts/github_monitor.py</string>
+        <string>/Users/abba/shorts-pipeline/scripts/github_monitor.py</string>
     </array>
     <key>WorkingDirectory</key>
-    <string>/Volumes/n2me/Developer/shorts-pipeline</string>
+    <string>/Users/abba/shorts-pipeline</string>
     <key>EnvironmentVariables</key>
     <dict>
         <key>HOME</key>
