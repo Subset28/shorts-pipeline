@@ -32,6 +32,16 @@ def test_due_videos_start_at_24_hours_and_repeat_daily(tmp_path):
     assert due_videos(events, tmp_path / "snapshots.json", now) == []
 
 
+def test_due_videos_ignores_non_list_snapshot_values(tmp_path):
+    now = datetime(2026, 8, 30, 12, tzinfo=timezone.utc)
+    events = tmp_path / "events.jsonl"
+    _event(events, "abc", (now - timedelta(hours=48)).isoformat())
+    snapshots = tmp_path / "snapshots.json"
+    snapshots.write_text(json.dumps({"abc": None}), encoding="utf-8")
+
+    assert [item["video_id"] for item in due_videos(events, snapshots, now)] == ["abc"]
+
+
 def test_week_videos_returns_only_current_monday_to_sunday_uploads(tmp_path):
     now = datetime(2026, 8, 30, 12, tzinfo=timezone.utc)
     events = tmp_path / "events.jsonl"
