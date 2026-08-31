@@ -1101,6 +1101,27 @@ def test_tts_does_not_reuse_stale_audio_after_provider_failure(tmp_path, monkeyp
     assert not output.exists()
 
 
+def test_tts_does_not_run_fallback_after_elevenlabs_success(tmp_path, monkeypatch):
+    output = tmp_path / "narration.mp3"
+    rotator = tmp_path / "rotator.py"
+    rotator.write_text("", encoding="utf-8")
+    settings = SimpleNamespace(
+        elevenlabs_voice_id="voice",
+        elevenlabs_rotator_path=rotator,
+        elevenlabs_model_id="model",
+        edge_tts_voice="en-US-GuyNeural",
+    )
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        output.write_bytes(b"elevenlabs narration")
+
+    monkeypatch.setattr("shorts_pipeline.tts.subprocess.run", fake_run)
+    assert synthesize("new narration", settings, output) == output
+    assert len(calls) == 1
+
+
 def test_quality_report_records_sync_and_caption_coverage(tmp_path, monkeypatch):
     video = tmp_path / "short.mp4"
     audio = tmp_path / "narration.mp3"
