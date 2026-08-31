@@ -333,10 +333,9 @@ def render_video(
             command += ["-i", str(audio)]
         else:
             command += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]
-        # The landscape gameplay must be enlarged for a portrait crop. Lanczos
-        # preserves detail better than the default scaler, and a restrained
-        # unsharp pass restores edge definition after that unavoidable resize.
-        video_filter = "[0:v]scale=1080:1920:force_original_aspect_ratio=increase:flags=lanczos,crop=1080:1920,unsharp=5:5:0.35:5:5:0,eq=saturation=1.15:contrast=1.08:brightness=-0.04[bg];[bg][1:v]overlay=0:0"
+        # Crop to portrait before scaling so the compositor does not enlarge
+        # the entire landscape frame, while bicubic keeps the gameplay clear.
+        video_filter = "[0:v]crop=min(iw\\,ih*9/16):min(ih\\,iw*16/9):(iw-min(iw\\,ih*9/16))/2:(ih-min(ih\\,iw*16/9))/2,scale=1080:1920:flags=bicubic,eq=saturation=1.15:contrast=1.08:brightness=-0.04[bg];[bg][1:v]overlay=0:0"
         if package.format_name == "reddit_story":
             video_filter = video_filter.replace(
                 "[bg][1:v]overlay=0:0", "[bg][1:v]overlay=0:0[base];[base][2:v]overlay=0:0:enable='between(t,0,4)'"

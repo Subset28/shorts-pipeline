@@ -316,3 +316,9 @@ the normal rotation unchanged.
   they can reach FFmpeg rendering.
 - Finish platform OAuth/configuration and perform a deliberate final-release
   review before deploying to the NAS.
+## 2026-08-31 — reduce final compositor CPU cost
+
+- Changed the final gameplay compositor to crop to portrait before bicubic scaling, avoiding an expensive full-frame enlargement while preserving detail.
+- This addresses the long-render FFmpeg failure path while preserving 1080x1920 output, captions, Reddit card animation, narration, and upload privacy behavior.
+- Verification: bounded 0.1-second FFmpeg compositor diagnostic succeeded; `git diff --check` passed. Full pytest was unavailable because this checkout has no `.venv` and the shell has no `pytest`.
+- Next: run a supervised full-duration smoke render only after the runtime checkout/dependencies are available; no upload was started.
