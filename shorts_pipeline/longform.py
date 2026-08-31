@@ -9,23 +9,24 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 from .models import ScriptPackage, Topic
-from .render import _caption_filter, _font
+from .render import _audio_duration, _caption_filter, _font
 
 
-def _chapter_timestamp(narration: str, marker: str) -> str:
+def _chapter_timestamp(narration: str, marker: str, duration: float | None = None) -> str:
     total_words = max(1, len(narration.split()))
     position = narration.find(f"\n\n{marker}")
     words_before = len(narration[: max(0, position)].split()) if position >= 0 else total_words
-    seconds = min(max(0, int((words_before / total_words) * max(30.0, total_words / 2.5))), 5999)
+    total_duration = duration if duration and duration > 0 else max(30.0, total_words / 2.5)
+    seconds = min(max(0, int((words_before / total_words) * total_duration)), 5999)
     return f"{seconds // 60:02d}:{seconds % 60:02d}"
 
 
-def _chapter_metadata(narration: str) -> str:
+def _chapter_metadata(narration: str, duration: float | None = None) -> str:
     chapters = (
         ("00:00", "Hook"),
-        (_chapter_timestamp(narration, "Chapter two: Context:"), "Context"),
-        (_chapter_timestamp(narration, "Chapter four: Why it matters:"), "Technical lesson"),
-        (_chapter_timestamp(narration, "Chapter five:"), "Limits and takeaway"),
+        (_chapter_timestamp(narration, "Chapter two: Context:", duration), "Context"),
+        (_chapter_timestamp(narration, "Chapter four: Why it matters:", duration), "Technical lesson"),
+        (_chapter_timestamp(narration, "Chapter five:", duration), "Limits and takeaway"),
     )
     return "\n".join(f"{timestamp} {label}" for timestamp, label in chapters)
 
@@ -87,7 +88,13 @@ def render_longform_video(
     card = output_dir / "title-card.png"
     _title_card(package, card)
     output = output_dir / "longform.mp4"
-    duration = max(30.0, len(package.narration.split()) / 2.5)
+    measured_audio = _audio_duration(audio)
+    duration = (
+        measured_audio if measured_audio and measured_audio > 0 else max(30.0, len(package.narration.split()) / 2.5)
+    )
+    package.description = package.description.replace(
+        _chapter_metadata(package.narration), _chapter_metadata(package.narration, duration)
+    )
     command = ["ffmpeg", "-y"]
     if background and background.exists():
         command += ["-stream_loop", "-1", "-i", str(background)]

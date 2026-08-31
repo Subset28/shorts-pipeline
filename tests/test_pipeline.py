@@ -691,6 +691,7 @@ def test_longform_render_writes_video_with_audio_and_captions(tmp_path, monkeypa
     captions.write_text("1\n00:00:00,000 --> 00:00:01,000\nTest\n", encoding="utf-8")
     calls = []
     monkeypatch.setattr("shorts_pipeline.longform.shutil.which", lambda _: "/usr/bin/ffmpeg")
+    monkeypatch.setattr("shorts_pipeline.longform._audio_duration", lambda _: 47.5)
 
     def fake_run(command, **kwargs):
         calls.append((command, kwargs))
@@ -700,6 +701,8 @@ def test_longform_render_writes_video_with_audio_and_captions(tmp_path, monkeypa
     assert output.name == "longform.mp4"
     assert "2:a" in calls[0][0]
     assert calls[0][1]["timeout"] == 600
+    assert "47.5" in calls[0][0]
+    assert "00:07 Context" in package.description
     assert all(
         section in package.narration for section in ("Context:", "What happened:", "Why it matters:", "Takeaway:")
     )

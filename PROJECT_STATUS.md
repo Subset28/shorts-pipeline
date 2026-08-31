@@ -12,6 +12,9 @@ validation, an eight-entry cap, and an explicit TikTok-off boundary.
 2026-08-30: Strengthened the long-form package with a six-chapter narrated
 structure, source-versus-inference guardrails, chapter metadata, and a more
 specific technical-analysis tag set.
+Long-form renders now use the measured narration duration when available,
+keeping the video timeline aligned with its audio instead of relying on a word
+count estimate.
 
 2026-08-30: Added channel-level YouTube packaging with bounded metadata,
 category-aware tags, generated custom thumbnails, and idempotent thumbnail
