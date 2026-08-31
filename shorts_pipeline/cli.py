@@ -78,6 +78,10 @@ def _select_topic(topics, seen: set[str], reddit_only: bool = False):
     return topics[0]
 
 
+def _should_pause_after_success(reddit_only: bool, private_drafts: bool) -> bool:
+    return not reddit_only or private_drafts
+
+
 def _should_upload_tiktok(private_drafts: bool, youtube_only: bool) -> bool:
     return not private_drafts and not youtube_only
 
@@ -146,7 +150,7 @@ def run_worker(
             print(f"Retrying in {delay / 3600:g} hours", flush=True)
             time.sleep(delay)
         else:
-            if not reddit_only:
+            if _should_pause_after_success(reddit_only, private_drafts):
                 time.sleep(retry_seconds)
 
 
