@@ -544,6 +544,12 @@ def test_worker_interval_rejects_non_finite_or_non_positive_values():
             cli._interval_seconds(value)
 
 
+def test_topic_selection_refuses_repeating_seen_reddit_story():
+    topic = Topic("A story", "CS", (Source("A story", "https://example.test/story", "Details"),))
+    with pytest.raises(RuntimeError, match="No unseen Reddit topics"):
+        cli._select_topic([topic], {topic.sources[0].url}, reddit_only=True)
+
+
 def test_longform_package_has_argument_structure_and_source_link():
     source = Source(
         "A production incident",
