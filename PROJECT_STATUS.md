@@ -23,6 +23,10 @@ execution and supports private YouTube upload plus thumbnail retry, matching
 Shorts behavior without enabling TikTok or public publishing.
 Weekly dispatch now also passes each plan entry's scheduled time into the
 Short upload path, so the full private slate preserves its intended calendar.
+Fresh source research on 2026-08-31 produced a private three-story AI,
+cybersecurity, and networking slate with primary links, hooks, long-form
+questions, visual treatments, and explicit fact boundaries in
+`docs/research/2026-08-31-tech-story-slate.md`.
 Weekly analytics now builds the planner-facing aggregate report automatically;
 the YouTube Reporting API Reach Basic job supplies thumbnail impressions and
 CTR while the existing activity query supplies retention and engagement.
