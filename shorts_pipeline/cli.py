@@ -584,6 +584,58 @@ def run_research_week(
     return 0
 
 
+def run_prepare_week(
+    week_of: str,
+    shorts_count: int,
+    research_output: Path,
+    plan_output: Path,
+    include_longform: bool = True,
+    analytics_path: Path | None = None,
+) -> int:
+    """Discover once and write a private research slate plus production plan."""
+    try:
+        week_start = date.fromisoformat(week_of)
+    except ValueError as exc:
+        raise ValueError("week_of must be an ISO date") from exc
+    settings = load_settings()
+    topics = discover_topics(max(settings.topic_limit, shorts_count + 3))
+    topics.extend(load_approved_reddit_topics(settings.reddit_approved_file))
+    experiment_brief = None
+    report_path = analytics_path or getattr(settings, "data_dir", Path("data")) / "analytics_report.json"
+    if report_path.exists():
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            if analytics_path is not None:
+                raise ValueError(f"Could not read analytics report: {analytics_path}") from exc
+        else:
+            if isinstance(report, dict) and isinstance(report.get("experiment_brief"), dict):
+                experiment_brief = report["experiment_brief"]
+    elif analytics_path is not None:
+        raise ValueError(f"Analytics report does not exist: {analytics_path}")
+    research = build_research_week(topics, week_start, shorts_count, include_longform, experiment_brief)
+    entries = build_weekly_plan(topics, week_start, shorts_count, include_longform, topics, experiment_brief)
+    briefs = {item["source"]["url"]: item for item in research["shorts"] + research["longform"] if item.get("source")}
+    for entry in entries:
+        brief = briefs.get(entry["source_url"])
+        if brief:
+            entry["editorial_brief"] = brief
+    if not entries:
+        raise RuntimeError("No source-backed topics were available for the weekly plan")
+    research_output.parent.mkdir(parents=True, exist_ok=True)
+    plan_output.parent.mkdir(parents=True, exist_ok=True)
+    research_output.write_text(json.dumps(research, indent=2), encoding="utf-8")
+    plan_output.write_text(
+        json.dumps(
+            {"week_of": week_of, "privacy_status": "private", "entries": entries, "experiment_brief": experiment_brief},
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print(f"Prepared {research_output} and {plan_output} ({len(entries)} entries)")
+    return 0
+
+
 def run_weekly_production(plan_path: Path, output_dir: Path, upload_private: bool = False) -> int:
     """Render a reviewed private plan without allowing public or TikTok publishing."""
     try:
@@ -740,6 +792,13 @@ def main() -> None:
     research_parser.add_argument("--out", default="data/research_week.json")
     research_parser.add_argument("--no-longform", action="store_true")
     research_parser.add_argument("--analytics", help="Analytics report used to shape the next treatments")
+    prepare_parser = sub.add_parser("prepare-week")
+    prepare_parser.add_argument("--week-of", required=True, help="Monday ISO date for the prepared week")
+    prepare_parser.add_argument("--shorts", type=int, default=7)
+    prepare_parser.add_argument("--research-out", default="data/research_week.json")
+    prepare_parser.add_argument("--plan-out", default="data/weekly_plan.json")
+    prepare_parser.add_argument("--no-longform", action="store_true")
+    prepare_parser.add_argument("--analytics", help="Analytics report used to shape the next treatments")
     production_parser = sub.add_parser("produce-week")
     production_parser.add_argument("--plan", required=True)
     production_parser.add_argument("--out", default="output/weekly")
@@ -797,6 +856,17 @@ def main() -> None:
                 args.week_of,
                 args.shorts,
                 Path(args.out),
+                not args.no_longform,
+                Path(args.analytics) if args.analytics else None,
+            )
+        )
+    if args.command == "prepare-week":
+        raise SystemExit(
+            run_prepare_week(
+                args.week_of,
+                args.shorts,
+                Path(args.research_out),
+                Path(args.plan_out),
                 not args.no_longform,
                 Path(args.analytics) if args.analytics else None,
             )

@@ -289,3 +289,36 @@ def test_research_command_keeps_ai_ml_and_finance_topics(tmp_path, monkeypatch):
         "https://example.test/finance",
         "https://example.test/agents",
     }
+
+
+def test_prepare_week_writes_private_research_and_plan_once(tmp_path, monkeypatch):
+    first = _topic("AI")
+    second = _topic("Cyber")
+    second = Topic(
+        second.title,
+        second.category,
+        (Source(second.sources[0].title, "https://example.test/cyber", second.sources[0].summary),),
+        second.score,
+    )
+    topics = [first, second]
+    monkeypatch.setattr(
+        cli,
+        "load_settings",
+        lambda: type("Settings", (), {"topic_limit": 10, "reddit_approved_file": tmp_path / "approved.json"})(),
+    )
+    calls = []
+    monkeypatch.setattr(cli, "discover_topics", lambda _limit: calls.append("discover") or topics)
+    monkeypatch.setattr(cli, "load_approved_reddit_topics", lambda _path: [])
+
+    research_path = tmp_path / "research.json"
+    plan_path = tmp_path / "plan.json"
+    assert cli.run_prepare_week("2026-09-07", 1, research_path, plan_path) == 0
+    research = json.loads(research_path.read_text(encoding="utf-8"))
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    assert calls == ["discover"]
+    assert research["privacy_status"] == "private"
+    assert len(research["shorts"]) == 1
+    assert len(research["longform"]) == 1
+    assert plan["privacy_status"] == "private"
+    assert len(plan["entries"]) == 2
+    assert all(isinstance(entry.get("editorial_brief"), dict) for entry in plan["entries"])

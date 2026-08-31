@@ -37,6 +37,9 @@ throttled process to reduce resource contention during TTS and FFmpeg work.
 Long-form renders now add an original technical flow visual after the opening
 title card, giving the chapter-based explanation an intentional visual anchor
 without requiring an unavailable Sora integration.
+Added `prepare-week`, which discovers once and writes the private research
+slate plus scheduled production plan with editorial briefs attached, reducing
+duplicate discovery work before weekly production.
 Weekly analytics now builds the planner-facing aggregate report automatically;
 the YouTube Reporting API Reach Basic job supplies thumbnail impressions and
 CTR while the existing activity query supplies retention and engagement.
