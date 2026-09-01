@@ -105,7 +105,9 @@ def test_reddit_quality_penalizes_personal_advice_over_technical_story():
             Source(
                 "A server outage exposed a broken deployment",
                 "https://reddit.test/technical",
-                " ".join(["The incident was fixed after the deployment system failed and logs exposed the cause."] * 20),
+                " ".join(
+                    ["The incident was fixed after the deployment system failed and logs exposed the cause."] * 20
+                ),
                 author="a",
                 community="sysadmin",
                 reuse_permission=True,
