@@ -1,5 +1,12 @@
 # Project status
 
+2026-09-01: Added a bounded opening-and-pacing experiment for low-retention
+lanes. Reviewed briefs marked `opening_and_pacing` now place the concrete hook
+before the source headline while retaining the complete source-backed narration,
+so the next batch can test the observed 6–9 second drop-off without changing
+all packaging at once. Added a focused regression test and archived the
+2026-09-01 dashboard snapshot in `docs/analytics/2026-09-01-dashboard.md`.
+
 2026-08-31: Applied the one-thread FFmpeg profile to final short composition and preserved the last 1000 characters of FFmpeg diagnostics on render failure. A controlled static-background render failed with exit 234; its error is now actionable without exposing credentials.
 
 2026-08-31: Made multi-segment background generation opt-in. Unattended runs now use one category/provenance-selected moving source by default, while `BACKGROUND_REEL_ENABLED=true` retains the richer reel for explicitly benchmarked hosts; this prevents the observed high-CPU reel path from running by default.

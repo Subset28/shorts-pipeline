@@ -1,5 +1,6 @@
 import hashlib
 import re
+from dataclasses import replace
 
 from .models import ScriptPackage, Topic
 
@@ -322,6 +323,14 @@ def _ensure_source_opening(source_title: str, narration: str) -> str:
     if narration.casefold().startswith(title.casefold()):
         return narration
     return _clip_narration(f"{title}. {narration}")
+
+
+def front_load_hook(package: ScriptPackage) -> ScriptPackage:
+    """Put the short promise before the source headline for a retention test."""
+    hook = " ".join(package.hook.split()).strip(" .")
+    if not hook or package.narration.casefold().startswith(hook.casefold()):
+        return package
+    return replace(package, narration=_clip_narration(f"{hook}. {package.narration}"))
 
 
 def normalize_package(topic: Topic, data: dict) -> ScriptPackage:

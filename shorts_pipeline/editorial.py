@@ -6,7 +6,7 @@ from typing import Any
 
 from .content_calendar import _experiment_targets, _longform_sort_key, _select_short_topics
 from .models import ScriptPackage, Topic
-from .seo import eligible_formats, fallback_package
+from .seo import eligible_formats, fallback_package, front_load_hook
 
 REDDIT_URL_PREFIXES = ("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")
 CHANNEL_CATEGORY_ORDER = ["AI", "AI News", "AI/ML", "ML", "Cyber", "CS", "Aerospace", "Finance"]
@@ -129,9 +129,12 @@ def apply_editorial_brief(package: ScriptPackage, topic: Topic, brief: dict[str,
     if source.url not in description or not isinstance(tags, list):
         raise ValueError("editorial brief metadata is not source-linked")
     clean_tags = [str(tag).strip()[:30] for tag in tags if str(tag).strip()][:12]
-    return replace(
+    shaped = replace(
         package, hook=hook.strip()[:140], title=title.strip()[:100], description=description.strip(), tags=clean_tags
     )
+    if isinstance(brief.get("analytics_target"), dict) and brief["analytics_target"].get("area") == "opening_and_pacing":
+        shaped = front_load_hook(shaped)
+    return shaped
 
 
 def _unique_topics(topics: list[Topic]) -> list[Topic]:
