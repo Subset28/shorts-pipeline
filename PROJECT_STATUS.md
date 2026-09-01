@@ -17,6 +17,11 @@ configured but fails, production now stops instead of switching to edge-TTS;
 the free fallback remains available only when ElevenLabs is not configured.
 This prevents a failed premium voice from becoming an unreviewed upload.
 
+2026-09-01: A one-word ElevenLabs health check confirmed the active free-tier
+account returns `detected_unusual_activity` and refuses synthesis. Premium
+audio is therefore blocked until a working ElevenLabs account is supplied;
+the pipeline will not silently ship edge-TTS audio as a substitute.
+
 2026-09-01: Added a bounded opening-and-pacing experiment for low-retention
 lanes. Reviewed briefs marked `opening_and_pacing` now place the concrete hook
 before the source headline while retaining the complete source-backed narration,
