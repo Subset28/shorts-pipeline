@@ -132,7 +132,10 @@ def apply_editorial_brief(package: ScriptPackage, topic: Topic, brief: dict[str,
     shaped = replace(
         package, hook=hook.strip()[:140], title=title.strip()[:100], description=description.strip(), tags=clean_tags
     )
-    if isinstance(brief.get("analytics_target"), dict) and brief["analytics_target"].get("area") == "opening_and_pacing":
+    if (
+        isinstance(brief.get("analytics_target"), dict)
+        and brief["analytics_target"].get("area") == "opening_and_pacing"
+    ):
         shaped = front_load_hook(shaped)
     return shaped
 

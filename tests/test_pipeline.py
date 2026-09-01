@@ -101,13 +101,36 @@ def test_reddit_quality_penalizes_personal_advice_over_technical_story():
     technical = Topic(
         "A server outage exposed a broken deployment",
         "CS",
-        (Source("A server outage exposed a broken deployment", "https://reddit.test/technical", " ".join(["The incident was fixed after the deployment system failed and logs exposed the cause."] * 20), author="a", community="sysadmin", reuse_permission=True),),
+        (
+            Source(
+                "A server outage exposed a broken deployment",
+                "https://reddit.test/technical",
+                " ".join(["The incident was fixed after the deployment system failed and logs exposed the cause."] * 20),
+                author="a",
+                community="sysadmin",
+                reuse_permission=True,
+            ),
+        ),
         100,
     )
     advice = Topic(
         "I hate programming now. Warning for new graduates",
         "CS",
-        (Source("I hate programming now. Warning for new graduates", "https://reddit.test/advice", " ".join(["The author describes a long personal experience with work and programming, including what happened next and the lesson learned."] * 20), author="b", community="programming", reuse_permission=True),),
+        (
+            Source(
+                "I hate programming now. Warning for new graduates",
+                "https://reddit.test/advice",
+                " ".join(
+                    [
+                        "The author describes a long personal experience with work and programming, including what happened next and the lesson learned."
+                    ]
+                    * 20
+                ),
+                author="b",
+                community="programming",
+                reuse_permission=True,
+            ),
+        ),
         1000,
     )
     assert _reddit_quality_score(technical) > _reddit_quality_score(advice)
@@ -956,7 +979,19 @@ def test_ffmpeg_resource_args_are_bounded_and_configurable(monkeypatch):
 
 
 def test_render_uses_single_threaded_x264_profile(tmp_path, monkeypatch):
-    package = fallback_package(Topic("A breakthrough", "AI", (Source("A breakthrough", "https://example.test/a", "A useful finding with enough context to explain the result."),)))
+    package = fallback_package(
+        Topic(
+            "A breakthrough",
+            "AI",
+            (
+                Source(
+                    "A breakthrough",
+                    "https://example.test/a",
+                    "A useful finding with enough context to explain the result.",
+                ),
+            ),
+        )
+    )
     commands = []
     monkeypatch.setattr("shorts_pipeline.render.subprocess.run", lambda command, **kwargs: commands.append(command))
     render_video(package, tmp_path)
