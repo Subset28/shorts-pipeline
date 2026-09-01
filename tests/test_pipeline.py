@@ -996,6 +996,7 @@ def test_render_uses_single_threaded_x264_profile(tmp_path, monkeypatch):
         )
     )
     commands = []
+    monkeypatch.setattr("shorts_pipeline.render.shutil.which", lambda _: "/usr/bin/ffmpeg")
     monkeypatch.setattr("shorts_pipeline.render.subprocess.run", lambda command, **kwargs: commands.append(command))
     render_video(package, tmp_path)
     command = commands[0]
