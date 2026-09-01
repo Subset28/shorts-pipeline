@@ -67,6 +67,17 @@ def test_weekly_plan_prefers_channel_core_category_for_longform():
     assert plan[-1]["category"] == "AI"
 
 
+def test_weekly_plan_excludes_off_channel_topics_when_core_topics_fill_batch():
+    topics = [
+        _topic("AI incident", "AI", 1),
+        _topic("Cyber incident", "Cyber", 1),
+        _topic("Software outage", "CS", 1),
+        _topic("Market rumor", "Finance", 100),
+    ]
+    plan = build_weekly_plan(topics, date(2026, 9, 7), shorts_count=3, include_longform=False)
+    assert {item["category"] for item in plan} == {"AI", "Cyber", "CS"}
+
+
 def test_weekly_plan_deduplicates_sources_and_limits_count():
     topic = _topic("One story", "CS", 4)
     duplicate = Topic(topic.title, topic.category, topic.sources, 99)

@@ -95,6 +95,25 @@ def test_fallback_package_adds_source_terms_to_search_tags():
     assert len(package.tags) <= 12
 
 
+def test_reddit_quality_penalizes_personal_advice_over_technical_story():
+    from shorts_pipeline.reddit import _reddit_quality_score
+
+    technical = Topic(
+        "A server outage exposed a broken deployment",
+        "CS",
+        (Source("A server outage exposed a broken deployment", "https://reddit.test/technical", " ".join(["The incident was fixed after the deployment system failed and logs exposed the cause."] * 20), author="a", community="sysadmin", reuse_permission=True),),
+        100,
+    )
+    advice = Topic(
+        "I hate programming now. Warning for new graduates",
+        "CS",
+        (Source("I hate programming now. Warning for new graduates", "https://reddit.test/advice", " ".join(["The author describes a long personal experience with work and programming, including what happened next and the lesson learned."] * 20), author="b", community="programming", reuse_permission=True),),
+        1000,
+    )
+    assert _reddit_quality_score(technical) > _reddit_quality_score(advice)
+    assert not _is_niche_relevant(advice.sources[0].community, advice.title, advice.sources[0].summary)
+
+
 def test_fallback_hook_translates_long_research_title_into_clear_claim():
     source = Source(
         "Marginal Coverage Credit Reduces Redundant Exploration in Parallel State-Entropy Optimization",

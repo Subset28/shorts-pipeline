@@ -1,5 +1,11 @@
 # Project status
 
+2026-09-01: Tightened Reddit channel-fit selection after the live queue audit.
+Personal advice, career, anxiety, recruiter, and other vague prompt titles are
+now rejected at discovery and approved-queue load time; a concrete technical
+incident must beat raw Reddit popularity. The weekly planner also prefers the
+AI/ML, Cyber, CS, and engineering lanes whenever enough eligible topics exist.
+
 2026-09-01: Added a bounded opening-and-pacing experiment for low-retention
 lanes. Reviewed briefs marked `opening_and_pacing` now place the concrete hook
 before the source headline while retaining the complete source-backed narration,
