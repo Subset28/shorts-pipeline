@@ -1,4 +1,5 @@
 import json
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -1940,6 +1941,25 @@ def test_tts_does_not_run_fallback_after_elevenlabs_success(tmp_path, monkeypatc
     monkeypatch.setattr("shorts_pipeline.tts.subprocess.run", fake_run)
     assert synthesize("new narration", settings, output) == output
     assert len(calls) == 1
+
+
+def test_tts_does_not_silently_downgrade_when_elevenlabs_fails(tmp_path, monkeypatch):
+    output = tmp_path / "narration.mp3"
+    rotator = tmp_path / "rotator.py"
+    rotator.write_text("", encoding="utf-8")
+    settings = SimpleNamespace(
+        elevenlabs_voice_id="voice",
+        elevenlabs_rotator_path=rotator,
+        elevenlabs_model_id="model",
+        edge_tts_voice="en-US-GuyNeural",
+    )
+
+    monkeypatch.setattr(
+        "shorts_pipeline.tts.subprocess.run",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(subprocess.CalledProcessError(1, "rotator")),
+    )
+    assert synthesize("new narration", settings, output) is None
+    assert not output.exists()
 
 
 def test_quality_report_records_sync_and_caption_coverage(tmp_path, monkeypatch):

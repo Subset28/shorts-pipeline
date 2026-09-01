@@ -12,6 +12,11 @@ The final render now passes an explicit single-thread x264 profile and uses the
 lower-cost `veryfast` preset; a command-level regression test covers it. No
 upload occurred.
 
+2026-09-01: Prevented silent TTS quality downgrades. If ElevenLabs is
+configured but fails, production now stops instead of switching to edge-TTS;
+the free fallback remains available only when ElevenLabs is not configured.
+This prevents a failed premium voice from becoming an unreviewed upload.
+
 2026-09-01: Added a bounded opening-and-pacing experiment for low-retention
 lanes. Reviewed briefs marked `opening_and_pacing` now place the concrete hook
 before the source headline while retaining the complete source-backed narration,

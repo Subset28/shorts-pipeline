@@ -10,8 +10,9 @@ from .config import Settings
 def synthesize(text: str, settings: Settings, output: Path) -> Path | None:
     """Use the existing rotating ElevenLabs helper without importing its keys.
 
-    Missing rotator configuration is a normal free-mode condition; the render
-    stage will produce a silent draft rather than failing the whole run.
+    Missing rotator configuration is a normal free-mode condition. When
+    ElevenLabs is configured but unavailable, stop instead of silently
+    downgrading a premium channel to a different voice.
     """
     output.parent.mkdir(parents=True, exist_ok=True)
     output.unlink(missing_ok=True)
@@ -35,7 +36,8 @@ def synthesize(text: str, settings: Settings, output: Path) -> Path | None:
             if output.exists() and output.stat().st_size:
                 return output
         except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
-            print(f"ElevenLabs unavailable; trying free edge-tts fallback: {exc}")
+            print(f"ElevenLabs unavailable; refusing lower-quality voice fallback: {type(exc).__name__}")
+            return None
     try:
         subprocess.run(
             [
