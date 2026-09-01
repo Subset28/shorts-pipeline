@@ -63,14 +63,24 @@ def _caption_filter(captions: Path, margin_v: int = 430) -> str:
     return f"subtitles='{caption_file}':original_size=1080x1920:force_style='{style}'"
 
 
-def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    names = ("arialbd.ttf", "C:/Windows/Fonts/arialbd.ttf") if bold else ("arial.ttf", "C:/Windows/Fonts/arial.ttf")
-    names += (
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        if bold
-        else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+def _font_candidates(bold: bool = False) -> tuple[str, ...]:
+    if bold:
+        return (
+            "arialbd.ttf",
+            "C:/Windows/Fonts/arialbd.ttf",
+            "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        )
+    return (
+        "arial.ttf",
+        "C:/Windows/Fonts/arial.ttf",
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     )
-    for name in names:
+
+
+def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    for name in _font_candidates(bold):
         try:
             return ImageFont.truetype(name, size)
         except OSError:
@@ -281,6 +291,153 @@ def _reddit_post_card(package: ScriptPackage, path: Path) -> None:
         )
 
 
+def _story_system_nodes(category: str, story_text: str) -> tuple[str, str, str] | None:
+    normalized = category.lower()
+    text = story_text.lower()
+    if "cyber" in normalized:
+        if re.search(r"\b(spf|dkim|dmarc|email|mail|sender|inbox)\b", text):
+            return ("SENDER", "DNS POLICY", "INBOX")
+        if re.search(r"\b(identity|authentication|login|account|tenant|m365|oauth)\b", text):
+            return ("USER", "IDENTITY", "CLOUD")
+        if re.search(r"\b(malware|ransomware|phishing|endpoint|payload)\b", text):
+            return ("ATTACKER", "ENDPOINT", "NETWORK")
+        if re.search(r"\b(dns|firewall|network|packet|proxy)\b", text):
+            return ("CLIENT", "NETWORK", "SERVICE")
+    if "ai" in normalized or "ml" in normalized or "machine" in normalized:
+        if re.search(r"\b(image|vision|camera|pixel)\b", text):
+            return ("IMAGE", "MODEL", "PREDICTION")
+        if re.search(r"\b(train|training|dataset|fine-tun)\b", text):
+            return ("DATA", "TRAINING", "MODEL")
+        if re.search(r"\b(model|inference|agent|neural)\b", text):
+            return ("INPUT", "MODEL", "OUTPUT")
+    if "cs" in normalized or "software" in normalized or "sysadmin" in normalized:
+        if re.search(r"\b(powershell|script|automation|command)\b", text):
+            return ("INPUT", "SCRIPT", "SYSTEM")
+        if re.search(r"\b(server|vm|host|storage)\b", text):
+            return ("CLIENT", "SERVER", "STORAGE")
+        if re.search(r"\b(support|ticket|vendor|helpdesk)\b", text):
+            return ("USER", "SUPPORT", "VENDOR")
+        if re.search(r"\b(code|bug|deploy|production)\b", text):
+            return ("CODE", "DEPLOY", "PRODUCTION")
+    if "aerospace" in normalized:
+        if re.search(r"\b(engine|fluid|fuel|propulsion|thrust)\b", text):
+            return ("FUEL", "ENGINE", "THRUST")
+        if re.search(r"\b(sensor|telemetry|avionics)\b", text):
+            return ("SENSOR", "TELEMETRY", "CONTROL")
+    return None
+
+
+def _scene_excerpt(text: str, limit: int = 150) -> str:
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    if len(cleaned) <= limit:
+        return cleaned
+    words = cleaned[: limit + 1].split()
+    shortened = " ".join(words[:-1]).rstrip(" ,;:-")
+    return shortened + "…"
+
+
+def _story_scene_copy(package: ScriptPackage) -> tuple[str, str, str]:
+    sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", package.narration) if part.strip()]
+    incident = package.card_text or package.title
+    detail = sentences[len(sentences) // 2] if sentences else package.hook
+    outcome = sentences[-1] if sentences else package.hook
+    return tuple(_scene_excerpt(item) for item in (incident, detail, outcome))
+
+
+def _story_outcome_kicker(outcome: str) -> str:
+    if re.search(r"\b(lesson|takeaway)\b", outcome, re.IGNORECASE):
+        return "TAKEAWAY"
+    if re.search(r"\b(outcome|fixed|resolved|recovered|restored|result|ended up|turned out|finally)\b", outcome, re.IGNORECASE):
+        return "OUTCOME"
+    return "FINAL DETAIL"
+
+
+def _scene_lines(body: str, width: int = 31, limit: int = 4) -> list[str]:
+    lines = textwrap.wrap(body, width=width)
+    if len(lines) <= limit:
+        return lines
+    visible = lines[:limit]
+    visible[-1] = visible[-1][: width - 1].rstrip(" ,.;:-") + "…"
+    return visible
+
+
+def _draw_story_scene(
+    package: ScriptPackage,
+    path: Path,
+    kicker: str,
+    body: str,
+    nodes: tuple[str, str, str] | None = None,
+) -> None:
+    image = Image.new("RGBA", (1080, 1920), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    accent = (68, 214, 255, 255) if "cyber" in package.category.lower() else (255, 92, 38, 255)
+    draw.rounded_rectangle((42, 150, 1038, 635), radius=34, fill=(5, 10, 22, 232), outline=(255, 255, 255, 70), width=2)
+    draw.rounded_rectangle((42, 150, 55, 635), radius=6, fill=accent)
+    draw.rounded_rectangle((78, 188, 385, 238), radius=18, fill=accent)
+    draw.text((98, 198), kicker, fill=(5, 10, 22), font=_font(25, bold=True))
+    draw.multiline_text(
+        (78, 290),
+        "\n".join(_scene_lines(body)),
+        fill="white",
+        font=_font(50, bold=True),
+        spacing=12,
+        stroke_width=2,
+        stroke_fill=(0, 0, 0, 180),
+    )
+    draw.text((78, 575), "SOURCE-BACKED • REDDIT", fill=(170, 190, 215), font=_font(22, bold=True))
+    if nodes:
+        node_y = 750
+        for index, label in enumerate(nodes):
+            left = 48 + (index * 350)
+            right = left + 284
+            node_fill = (110, 32, 52, 235) if index == 1 else (8, 25, 46, 235)
+            draw.rounded_rectangle((left, node_y, right, node_y + 150), radius=28, fill=node_fill, outline=accent, width=4)
+            width = draw.textlength(label, font=_font(27, bold=True))
+            draw.text((left + ((284 - width) / 2), node_y + 57), label, fill="white", font=_font(27, bold=True))
+            if index < 2:
+                draw.line((right + 12, node_y + 75, right + 54, node_y + 75), fill=accent, width=8)
+                draw.polygon(
+                    ((right + 54, node_y + 75), (right + 36, node_y + 61), (right + 36, node_y + 89)), fill=accent
+                )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(path)
+
+
+def _story_visuals(package: ScriptPackage, output_dir: Path) -> list[Path]:
+    incident, detail, outcome = _story_scene_copy(package)
+    story_text = f"{package.title} {package.card_text} {package.narration}"
+    records = (
+        ("WHAT HAPPENED", incident, None, "story-incident.png"),
+        ("SYSTEM VIEW", detail, _story_system_nodes(package.category, story_text), "story-system.png"),
+        (_story_outcome_kicker(outcome), outcome, None, "story-outcome.png"),
+    )
+    paths = []
+    for kicker, body, nodes, filename in records:
+        path = output_dir / filename
+        _draw_story_scene(package, path, kicker, body, nodes)
+        paths.append(path)
+    return paths
+
+
+def _story_overlay_filters(duration: float, first_input: int) -> tuple[str, str]:
+    scene_start = min(4.0, duration * 0.4)
+    segment = max(0.1, (duration - scene_start) / 3)
+    previous = "story-card"
+    filters = []
+    for index in range(3):
+        start = scene_start + (segment * index)
+        end = duration if index == 2 else scene_start + (segment * (index + 1))
+        scene = f"scene-{index}"
+        output = f"story-{index}"
+        filters.append(
+            f"[{first_input + index}:v]format=rgba,fade=t=in:st={start:.2f}:d=0.25:alpha=1,"
+            f"fade=t=out:st={max(start, end - 0.25):.2f}:d=0.25:alpha=1[{scene}]"
+        )
+        filters.append(f"[{previous}][{scene}]overlay=0:0:enable='between(t,{start:.2f},{end:.2f})'[{output}]")
+        previous = output
+    return ";".join(filters), previous
+
+
 def render_video(
     package: ScriptPackage,
     output_dir: Path,
@@ -320,6 +477,7 @@ def render_video(
             str(card),
         ]
         audio_index = 2
+        story_visuals: list[Path] = []
         if package.format_name == "reddit_story":
             reddit_card = output_dir / "reddit-post-card.png"
             _reddit_post_card(package, reddit_card)
@@ -328,7 +486,10 @@ def render_video(
                 command += ["-stream_loop", "-1", "-i", str(animated_card)]
             else:
                 command += ["-loop", "1", "-i", str(reddit_card)]
-            audio_index = 3
+            story_visuals = _story_visuals(package, output_dir)
+            for visual in story_visuals:
+                command += ["-loop", "1", "-i", str(visual)]
+            audio_index = 3 + len(story_visuals)
         if audio:
             command += ["-i", str(audio)]
         else:
@@ -338,9 +499,16 @@ def render_video(
         video_filter = "[0:v]crop=min(iw\\,ih*9/16):min(ih\\,iw*16/9):(iw-min(iw\\,ih*9/16))/2:(ih-min(ih\\,iw*16/9))/2,scale=1080:1920:flags=bicubic,eq=saturation=1.15:contrast=1.08:brightness=-0.04[bg];[bg][1:v]overlay=0:0"
         if package.format_name == "reddit_story":
             video_filter = video_filter.replace(
-                "[bg][1:v]overlay=0:0", "[bg][1:v]overlay=0:0[base];[base][2:v]overlay=0:0:enable='between(t,0,4)'"
+                "[bg][1:v]overlay=0:0",
+                "[bg][1:v]overlay=0:0[base];[base][2:v]overlay=0:0:enable='between(t,0,4)'[story-card]",
             )
-        if captions and captions.exists():
+            story_filters, story_output = _story_overlay_filters(duration, 3)
+            video_filter += ";" + story_filters
+            if captions and captions.exists():
+                video_filter += f";[{story_output}]" + _caption_filter(captions)
+            else:
+                video_filter += f";[{story_output}]null"
+        elif captions and captions.exists():
             # Keep the proven narration-aligned timing. The opening card is a
             # visual layer and must not rewrite subtitle timestamps.
             video_filter += "," + _caption_filter(captions)

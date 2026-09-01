@@ -1,5 +1,14 @@
 # Project status
 
+2026-09-01: Replaced the dead middle of Reddit Shorts with three timed,
+source-backed visual beats after the opening post card: what happened, a
+story-grounded system diagram when the source has a recognized mechanism, and
+an outcome/takeaway or neutrally labeled final detail. Unsupported diagrams are
+omitted. Each scene fades over the moving background. Added native macOS Arial
+paths so the Mac mini uses the intended large type instead of Pillow's tiny
+fallback font. Static preview reviewed; full rendering and upload remain gated
+on supervised verification.
+
 2026-09-01: Tightened Reddit channel-fit selection after the live queue audit.
 Personal advice, career, anxiety, recruiter, and other vague prompt titles are
 now rejected at discovery and approved-queue load time; a concrete technical

@@ -56,7 +56,17 @@ from shorts_pipeline.reddit import (
     discover_reddit_topics,
     load_approved_reddit_topics,
 )
-from shorts_pipeline.render import _card, _reddit_post_card, _render_duration, render_thumbnail, render_video
+from shorts_pipeline.render import (
+    _card,
+    _font_candidates,
+    _reddit_post_card,
+    _render_duration,
+    _scene_lines,
+    _story_outcome_kicker,
+    _story_system_nodes,
+    render_thumbnail,
+    render_video,
+)
 from shorts_pipeline.resources import ffmpeg_resource_args
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.sources import (
@@ -930,6 +940,11 @@ def test_nonreddit_transparent_hook_card_has_high_contrast_opening(tmp_path):
     assert image.size == (1080, 1920)
     assert image.getpixel((50, 180))[3] > 0
     assert image.getpixel((75, 215))[3] > 0
+
+
+def test_font_candidates_include_native_macos_fonts():
+    assert "/System/Library/Fonts/Supplemental/Arial Bold.ttf" in _font_candidates(bold=True)
+    assert "/System/Library/Fonts/Supplemental/Arial.ttf" in _font_candidates(bold=False)
 
 
 def test_short_render_uses_upload_friendly_mp4_muxing(tmp_path, monkeypatch):
@@ -2467,3 +2482,43 @@ def test_reddit_card_generates_animated_award_loop(tmp_path):
     with Image.open(card.with_suffix(".gif")) as animated:
         assert animated.size == (1080, 1920)
         assert animated.n_frames == 8
+
+
+def test_reddit_render_adds_timed_category_aware_story_scenes(tmp_path, monkeypatch):
+    package = ScriptPackage(
+        hook="One login failure locked out an entire tenant",
+        narration=(
+            "Microsoft deauthenticated an entire M365 tenant. Administrators lost access to every account. "
+            "The identity layer became the single point of failure. Recovery required Microsoft support. "
+            "The lesson is to test emergency access before the identity provider fails."
+        ),
+        title="The M365 tenant lockout",
+        description="Reddit attribution: u/example in r/sysadmin",
+        sources=["https://www.reddit.com/r/sysadmin/comments/example/"],
+        format_name="reddit_story",
+        category="Cyber",
+        card_text="Microsoft deauthenticated an entire M365 tenant.",
+    )
+    background = tmp_path / "background.mp4"
+    audio = tmp_path / "narration.mp3"
+    background.write_bytes(b"video")
+    audio.write_bytes(b"audio")
+    calls = []
+    monkeypatch.setattr("shorts_pipeline.render.shutil.which", lambda _: "/usr/bin/ffmpeg")
+    monkeypatch.setattr("shorts_pipeline.render._render_duration", lambda *_args: 30.0)
+    monkeypatch.setattr("shorts_pipeline.render.subprocess.run", lambda command, **_kwargs: calls.append(command))
+
+    render_video(package, tmp_path, audio=audio, background=background)
+
+    command = calls[0]
+    assert _story_system_nodes("Cyber", package.narration) == ("USER", "IDENTITY", "CLOUD")
+    assert _story_system_nodes("Cyber", "A strange but unexplained incident occurred.") is None
+    assert _story_outcome_kicker("The lesson is to test emergency access.") == "TAKEAWAY"
+    assert _story_outcome_kicker("Edit: thanks for reading.") == "FINAL DETAIL"
+    assert _scene_lines("word " * 80)[-1].endswith("…")
+    assert all((tmp_path / name).exists() for name in ("story-incident.png", "story-system.png", "story-outcome.png"))
+    assert all(name in " ".join(command) for name in ("story-incident.png", "story-system.png", "story-outcome.png"))
+    video_filter = command[command.index("-filter_complex") + 1]
+    assert "fade=t=in:st=4.00" in video_filter
+    assert "between(t,4.00," in video_filter
+    assert "between(t,21.33,30.00)" in video_filter
