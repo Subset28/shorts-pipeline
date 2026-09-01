@@ -168,6 +168,9 @@ def build_research_week(
     short_pool = [
         topic for topic in unique if not longform_topic or topic.sources[0].url != longform_topic.sources[0].url
     ]
+    core_pool = [topic for topic in short_pool if topic.category in set(CHANNEL_CATEGORY_ORDER)]
+    if len(core_pool) >= shorts_count:
+        short_pool = core_pool
     short_topics = _select_short_topics(short_pool, shorts_count, CHANNEL_CATEGORY_ORDER)
     targets = _experiment_targets(experiment_brief)
     shorts = [build_editorial_brief(topic, targets.get(topic.category, [None])[0]) for topic in short_topics]

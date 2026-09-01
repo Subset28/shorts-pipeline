@@ -955,6 +955,16 @@ def test_ffmpeg_resource_args_are_bounded_and_configurable(monkeypatch):
     assert ffmpeg_resource_args(1)[1] == "1"
 
 
+def test_render_uses_single_threaded_x264_profile(tmp_path, monkeypatch):
+    package = fallback_package(Topic("A breakthrough", "AI", (Source("A breakthrough", "https://example.test/a", "A useful finding with enough context to explain the result."),)))
+    commands = []
+    monkeypatch.setattr("shorts_pipeline.render.subprocess.run", lambda command, **kwargs: commands.append(command))
+    render_video(package, tmp_path)
+    command = commands[0]
+    assert "-x264-params" in command
+    assert command[command.index("-x264-params") + 1] == "threads=1:lookahead_threads=1"
+
+
 def test_settings_can_load_dotenv_from_explicit_runtime_path(monkeypatch):
     loaded = []
     monkeypatch.setenv("DOTENV_PATH", "/private/runtime/.env")
