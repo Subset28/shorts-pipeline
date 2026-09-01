@@ -991,6 +991,8 @@ def main() -> None:
             max(1, args.count),
         )
         output = Path(args.out)
+        if output.resolve() == settings.reddit_approved_file.resolve():
+            raise ValueError("Reddit discovery output cannot overwrite the approved queue; choose a separate path")
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(
             json.dumps(
