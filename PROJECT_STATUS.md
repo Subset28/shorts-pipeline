@@ -22,6 +22,14 @@ account returns `detected_unusual_activity` and refuses synthesis. Premium
 audio is therefore blocked until a working ElevenLabs account is supplied;
 the pipeline will not silently ship edge-TTS audio as a substitute.
 
+2026-09-01: Added an explicit zero-install macOS narration provider for the
+resource-constrained Mac mini. `TTS_PROVIDER=macos` uses a selected local voice
+and bounded FFmpeg conversion; it never activates silently. A direct provider
+smoke test produced a valid 5.76-second MP3 without downloading a model or
+calling a cloud service. Provider-specific preflight checks reject missing
+commands or incomplete configuration, and failed conversion removes partial
+audio instead of letting a corrupt file reach rendering.
+
 2026-09-01: Added a bounded opening-and-pacing experiment for low-retention
 lanes. Reviewed briefs marked `opening_and_pacing` now place the concrete hook
 before the source headline while retaining the complete source-backed narration,

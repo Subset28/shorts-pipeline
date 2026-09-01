@@ -751,6 +751,8 @@ def test_run_preflight_checks_inputs_without_starting_media(monkeypatch, tmp_pat
     token = tmp_path / "token.json"
     secrets.write_text("{}", encoding="utf-8")
     token.write_text("{}", encoding="utf-8")
+    rotator = tmp_path / "rotator.py"
+    rotator.write_text("", encoding="utf-8")
     settings = SimpleNamespace(
         reddit_approved_file=approved,
         reddit_background_dir=background,
@@ -758,7 +760,8 @@ def test_run_preflight_checks_inputs_without_starting_media(monkeypatch, tmp_pat
         youtube_token_file=token,
         reddit_client_id="configured",
         reddit_client_secret="configured",
-        elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
+        tts_provider="elevenlabs",
+        elevenlabs_rotator_path=rotator,
         elevenlabs_voice_id="configured",
         edge_tts_voice="en-US-GuyNeural",
     )
@@ -776,6 +779,7 @@ def test_run_preflight_reports_missing_inputs(monkeypatch, tmp_path):
         youtube_token_file=tmp_path / "missing-token.json",
         reddit_client_id="",
         reddit_client_secret="",
+        tts_provider="auto",
         elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
         elevenlabs_voice_id="",
         edge_tts_voice="",
@@ -1961,6 +1965,134 @@ def test_tts_does_not_silently_downgrade_when_elevenlabs_fails(tmp_path, monkeyp
     )
     assert synthesize("new narration", settings, output) is None
     assert not output.exists()
+
+
+def test_tts_auto_refuses_incomplete_elevenlabs_configuration(tmp_path, monkeypatch):
+    output = tmp_path / "narration.mp3"
+    settings = SimpleNamespace(
+        tts_provider="auto",
+        elevenlabs_voice_id="voice",
+        elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
+        edge_tts_voice="en-US-GuyNeural",
+    )
+    calls = []
+    monkeypatch.setattr("shorts_pipeline.tts.subprocess.run", lambda *args, **kwargs: calls.append(args))
+
+    assert synthesize("new narration", settings, output) is None
+    assert calls == []
+
+
+def test_macos_tts_provider_uses_local_voice_and_ffmpeg(tmp_path, monkeypatch):
+    output = tmp_path / "narration.mp3"
+    settings = SimpleNamespace(
+        tts_provider="macos",
+        macos_tts_voice="Reed (English (US))",
+        macos_tts_rate=205,
+    )
+    calls = []
+
+    def fake_run(command, **_kwargs):
+        calls.append(command)
+        if command[0] == "say":
+            output.with_suffix(".aiff").write_bytes(b"aiff")
+        else:
+            output.write_bytes(b"mp3")
+
+    monkeypatch.setattr("shorts_pipeline.tts.subprocess.run", fake_run)
+    assert synthesize("new narration", settings, output) == output
+    assert calls[0][:3] == ["say", "-v", "Reed (English (US))"]
+    assert calls[1][0] == "ffmpeg"
+    assert not output.with_suffix(".aiff").exists()
+
+
+def test_macos_tts_removes_partial_output_after_conversion_failure(tmp_path, monkeypatch):
+    output = tmp_path / "narration.mp3"
+    settings = SimpleNamespace(
+        tts_provider="macos",
+        macos_tts_voice="Reed (English (US))",
+        macos_tts_rate=205,
+    )
+
+    def fake_run(command, **_kwargs):
+        if command[0] == "say":
+            output.with_suffix(".aiff").write_bytes(b"aiff")
+            return
+        output.write_bytes(b"partial")
+        raise subprocess.CalledProcessError(1, command)
+
+    monkeypatch.setattr("shorts_pipeline.tts.subprocess.run", fake_run)
+    assert synthesize("new narration", settings, output) is None
+    assert not output.exists()
+
+
+def test_preflight_rejects_unavailable_macos_tts(monkeypatch, tmp_path):
+    approved = tmp_path / "approved.json"
+    approved.write_text("[]", encoding="utf-8")
+    background = tmp_path / "backgrounds"
+    background.mkdir()
+    (background / "chunk.mp4").write_bytes(b"video")
+    secrets = tmp_path / "client.json"
+    token = tmp_path / "token.json"
+    secrets.write_text("{}", encoding="utf-8")
+    token.write_text("{}", encoding="utf-8")
+    settings = SimpleNamespace(
+        reddit_approved_file=approved,
+        reddit_background_dir=background,
+        youtube_client_secrets=secrets,
+        youtube_token_file=token,
+        reddit_client_id="configured",
+        reddit_client_secret="configured",
+        tts_provider="macos",
+        macos_tts_voice="Reed (English (US))",
+        elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
+        elevenlabs_voice_id="",
+        edge_tts_voice="",
+    )
+    monkeypatch.setattr(cli, "load_settings", lambda: settings)
+    monkeypatch.setattr("shorts_pipeline.tts.shutil.which", lambda _command: None)
+
+    with pytest.raises(RuntimeError, match="macos_say_missing"):
+        cli.run_preflight(reddit_only=True)
+
+
+def test_preflight_rejects_unknown_macos_voice(monkeypatch, tmp_path):
+    approved = tmp_path / "approved.json"
+    approved.write_text("[]", encoding="utf-8")
+    background = tmp_path / "backgrounds"
+    background.mkdir()
+    (background / "chunk.mp4").write_bytes(b"video")
+    secrets = tmp_path / "client.json"
+    token = tmp_path / "token.json"
+    secrets.write_text("{}", encoding="utf-8")
+    token.write_text("{}", encoding="utf-8")
+    settings = SimpleNamespace(
+        reddit_approved_file=approved,
+        reddit_background_dir=background,
+        youtube_client_secrets=secrets,
+        youtube_token_file=token,
+        reddit_client_id="configured",
+        reddit_client_secret="configured",
+        tts_provider="macos",
+        macos_tts_voice="Missing Voice",
+        elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
+        elevenlabs_voice_id="",
+        edge_tts_voice="",
+    )
+    monkeypatch.setattr(cli, "load_settings", lambda: settings)
+    monkeypatch.setattr("shorts_pipeline.tts.shutil.which", lambda _command: "/usr/bin/tool")
+    monkeypatch.setattr(
+        "shorts_pipeline.tts.subprocess.run",
+        lambda *_args, **_kwargs: SimpleNamespace(stdout="Reed (English (US)) en_US # Hello\n"),
+    )
+
+    with pytest.raises(RuntimeError, match="macos_voice_unavailable"):
+        cli.run_preflight(reddit_only=True)
+
+
+def test_tts_rejects_unknown_provider(tmp_path):
+    settings = SimpleNamespace(tts_provider="unknown")
+    with pytest.raises(ValueError, match="Unsupported TTS provider"):
+        synthesize("new narration", settings, tmp_path / "narration.mp3")
 
 
 def test_quality_report_records_sync_and_caption_coverage(tmp_path, monkeypatch):
