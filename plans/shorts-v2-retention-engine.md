@@ -13,8 +13,8 @@ Governing spec: `docs/SHORTS_CREATIVE_SPEC_V2.md`.
 - Implementation and CI never upload publicly.
 - Runtime media stays on N2ME.
 - One FFmpeg job at a time; supervised smoke renders use 720x1280 and one thread.
-- Minecraft, macOS TTS, edge-TTS, and static Pillow cards are preview-only and
-  can never satisfy a public v2 gate.
+- Minecraft is public-eligible only as polished kinetic support for the Reddit
+  lane. macOS TTS, edge-TTS, and static Pillow cards remain preview-only.
 - Public v2 masters are 1080x1920, use an approved performed voice, and require
   a passing autonomous release-arbiter state.
 - Existing tests remain green; new behavior begins with focused tests.

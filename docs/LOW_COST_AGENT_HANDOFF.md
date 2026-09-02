@@ -35,8 +35,9 @@ inside the story; it is not the opening lecture.
   media. Do not fill the internal drive.
 - Use `RENDER_SIZE=720x1280`, `FFMPEG_THREADS=1`, and low priority for supervised
   test renders.
-- Treat 720x1280, Minecraft footage, macOS `say`, edge-TTS, and static Pillow
-  cards as preview-only. Never pass them to a public upload path.
+- Treat 720x1280, macOS `say`, edge-TTS, and static Pillow cards as preview-only.
+  Minecraft is public-eligible only for `reddit_story` as polished kinetic
+  support; it is forbidden in other lanes.
 - Public v2 masters are 1080x1920 Remotion compositions with an approved
   performed voice, source-specific proof, original motion graphics, and a
   passing autonomous release-arbiter report.
@@ -120,7 +121,8 @@ Do not:
 - add more adjectives to make a hook “exciting”;
 - read the Reddit headline verbatim as the opening;
 - add “here's why this matters” or “follow for more”;
-- treat Minecraft footage as sufficient visual storytelling;
+- treat Minecraft footage as sufficient story structure or use it outside the
+  Reddit lane;
 - summarize the same fact in setup, mechanism, and payoff;
 - optimize tags while the opening is weak;
 - accept a passing unit test as evidence that a rendered video is watchable;

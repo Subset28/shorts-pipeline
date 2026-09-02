@@ -1,5 +1,11 @@
 # Project status
 
+2026-09-02: Refined the v2 lane split after operator feedback. Polished Minecraft
+parkour remains allowed for permissioned Reddit stories because it is a familiar,
+casual kinetic convention; gameplay stays out of non-Reddit formats. Shorts are
+explicitly entertainment-first and may bridge to long-form for deep technical
+teaching, but each Short must still deliver its promised story payoff.
+
 2026-09-02: Defined the next-generation product as an autonomous premium media
 pipeline rather than an explainer/card renderer. Added a retention-first creative
 spec, competitor-intelligence rules, a free/local production stack, Mac/N2ME/NAS
