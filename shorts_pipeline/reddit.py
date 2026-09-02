@@ -80,6 +80,7 @@ PERSONAL_ADVICE_TITLE = re.compile(
     r"recruiter|career advice|new graduates?|what should i do|stay safe people)\b",
     re.IGNORECASE,
 )
+PROMOTIONAL_TITLE = re.compile(r"\b(downloads?|academy|course|newsletter|launch|released|release)\b", re.IGNORECASE)
 TECHNICAL_MECHANISM = re.compile(
     r"\b(ai|api|authentication|automation|bug|cloud|code|database|debug|deployment|driver|"
     r"firmware|gpu|identity|incident|iot|llm|network|program(?:mer|ming)|"
@@ -131,6 +132,8 @@ def _is_niche_relevant(community: str, title: str, body: str) -> bool:
     """Reject generic prompt answers that do not fit the channel promise."""
     text = f"{title} {body}"
     if not TECHNICAL_MECHANISM.search(text):
+        return False
+    if PROMOTIONAL_TITLE.search(title):
         return False
     if PERSONAL_ADVICE_TITLE.search(title):
         return False
