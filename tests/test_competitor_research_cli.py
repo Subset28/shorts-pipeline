@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timezone
 
 from shorts_pipeline.cli import run_competitor_research
 

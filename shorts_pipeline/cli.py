@@ -49,7 +49,7 @@ def _interval_seconds(interval_hours: float) -> float:
 
 def run_competitor_research(input_path: Path, output_path: Path, generated_at: str) -> int:
     """Build a Git-safe packet from an authorized metadata fixture."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     try:
         timestamp = datetime.fromisoformat(generated_at.replace("Z", "+00:00"))

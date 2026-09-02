@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 import math
-import statistics
 import re
+import statistics
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
@@ -48,26 +48,32 @@ class YouTubeDataApiProvider:
             uploads = details.get("relatedPlaylists", {}).get("uploads")
             if not uploads:
                 continue
-            items = self._service.playlistItems().list(
-                part="contentDetails", playlistId=uploads, maxResults=self._max_videos
-            ).execute()
+            items = (
+                self._service.playlistItems()
+                .list(part="contentDetails", playlistId=uploads, maxResults=self._max_videos)
+                .execute()
+            )
             video_ids = [item.get("contentDetails", {}).get("videoId") for item in items.get("items", [])]
             video_ids = [item for item in video_ids if item]
             if not video_ids:
                 continue
-            videos = self._service.videos().list(part="snippet,statistics,contentDetails", id=",".join(video_ids)).execute()
+            videos = (
+                self._service.videos().list(part="snippet,statistics,contentDetails", id=",".join(video_ids)).execute()
+            )
             for video in videos.get("items", []):
                 snippet = video.get("snippet", {})
                 stats = video.get("statistics", {})
-                result.append({
-                    "channel_id": channel.get("id", ""),
-                    "video_id": video.get("id", ""),
-                    "published_at": snippet.get("publishedAt", ""),
-                    "views": stats.get("viewCount", 0),
-                    "likes": stats.get("likeCount", 0),
-                    "comments": stats.get("commentCount", 0),
-                    "duration_seconds": _duration_seconds(video.get("contentDetails", {}).get("duration", "")),
-                })
+                result.append(
+                    {
+                        "channel_id": channel.get("id", ""),
+                        "video_id": video.get("id", ""),
+                        "published_at": snippet.get("publishedAt", ""),
+                        "views": stats.get("viewCount", 0),
+                        "likes": stats.get("likeCount", 0),
+                        "comments": stats.get("commentCount", 0),
+                        "duration_seconds": _duration_seconds(video.get("contentDetails", {}).get("duration", "")),
+                    }
+                )
         return result
 
 
@@ -129,7 +135,13 @@ def _validate_record(record: Mapping[str, Any]) -> dict[str, Any]:
     }
     for field in ABSTRACT_FIELDS:
         value = record.get(field, "")
-        result[field] = _number(value) if field.endswith("seconds") else _number(value, integer=True) if field in {"shot_count", "caption_words_per_burst"} else str(value).strip()
+        result[field] = (
+            _number(value)
+            if field.endswith("seconds")
+            else _number(value, integer=True)
+            if field in {"shot_count", "caption_words_per_burst"}
+            else str(value).strip()
+        )
     return result
 
 
@@ -191,14 +203,16 @@ def build_research_packet(records: Sequence[Mapping[str, Any]], generated_at: da
         independent = sorted({item["channel_id"] for item in matches})
         if len(independent) < MIN_PATTERN_CHANNELS:
             continue
-        patterns.append({
-            "hook_archetype": hook,
-            "independent_channels": len(independent),
-            "sample_size": len(matches),
-            "mean_outlier": round(statistics.mean(item["channel_outlier"] for item in matches), 4),
-            "mean_velocity": round(statistics.mean(item["velocity"] for item in matches), 4),
-            "evidence": "repeated across independent channel outliers",
-        })
+        patterns.append(
+            {
+                "hook_archetype": hook,
+                "independent_channels": len(independent),
+                "sample_size": len(matches),
+                "mean_outlier": round(statistics.mean(item["channel_outlier"] for item in matches), 4),
+                "mean_velocity": round(statistics.mean(item["velocity"] for item in matches), 4),
+                "evidence": "repeated across independent channel outliers",
+            }
+        )
     outliers = sorted(scored, key=lambda item: (-item["channel_outlier"], -item["velocity"], item["video_id"]))[:20]
     return {
         "spec_version": "competitor-research-v1",
