@@ -68,7 +68,7 @@ from shorts_pipeline.render import (
     render_video,
 )
 from shorts_pipeline.resources import ffmpeg_resource_args
-from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
+from shorts_pipeline.seo import _clip_narration_words, eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.sources import (
     _clean_summary,
     _clean_title,
@@ -204,6 +204,13 @@ def test_render_duration_falls_back_when_audio_probe_fails(tmp_path, monkeypatch
         lambda *args, **kwargs: (_ for _ in ()).throw(OSError("ffprobe unavailable")),
     )
     assert _render_duration("one two three four five six seven eight nine ten", audio) == 10.0
+
+
+def test_reddit_narration_word_cap_keeps_a_complete_sentence():
+    text = " ".join(["First sentence has enough words to establish the incident clearly."] * 30)
+    clipped = _clip_narration_words(text, max_words=115)
+    assert len(clipped.split()) <= 115
+    assert clipped.endswith("clearly.")
 
 
 def test_long_form_non_reddit_fallback_keeps_enough_context_for_explainers():

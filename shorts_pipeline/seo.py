@@ -270,6 +270,7 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
             if body
             else f"{source.title}. {ending}"
         )
+        narration = _clip_narration_words(narration)
     elif format_name == "myth_bust":
         narration = f"{headline_sentence} This sounds like a bigger claim than it is. Here's what the source says: {summary} {takeaway}"
     else:
@@ -317,6 +318,19 @@ def _clip_narration(text: str, limit: int = 900) -> str:
     return bounded.rsplit(" ", 1)[0].rstrip(" ,;:-")
 
 
+def _clip_narration_words(text: str, max_words: int = 115) -> str:
+    """Keep a Short narration within the measured local-TTS duration budget."""
+    text = " ".join(text.split())
+    words = text.split()
+    if len(words) <= max_words:
+        return text
+    bounded = " ".join(words[:max_words])
+    sentences = re.split(r"(?<=[.!?])\s+", bounded)
+    if len(sentences) > 1:
+        return " ".join(sentences[:-1]).strip()
+    return bounded.rsplit(" ", 1)[0].rstrip(" ,;:-")
+
+
 def _ensure_source_opening(source_title: str, narration: str) -> str:
     """Keep model narration anchored to the same headline shown on screen."""
     title = " ".join(source_title.split()).strip(" .")
@@ -354,7 +368,7 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
         # Keep model-generated Reddit treatments source-faithful: exact title,
         # then the original body. The fallback adds the narrative transitions.
         body = " ".join(source.summary.split())
-        narration = f"{source.title}. {body}"[:900].rsplit(" ", 1)[0]
+        narration = _clip_narration_words(f"{source.title}. {body}"[:900].rsplit(" ", 1)[0])
     else:
         if not narration.casefold().startswith(source.title.casefold()):
             narration = _clip_narration(f"{source.title}. {narration}")
