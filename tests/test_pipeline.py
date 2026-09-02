@@ -2142,6 +2142,8 @@ def test_quality_report_flags_background_and_caption_failures(tmp_path, monkeypa
     assert {"audio_video_duration_mismatch", "background_shorter_than_video", "captions_end_too_early"}.issubset(
         report["issues"]
     )
+    looped_report = assess_render(video, audio, captions, background, background_looped=True)
+    assert "background_shorter_than_video" not in looped_report["issues"]
 
 
 def test_quality_report_rejects_detectable_low_quality_video_profile(tmp_path, monkeypatch):
@@ -2156,7 +2158,7 @@ def test_quality_report_rejects_detectable_low_quality_video_profile(tmp_path, m
     )
     report = assess_render(video, audio, None, None)
     assert report["passed"] is False
-    assert {"video_resolution_unexpected", "video_frame_rate_too_low"}.issubset(report["issues"])
+    assert "video_frame_rate_too_low" in report["issues"]
     assert report["video_width"] == 720
     assert report["video_height"] == 1280
     assert report["video_fps"] == 20.0
@@ -2507,18 +2509,24 @@ def test_reddit_render_adds_timed_category_aware_story_scenes(tmp_path, monkeypa
     monkeypatch.setattr("shorts_pipeline.render.shutil.which", lambda _: "/usr/bin/ffmpeg")
     monkeypatch.setattr("shorts_pipeline.render._render_duration", lambda *_args: 30.0)
     monkeypatch.setattr("shorts_pipeline.render.subprocess.run", lambda command, **_kwargs: calls.append(command))
+    monkeypatch.setenv("RENDER_SIZE", "720x1280")
 
     render_video(package, tmp_path, audio=audio, background=background)
 
-    command = calls[0]
+    command = calls[-1]
     assert _story_system_nodes("Cyber", package.narration) == ("USER", "IDENTITY", "CLOUD")
     assert _story_system_nodes("Cyber", "A strange but unexplained incident occurred.") is None
     assert _story_outcome_kicker("The lesson is to test emergency access.") == "TAKEAWAY"
     assert _story_outcome_kicker("Edit: thanks for reading.") == "FINAL DETAIL"
     assert _scene_lines("word " * 80)[-1].endswith("…")
-    assert all((tmp_path / name).exists() for name in ("story-incident.png", "story-system.png", "story-outcome.png"))
-    assert all(name in " ".join(command) for name in ("story-incident.png", "story-system.png", "story-outcome.png"))
-    video_filter = command[command.index("-filter_complex") + 1]
-    assert "fade=t=in:st=4.00" in video_filter
-    assert "between(t,4.00," in video_filter
-    assert "between(t,21.33,30.00)" in video_filter
+    scene_names = ("story-incident.png", "story-system.png", "story-outcome.png")
+    assert all((tmp_path / name).exists() for name in scene_names)
+    assert len(calls) == 6
+    assert all(name in " ".join(calls[index + 1]) for index, name in enumerate(scene_names))
+    assert "story-timeline.mp4" in " ".join(command)
+    assert "story-scenes.png" not in " ".join(command)
+    scene_filter = calls[1][calls[1].index("-filter_complex") + 1]
+    assert "scale=720:1280:flags=bicubic" in scene_filter
+    assert "[1:v]scale=720:1280[panel]" in scene_filter
+    assert "[bg][panel]overlay=0:0" in scene_filter
+    assert "1:a" in command

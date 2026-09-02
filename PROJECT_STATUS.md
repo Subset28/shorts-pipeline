@@ -9,6 +9,14 @@ paths so the Mac mini uses the intended large type instead of Pillow's tiny
 fallback font. Static preview reviewed; full rendering and upload remain gated
 on supervised verification.
 
+2026-09-01: Aborted the first scene-overlay pilot when three looping 1080x1920
+PNG inputs pushed FFmpeg from roughly 1 GB to 1.9 GB RSS. No upload occurred.
+Replaced the final all-layer compositor with sequential, bounded scene renders
+and a single assembled timeline. A supervised 720x1280 dry-run completed with
+scene renders near 267 MB RSS and no upload. Render output, logs, staging, and
+cache now live under the external N2ME project drive. The quality gate accepts
+the intentional 720x1280 profile and understands looped backgrounds.
+
 2026-09-01: Tightened Reddit channel-fit selection after the live queue audit.
 Personal advice, career, anxiety, recruiter, and other vague prompt titles are
 now rejected at discovery and approved-queue load time; a concrete technical

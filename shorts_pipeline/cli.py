@@ -267,7 +267,9 @@ def run(
     )
     video = render_video(package, output_dir, audio, captions, background)
     thumbnail = render_thumbnail(package, output_dir / "thumbnail.jpg")
-    manifest = save_manifest(package, video, output_dir, background, background_sources, audio, captions, thumbnail)
+    manifest = save_manifest(
+        package, video, output_dir, background, background_sources, audio, captions, thumbnail, background_looped=True
+    )
     record_event(
         events_path,
         "draft_created",

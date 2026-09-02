@@ -108,7 +108,9 @@ def caption_word_count(path: Path | None) -> int | None:
     return len(words)
 
 
-def assess_render(video: Path, audio: Path | None, captions: Path | None, background: Path | None) -> dict:
+def assess_render(
+    video: Path, audio: Path | None, captions: Path | None, background: Path | None, background_looped: bool = False
+) -> dict:
     """Return deterministic quality evidence for a rendered short."""
     video_duration = probe_duration(video)
     video_stream = probe_video_stream(video)
@@ -122,7 +124,7 @@ def assess_render(video: Path, audio: Path | None, captions: Path | None, backgr
         issues.append("video_duration_unavailable")
     if video_stream:
         dimensions = (video_stream["width"], video_stream["height"])
-        if dimensions not in {(1080, 1920), (1920, 1080)}:
+        if dimensions not in {(720, 1280), (1080, 1920), (1280, 720), (1920, 1080)}:
             issues.append("video_resolution_unexpected")
         if float(video_stream["fps"]) < 24:
             issues.append("video_frame_rate_too_low")
@@ -133,7 +135,7 @@ def assess_render(video: Path, audio: Path | None, captions: Path | None, backgr
     )
     if av_delta is not None and av_delta > 0.25:
         issues.append("audio_video_duration_mismatch")
-    if background_duration is not None and video_duration is not None and background_duration + 0.5 < video_duration:
+    if not background_looped and background_duration is not None and video_duration is not None and background_duration + 0.5 < video_duration:
         issues.append("background_shorter_than_video")
     caption_coverage = (
         last_caption / audio_duration if last_caption is not None and audio_duration and audio_duration > 0 else None

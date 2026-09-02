@@ -16,6 +16,17 @@ from .resources import ffmpeg_resource_args
 AUDIO_NORMALIZATION_FILTER = "loudnorm=I=-16:TP=-1.5:LRA=11"
 
 
+def _render_size() -> tuple[int, int]:
+    raw_size = os.environ.get("RENDER_SIZE", "1080x1920")
+    try:
+        width, height = (int(value) for value in raw_size.lower().split("x", maxsplit=1))
+    except ValueError as exc:
+        raise ValueError("RENDER_SIZE must be WIDTHxHEIGHT") from exc
+    if (width, height) not in {(720, 1280), (1080, 1920)}:
+        raise ValueError("RENDER_SIZE must be 720x1280 or 1080x1920")
+    return width, height
+
+
 def _estimated_duration(text: str) -> float:
     return max(10.0, min(60.0, len(text.split()) / 2.5))
 
@@ -419,23 +430,71 @@ def _story_visuals(package: ScriptPackage, output_dir: Path) -> list[Path]:
     return paths
 
 
-def _story_overlay_filters(duration: float, first_input: int) -> tuple[str, str]:
+def _reddit_opening(card: Path, reddit_card: Path, path: Path) -> Path:
+    with Image.open(card) as source:
+        opening = source.convert("RGBA")
+    with Image.open(reddit_card) as source:
+        opening.alpha_composite(source.convert("RGBA"))
+    opening.save(path)
+    return path
+
+
+def _story_timeline(
+    visuals: list[Path], opening: Path, background: Path, path: Path, duration: float, width: int, height: int
+) -> Path:
     scene_start = min(4.0, duration * 0.4)
     segment = max(0.1, (duration - scene_start) / 3)
-    previous = "story-card"
-    filters = []
-    for index in range(3):
-        start = scene_start + (segment * index)
-        end = duration if index == 2 else scene_start + (segment * (index + 1))
-        scene = f"scene-{index}"
-        output = f"story-{index}"
-        filters.append(
-            f"[{first_input + index}:v]format=rgba,fade=t=in:st={start:.2f}:d=0.25:alpha=1,"
-            f"fade=t=out:st={max(start, end - 0.25):.2f}:d=0.25:alpha=1[{scene}]"
-        )
-        filters.append(f"[{previous}][{scene}]overlay=0:0:enable='between(t,{start:.2f},{end:.2f})'[{output}]")
-        previous = output
-    return ";".join(filters), previous
+    clips = []
+    scenes = [(opening, scene_start), *((visual, segment) for visual in visuals)]
+    for index, (visual, scene_duration) in enumerate(scenes):
+        clip = path.with_name(f"{path.stem}-{index}.mp4")
+        command = [
+            "ffmpeg",
+            "-y",
+            *ffmpeg_resource_args(1),
+            "-stream_loop",
+            "-1",
+            "-i",
+            str(background),
+            "-loop",
+            "1",
+            "-i",
+            str(visual),
+            "-t",
+            f"{scene_duration:.3f}",
+            "-filter_complex",
+            "[0:v]crop=min(iw\\,ih*9/16):min(ih\\,iw*16/9):(iw-min(iw\\,ih*9/16))/2:"
+            f"(ih-min(ih\\,iw*16/9))/2,scale={width}:{height}:flags=bicubic,"
+            "eq=saturation=1.15:contrast=1.08:brightness=-0.04[bg];"
+            f"[1:v]scale={width}:{height}[panel];[bg][panel]overlay=0:0[v]",
+            "-map",
+            "[v]",
+            "-r",
+            "30",
+            "-c:v",
+            "libx264",
+            "-x264-params",
+            "threads=1:lookahead_threads=1",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "18",
+            "-pix_fmt",
+            "yuv420p",
+            str(clip),
+        ]
+        subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)
+        clips.append(clip)
+    playlist = path.with_suffix(".concat.txt")
+    playlist.write_text("".join(f"file '{clip.name}'\n" for clip in clips), encoding="utf-8")
+    subprocess.run(
+        ["ffmpeg", "-y", *ffmpeg_resource_args(1), "-f", "concat", "-safe", "0", "-i", str(playlist), "-c", "copy", str(path)],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    return path
 
 
 def render_video(
@@ -462,7 +521,57 @@ def render_video(
         Image.new("RGB", (1080, 1920), (12, 20, 38)).save(card)
     output = output_dir / "short.mp4"
     duration = _render_duration(package.narration, audio)
+    width, height = _render_size()
+    output_scale = f"scale={width}:{height}"
     if background and background.exists():
+        if package.format_name == "reddit_story":
+            reddit_card = output_dir / "reddit-post-card.png"
+            _reddit_post_card(package, reddit_card)
+            opening = _reddit_opening(card, reddit_card, output_dir / "reddit-opening.png")
+            story_visuals = _story_visuals(package, output_dir)
+            timeline = _story_timeline(
+                story_visuals, opening, background, output_dir / "story-timeline.mp4", duration, width, height
+            )
+            command = ["ffmpeg", "-y", *ffmpeg_resource_args(1), "-i", str(timeline)]
+            if audio:
+                command += ["-i", str(audio)]
+            else:
+                command += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]
+            command += [
+                "-vf",
+                _caption_filter(captions) if captions and captions.exists() else "null",
+                "-map",
+                "0:v",
+                "-map",
+                "1:a",
+                "-t",
+                str(duration),
+                "-r",
+                "30",
+                "-c:v",
+                "libx264",
+                "-x264-params",
+                "threads=1:lookahead_threads=1",
+                "-preset",
+                "veryfast",
+                "-crf",
+                "18",
+                "-pix_fmt",
+                "yuv420p",
+                "-c:a",
+                "aac",
+                "-movflags",
+                "+faststart",
+                "-shortest",
+                str(output),
+            ]
+            try:
+                subprocess.run(command, check=True, capture_output=True, text=True, timeout=300)
+            except subprocess.CalledProcessError as exc:
+                detail = (exc.stderr or exc.stdout or "").strip()
+                detail = detail[-1000:] if detail else "no diagnostic output"
+                raise RuntimeError(f"FFmpeg render failed with exit {exc.returncode}: {detail}") from exc
+            return output
         command = [
             "ffmpeg",
             "-y",
@@ -477,38 +586,19 @@ def render_video(
             str(card),
         ]
         audio_index = 2
-        story_visuals: list[Path] = []
-        if package.format_name == "reddit_story":
-            reddit_card = output_dir / "reddit-post-card.png"
-            _reddit_post_card(package, reddit_card)
-            animated_card = reddit_card.with_suffix(".gif")
-            if animated_card.exists():
-                command += ["-stream_loop", "-1", "-i", str(animated_card)]
-            else:
-                command += ["-loop", "1", "-i", str(reddit_card)]
-            story_visuals = _story_visuals(package, output_dir)
-            for visual in story_visuals:
-                command += ["-loop", "1", "-i", str(visual)]
-            audio_index = 3 + len(story_visuals)
         if audio:
             command += ["-i", str(audio)]
         else:
             command += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]
         # Crop to portrait before scaling so the compositor does not enlarge
         # the entire landscape frame, while bicubic keeps the gameplay clear.
-        video_filter = "[0:v]crop=min(iw\\,ih*9/16):min(ih\\,iw*16/9):(iw-min(iw\\,ih*9/16))/2:(ih-min(ih\\,iw*16/9))/2,scale=1080:1920:flags=bicubic,eq=saturation=1.15:contrast=1.08:brightness=-0.04[bg];[bg][1:v]overlay=0:0"
-        if package.format_name == "reddit_story":
-            video_filter = video_filter.replace(
-                "[bg][1:v]overlay=0:0",
-                "[bg][1:v]overlay=0:0[base];[base][2:v]overlay=0:0:enable='between(t,0,4)'[story-card]",
-            )
-            story_filters, story_output = _story_overlay_filters(duration, 3)
-            video_filter += ";" + story_filters
-            if captions and captions.exists():
-                video_filter += f";[{story_output}]" + _caption_filter(captions)
-            else:
-                video_filter += f";[{story_output}]null"
-        elif captions and captions.exists():
+        video_filter = (
+            "[0:v]crop=min(iw\\,ih*9/16):min(ih\\,iw*16/9):(iw-min(iw\\,ih*9/16))/2:"
+            f"(ih-min(ih\\,iw*16/9))/2,scale={width}:{height}:flags=bicubic,"
+            "eq=saturation=1.15:contrast=1.08:brightness=-0.04[bg];"
+            f"[1:v]{output_scale}[opening];[bg][opening]overlay=0:0"
+        )
+        if captions and captions.exists():
             # Keep the proven narration-aligned timing. The opening card is a
             # visual layer and must not rewrite subtitle timestamps.
             video_filter += "," + _caption_filter(captions)
@@ -546,7 +636,7 @@ def render_video(
             command += ["-i", str(audio), "-shortest"]
         else:
             command += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", str(duration)]
-        video_filter = "scale=1080:1920"
+        video_filter = output_scale
         if captions and captions.exists():
             video_filter += "," + _caption_filter(captions)
         command += [

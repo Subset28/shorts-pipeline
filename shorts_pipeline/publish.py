@@ -112,6 +112,7 @@ def save_manifest(
     audio: Path | None = None,
     captions: Path | None = None,
     thumbnail: Path | None = None,
+    background_looped: bool = False,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest = output_dir / "manifest.json"
@@ -126,7 +127,7 @@ def save_manifest(
         payload["background"] = str(background)
     if background_sources:
         payload["background_sources"] = [str(path) for path in background_sources]
-    payload["quality"] = assess_render(video, audio, captions, background)
+    payload["quality"] = assess_render(video, audio, captions, background, background_looped=background_looped)
     manifest.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return manifest
 
