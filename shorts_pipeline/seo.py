@@ -232,12 +232,7 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         # engagement counts. The title is safer and more intelligible than
         # narrating feed boilerplate or inventing missing context.
         summary = source.title
-    if format_name == "reddit_story":
-        # Preserve enough of the source to reach its outcome without inventing
-        # a resolution. Trim only at a complete sentence boundary.
-        if len(summary) > 900:
-            summary = summary[:900].rsplit(".", 1)[0].rstrip() + "."
-    elif len(summary) > (
+    if format_name != "reddit_story" and len(summary) > (
         760
         if format_name
         in {
@@ -345,6 +340,8 @@ def _clip_narration_words(text: str, max_words: int = 115) -> str:
 def _reddit_story_narration(title: str, summary: str, max_words: int = 115) -> str:
     """Keep the exact post title, key context, and final outcome in one Short."""
     sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", summary) if part.strip()]
+    if sentences and not re.search(r"[.!?]$", sentences[-1]):
+        sentences.pop()
     ending = _clip_narration_words(sentences[-1] if sentences else summary, max_words=40)
     opening = f"{title}. Here's how it unfolded:"
     outcome = f"Then came the outcome: {ending}"
@@ -390,7 +387,7 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
         # Keep model-generated Reddit treatments source-faithful: exact title,
         # then the original body. The fallback adds the narrative transitions.
         body = " ".join(source.summary.split())
-        narration = _reddit_story_narration(source.title, body[:900].rsplit(" ", 1)[0])
+        narration = _reddit_story_narration(source.title, body)
     else:
         if not narration.casefold().startswith(source.title.casefold()):
             narration = _clip_narration(f"{source.title}. {narration}")
