@@ -29,7 +29,7 @@ the DS1019+ for durable storage, proxies, and archives.
 | Caption alignment | local OpenAI Whisper or faster-whisper | Word timing and local operation without a hosted API | Model cached on N2ME; resource benchmark; no silent text-timing fallback for public masters |
 | Local voice candidate | Kokoro-82M benchmark | Small local neural TTS candidate with a permissive base-model license | Voicepack provenance plus automated pronunciation, emotion, and reference-quality tests must pass; otherwise use ElevenLabs or a preapproved recorded voice |
 | Cleared media acquisition | yt-dlp adapter | Reliable download of explicitly permissioned source media | URL, owner, permission, use scope, checksum, and attribution recorded first |
-| Optional generated shot | provider-compliant Higgsfield adapter or another approved free plan | Fill a visual gap when real evidence or local animation cannot create the shot | One authorized account, official quota, cached outputs, generation manifest, and local fallback |
+| Optional generated shot | provider-compliant Pixazo adapter or another approved provider | Fill a visual gap when real evidence or local animation cannot create the shot | One authorized account/key, official quota, explicit local cap, generation manifest, and local fallback |
 | Sound editing | FFmpeg filters; Audacity only for exceptional debugging | Free phrase edits, loudness, ducking, and layered mix generation | Export stems and automated final mix report |
 | Release arbiter | local multimodal model through a pinned Ollama/MLX-compatible runtime plus deterministic validators | Unattended visual/transcript critique without a hosted API | Benchmark model/license, require cited frame evidence, and fail closed |
 | Asset index | SQLite manifest + checksums | Fast local search with durable provenance and duplicate detection | Database rebuildable from sidecar manifests |
@@ -41,6 +41,12 @@ with it remains the creator's property. OpenTimelineIO uses an Apache-2.0 licens
 Local OpenAI Whisper code is MIT-licensed. Model weights, voicepacks, fonts,
 templates, plugins, footage, music, and sound effects still require their own
 records.
+
+Pixazo's current API describes one key spanning its model catalog. Its terms
+prohibit attempts to circumvent rate limits, quotas, or technical restrictions.
+The local adapter therefore uses one configured key with an operator-set daily
+cap; it is not a key/account rotator. Re-check model-specific output rights
+before approving any generated shot.
 
 Primary references, checked 2026-09-02:
 

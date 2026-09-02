@@ -117,6 +117,11 @@ optional adapter. The adapter:
 - rejects unreadable text, malformed interfaces, broken physics, inconsistent
   objects, or temporal artifacts.
 
+Pixazo is currently supported as a disabled-by-default single-key adapter. Its
+provider gateway may route among models, but the pipeline does not rotate
+Pixazo keys/accounts. A local daily request cap, idempotency key, and
+secret-safe usage record are required before any request.
+
 Generated media is a designed illustration. Source receipts and real evidence
 remain visually distinct.
 
