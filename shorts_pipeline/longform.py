@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -12,6 +13,17 @@ from PIL import Image, ImageDraw
 from .models import ScriptPackage, Topic
 from .render import _audio_duration, _caption_filter, _font
 from .resources import ffmpeg_resource_args
+
+
+def _longform_size() -> tuple[int, int]:
+    raw_size = os.environ.get("LONGFORM_SIZE", "960x540")
+    try:
+        width, height = (int(value) for value in raw_size.lower().split("x", maxsplit=1))
+    except ValueError as exc:
+        raise ValueError("LONGFORM_SIZE must be WIDTHxHEIGHT") from exc
+    if (width, height) not in {(960, 540), (1280, 720), (1920, 1080)}:
+        raise ValueError("LONGFORM_SIZE must be 960x540, 1280x720, or 1920x1080")
+    return width, height
 
 
 def _chapter_timestamp(narration: str, marker: str, duration: float | None = None) -> str:
@@ -182,6 +194,7 @@ def render_longform_video(
     output_dir.mkdir(parents=True, exist_ok=True)
     card = output_dir / "title-card.png"
     technical_card = output_dir / "technical-map.png"
+    width, height = _longform_size()
     _title_card(package, card)
     _technical_card(package, technical_card)
     output = output_dir / "longform.mp4"
@@ -194,22 +207,23 @@ def render_longform_video(
         _chapter_metadata(package.narration, chapter_markers=chapter_markers),
         _chapter_metadata(package.narration, duration, chapter_markers),
     )
-    command = ["ffmpeg", "-y", *ffmpeg_resource_args()]
+    command = ["ffmpeg", "-y", *ffmpeg_resource_args(1)]
     if background and background.exists():
         command += ["-stream_loop", "-1", "-i", str(background)]
-        background_input = "[0:v]scale=1920:1080:force_original_aspect_ratio=increase:flags=lanczos,crop=1920:1080,eq=saturation=1.05:contrast=1.04[bg]"
+        background_input = f"[0:v]scale={width}:{height}:force_original_aspect_ratio=increase:flags=lanczos,crop={width}:{height},eq=saturation=1.05:contrast=1.04[bg]"
         video = "[bg]"
         next_input = 1
     else:
-        command += ["-f", "lavfi", "-i", "color=c=0b1222:s=1920x1080:r=30"]
+        command += ["-f", "lavfi", "-i", f"color=c=0b1222:s={width}x{height}:r=30"]
         background_input = "[0:v]format=yuv420p[bg]"
         video = "[bg]"
         next_input = 1
     command += ["-loop", "1", "-i", str(card), "-loop", "1", "-i", str(technical_card), "-i", str(audio)]
     filters = [
         background_input,
-        f"{video}[{next_input}:v]overlay=0:0:enable='between(t,0,6)'[base]",
-        "[base][2:v]overlay=1080:520:enable='gte(t,6)'[mapped]",
+        f"[{next_input}:v]scale={width}:{height}[opening]",
+        f"{video}[opening]overlay=0:0:enable='between(t,0,6)'[base]",
+        f"[base][2:v]overlay={max(0, width - 840)}:220:enable='gte(t,6)'[mapped]",
     ]
     video_label = "[mapped]"
     if captions and captions.exists():
@@ -229,7 +243,9 @@ def render_longform_video(
         "-c:v",
         "libx264",
         "-preset",
-        "medium",
+        "veryfast",
+        "-x264-params",
+        "threads=1",
         "-crf",
         "18",
         "-pix_fmt",

@@ -418,3 +418,10 @@ the normal rotation unchanged.
 - Completed a single-thread, low-priority 51.936-second Reddit-style smoke render using existing narration, Minecraft footage, animated Reddit card, and captions.
 - Artifact verified as 1080x1920 H.264/AAC at 30 fps; video/audio duration delta was 0.000 seconds, with 44 caption dialogues reaching the final timestamp.
 - No upload occurred. Weekly production remains gated on reviewing the artifact and keeping the host resource-safe.
+
+## 2026-09-01 — resource-safe long-form render
+
+- Added configurable landscape long-form sizing with a 960x540 default, explicit 1280x720 and 1920x1080 opt-ins, and codec-level x264 single-threading.
+- Corrected the long-form overlay filter graph and marked streamed backgrounds as looped in the quality manifest.
+- Rendered `output/batch-03/longform-01/longform.mp4` from the Hugging Face security incident with 4:52 narration, captions, technical map, and Minecraft background; verified 960x540 H.264/AAC at 30 fps with matching audio/video duration.
+- Two earlier attempts were stopped when RSS approached the host safety ceiling; no upload occurred. Focused suite: 160 passed.

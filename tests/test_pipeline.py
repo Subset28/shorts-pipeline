@@ -30,7 +30,7 @@ from shorts_pipeline.captions import (
 from shorts_pipeline.config import load_settings
 from shorts_pipeline.editorial import build_editorial_brief
 from shorts_pipeline.history import load_publish_state, save_publish_state
-from shorts_pipeline.longform import create_longform_package, render_longform_video
+from shorts_pipeline.longform import _longform_size, create_longform_package, render_longform_video
 from shorts_pipeline.media import build_background_reel, select_background, select_backgrounds
 from shorts_pipeline.models import ScriptPackage, Source, Topic
 from shorts_pipeline.publish import (
@@ -1014,6 +1014,13 @@ def test_longform_render_writes_video_with_audio_and_captions(tmp_path, monkeypa
         section in package.narration for section in ("Context:", "What happened:", "Why it matters:", "Takeaway:")
     )
     assert source.url in package.description
+
+
+def test_longform_size_defaults_to_resource_safe_landscape(monkeypatch):
+    monkeypatch.delenv("LONGFORM_SIZE", raising=False)
+    assert _longform_size() == (960, 540)
+    monkeypatch.setenv("LONGFORM_SIZE", "1280x720")
+    assert _longform_size() == (1280, 720)
 
 
 def test_nonreddit_transparent_hook_card_has_high_contrast_opening(tmp_path):
