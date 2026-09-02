@@ -54,6 +54,15 @@ CONCRETE_OUTCOME_SIGNALS = re.compile(
     re.IGNORECASE,
 )
 STORY_CLOSURE_SIGNALS = re.compile(r"\b(lesson|takeaway|what i learned|main point|in retrospect)\b", re.IGNORECASE)
+CYBER_SIGNALS = re.compile(
+    r"\b(authentication|breach|cyber|endpoint|firewall|hacker|identity|malware|network|osint|phishing|"
+    r"security|threat|vulnerability)\b",
+    re.IGNORECASE,
+)
+OSINT_CYBER_SIGNALS = re.compile(
+    r"\b(authentication|endpoint|firewall|hacker|identity|malware|network|phishing|security|threat|vulnerability)\b",
+    re.IGNORECASE,
+)
 NEGATED_STORY_SIGNALS = re.compile(
     r"\b(?:no|not|never|without)\s+(?:an?\s+)?(?:after|before|then|eventually|finally|"
     r"turned out|ended up|restored|fixed|failed|broke|lesson|takeaway|incident|outage)\b",
@@ -132,6 +141,10 @@ def _is_niche_relevant(community: str, title: str, body: str) -> bool:
     """Reject generic prompt answers that do not fit the channel promise."""
     text = f"{title} {body}"
     if not TECHNICAL_MECHANISM.search(text):
+        return False
+    if community.lower() in {"cybersecurity", "hacking", "netsec", "osint"} and not CYBER_SIGNALS.search(text):
+        return False
+    if community.lower() == "osint" and not OSINT_CYBER_SIGNALS.search(text):
         return False
     if PROMOTIONAL_TITLE.search(title):
         return False
