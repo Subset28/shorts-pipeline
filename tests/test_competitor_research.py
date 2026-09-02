@@ -44,8 +44,8 @@ def test_outlier_uses_nearest_age_comparables_and_safe_zero_baseline():
 def test_packet_keeps_only_patterns_seen_in_three_independent_channels():
     records = []
     for channel in range(10):
-        hook = "consequence" if channel < 3 else "question"
-        records.extend(_video(f"c{channel}", 1, hook=hook, views=5000 if channel < 3 else 100))
+        hook = "consequence" if channel < 3 else ("question" if channel < 5 else "reversal")
+        records.append(_video(f"c{channel}", 1, hook=hook, views=5000 if channel < 3 else 100))
     packet = build_research_packet(records, datetime(2026, 9, 1, tzinfo=timezone.utc))
     patterns = {item["hook_archetype"]: item for item in packet["patterns"]}
     assert "consequence" in patterns

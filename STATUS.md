@@ -2,6 +2,12 @@
 
 ## 2026-09-02
 
+- PR 0 implementation is ready on `codex/competitor-intelligence`: validated
+  public-metadata fixture ingestion, deterministic outlier/pattern scoring, a
+  fixture-only CLI, and a hard production-media separation. Focused tests: 6
+  passed. Full suite: 215 passed. No live platform calls or media work.
+- Next: review and merge PR 0 before starting PR 1.
+
 - PRs #128, #129, and #130 are merged on `main`: resource-safe long-form,
   autonomous premium Shorts v2, and the Reddit/Minecraft lane clarification.
 - No renderer or uploader is running after the interrupted batch attempt.
