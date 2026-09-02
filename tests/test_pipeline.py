@@ -812,6 +812,12 @@ def test_topic_selection_refuses_repeating_seen_reddit_story():
         cli._select_topic([topic], {topic.sources[0].url}, reddit_only=True)
 
 
+def test_reddit_only_selection_prefers_the_strongest_unseen_story():
+    low = Topic("Low", "CS", (Source("Low", "https://www.reddit.com/low", "story"),), 10)
+    high = Topic("High", "Cyber", (Source("High", "https://www.reddit.com/high", "story"),), 100)
+    assert cli._select_topic([low, high], set(), reddit_only=True) == high
+
+
 def test_private_draft_worker_pauses_between_successful_runs():
     assert cli._should_pause_after_success(reddit_only=True, private_drafts=True) is True
     assert cli._should_pause_after_success(reddit_only=True, private_drafts=False) is False

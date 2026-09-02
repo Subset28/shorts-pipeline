@@ -87,9 +87,9 @@ def _publish_state_key(source_url: str, variant: int) -> str:
 
 
 def _select_topic(topics, seen: set[str], reddit_only: bool = False):
-    unseen = next((item for item in topics if item.sources[0].url not in seen), None)
+    unseen = [item for item in topics if item.sources[0].url not in seen]
     if unseen:
-        return unseen
+        return max(unseen, key=lambda item: item.score)
     if reddit_only:
         raise RuntimeError("No unseen Reddit topics available; waiting for new stories")
     return topics[0]
