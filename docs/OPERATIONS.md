@@ -1,5 +1,19 @@
 # Operations
 
+## V2 production posture
+
+The current worker is not authorized to call an artifact “v2-ready” merely
+because it rendered and passed sync checks. New production follows
+`SHORTS_CREATIVE_SPEC_V2.md`, `PRODUCTION_STACK_V2.md`, and the migration
+blueprint. Until the autonomous release arbiter exists, current outputs are
+previews and must not be represented as v2 masters.
+
+V2 is unattended by design. The worker scores sources, compiles beats, plans
+proof assets, renders, critiques, revises at most twice, and holds failures. The
+only optional human action is posting. Missing permission, failed provenance,
+weak creative evidence, exhausted generator quota, or a failed render never
+causes a lower-quality fallback to publish.
+
 Start with `python -m shorts_pipeline run --dry-run`. Store OAuth tokens, client
 secrets, and ElevenLabs `keys.json` outside Git.
 
@@ -27,12 +41,17 @@ download the selected model (`CAPTION_MODEL`, default `base`).
 Each render manifest includes a quality report with duration sync, background
 coverage, caption coverage, and any failed checks. Treat `quality.passed=false`
 as a review gate before publishing.
+Technical quality passing does not prove a Short is watchable. V2 additionally
+requires the automated attention, story, visual, polish, trust, and arbiter
+gates in the creative specification.
 For a no-media release check, use `python -m shorts_pipeline run --preflight`.
 The `--dry-run` option is render-only and can still consume substantial CPU;
 it skips uploads but is not a configuration check.
 The unattended worker uses one selected Minecraft/background source by default
 to limit CPU. `BACKGROUND_REEL_ENABLED=true` opts into multi-segment background
 generation and should be enabled only after a host-specific resource check.
+That renderer is preview-only under v2. Public masters ban Minecraft/gameplay,
+utility TTS, and static-card-led compositions.
 
 Every short and long-form render also creates `thumbnail.jpg` at 1280x720 and
 records it in the manifest. YouTube uploads attempt to set that custom
@@ -103,6 +122,10 @@ The Reddit worker launchd job uses background scheduling, low-priority I/O,
 and a restart throttle to reduce load on the Mac during media generation.
 FFmpeg also defaults to two worker threads with single-threaded filter graphs;
 set `FFMPEG_THREADS` between 1 and 4 when tuning resource use on a host.
+On the Mac mini, previews use `RENDER_SIZE=720x1280`, `FFMPEG_THREADS=1`, and
+`nice -n 10`. Run one media job at a time and stop it before 750 MB RSS. Final
+1080x1920 masters use the bounded Remotion queue; N2ME holds active caches and
+the DS1019+ holds originals, proxies, project bundles, masters, and backups.
 For weekly preparation, `python -m shorts_pipeline prepare-week` writes both
 private planning artifacts from one discovery pass. It is planning-only;
 `produce-week` remains the separate render/upload step.

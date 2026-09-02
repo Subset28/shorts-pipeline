@@ -1,5 +1,15 @@
 # Project status
 
+2026-09-02: Defined the next-generation product as an autonomous premium media
+pipeline rather than an explainer/card renderer. Added a retention-first creative
+spec, competitor-intelligence rules, a free/local production stack, Mac/N2ME/NAS
+topology, autonomous release arbiter, and a nine-PR cold-start blueprint. Public
+v2 masters explicitly ban Minecraft/gameplay, utility TTS, static-card-led edits,
+uncataloged media, and free-tier/account rotation. Remotion, Manim, Blender,
+OpenTimelineIO, FFmpeg, local Whisper, and a license-gated local voice benchmark
+form the target stack. No render or upload occurred during this documentation
+change.
+
 2026-09-01: Replaced the dead middle of Reddit Shorts with three timed,
 source-backed visual beats after the opening post card: what happened, a
 story-grounded system diagram when the source has a recognized mechanism, and

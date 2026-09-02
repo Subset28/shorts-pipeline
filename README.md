@@ -1,9 +1,25 @@
 # Shorts Pipeline
 
-Source-backed, unattended short-form publishing for YouTube Shorts and TikTok.
+Source-backed short-form production for entertainment-first technology stories.
+Signal Forge covers AI/ML, computer science, cybersecurity, and engineering by
+turning strong sources into tension, escalation, visual proof, and payoff—not
+miniature lectures or automated Reddit readings.
+
+The governing creative contract is
+[`docs/SHORTS_CREATIVE_SPEC_V2.md`](docs/SHORTS_CREATIVE_SPEC_V2.md). The staged
+implementation is in
+[`plans/shorts-v2-retention-engine.md`](plans/shorts-v2-retention-engine.md), and
+[`docs/LOW_COST_AGENT_HANDOFF.md`](docs/LOW_COST_AGENT_HANDOFF.md) is the cold-start
+runbook for cheaper coding models. Until the v2 blueprint is implemented, the
+current renderer must not be represented as meeting the v2 creative gate.
+The free/local tool and host layout is documented in
+[`docs/PRODUCTION_STACK_V2.md`](docs/PRODUCTION_STACK_V2.md); competitor learning
+and provider-compliant generated media are governed by
+[`docs/COMPETITOR_RESEARCH_SPEC.md`](docs/COMPETITOR_RESEARCH_SPEC.md).
+
 The pipeline discovers a topic, writes original cited metadata, renders a 9:16
-MP4 with FFmpeg, adds ElevenLabs narration through the local rotating-key helper,
-burns captions from optional local faster-whisper, and publishes through official APIs.
+MP4 with FFmpeg, adds narration, burns captions, and publishes through official
+APIs.
 
 It defaults to `DRY_RUN=true` and private uploads. The configured confirmed
 Reddit queue may publish publicly to YouTube only. No scraped clips or
@@ -36,7 +52,8 @@ legacy SCP compatibility, preserves an existing remote `.env`, and never copies
 local credentials.
 
 The visual defaults and footage/caption rules are documented in
-`docs/STYLE_GUIDE.md`.
+`docs/STYLE_GUIDE.md`. Where older format guidance conflicts with the v2
+creative specification, the v2 specification governs new work.
 
 For a rights-cleared local clip, create bounded series parts with
 `python -m shorts_pipeline split --input path\to\clip.mp4 --parts 4`.

@@ -38,7 +38,14 @@ approves it.
 
 ## Product priorities
 
-- Produce watchable, original, source-backed vertical videos.
+- Produce entertainment-first, original, source-backed vertical stories. The
+  governing contract is `docs/SHORTS_CREATIVE_SPEC_V2.md`: tension, promise,
+  escalation, proof, payoff, then technical explanation.
+- Reject a credible source when it cannot become an entertaining Short. A
+  source-backed summary is not automatically a publishable video.
+- Treat the Reddit card as a brief receipt, not the main visual. Require a
+  beat sheet, source-specific proof, original mechanism visuals, and repeated
+  visual-state changes before publication.
 - Reddit records in the configured publishing queue are operator-confirmed for
   reuse; preserve author, subreddit, URL, and permission fields in manifests.
 - Preserve the Reddit reference treatment: real-looking compact white post card,
@@ -47,6 +54,9 @@ approves it.
 - Treat YouTube and TikTok publishing as separate idempotent state machines.
 - Use analytics and retention evidence to choose formats; never promise viral
   performance or publish unverified/copyright-uncleared material.
+- Implement the v2 system in the dependency order defined by
+  `plans/shorts-v2-retention-engine.md`. Smaller models must follow
+  `docs/LOW_COST_AGENT_HANDOFF.md` and complete one PR at a time.
 
 ## Change discipline
 

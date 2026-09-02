@@ -1,5 +1,32 @@
 # Architecture
 
+## Product contract and migration state
+
+`SHORTS_CREATIVE_SPEC_V2.md` is the target product contract. The current
+pipeline is source- and render-safe but does not yet implement the complete v2
+story score, beat sheet, proof-asset plan, creative gate, or treatment-level
+analytics. `plans/shorts-v2-retention-engine.md` is the authoritative migration
+order. Code must not label a current artifact `v2_passed` until the structured
+gate in PR 6 exists and all required evidence is present.
+
+The target flow is:
+
+```text
+Reddit/API source
+  -> permission and fact gate
+  -> 100-point story admission score
+  -> seven-beat story compiler
+  -> proof-asset and visual-state plan
+  -> sequential bounded renderer + rhythm-aware audio/captions
+  -> technical quality gate + creative quality gate
+  -> human review state
+  -> private draft / explicit operator release
+  -> 24-hour and seven-day treatment analytics
+```
+
+Each boundary emits inspectable JSON. No stage infers that the previous stage
+passed from the existence of a file alone.
+
 `sources.py` reads public feeds; `seo.py` creates a source-linked original
 explanation; `tts.py` optionally calls the existing ElevenLabs rotating-key
 helper; `render.py` produces a 9:16 MP4; and `publish.py` sends that asset to
@@ -8,6 +35,10 @@ future analytics joins deterministic.
 
 `media.py` provides an explicit yt-dlp adapter for rights-cleared source media.
 It is never part of topic discovery and never downloads playlists by default.
+
+In v2, visual planning must distinguish source proof, original explanatory
+graphics, and kinetic background. Background footage cannot satisfy a proof
+requirement and cannot be labeled as depicting the source event.
 
 `captions.py` uses local faster-whisper when installed and falls back to timing
 the known narration text. The resulting SRT is burned into the final MP4 by
@@ -42,3 +73,7 @@ available.
 The free path uses RSS, deterministic fallback copy, local Pillow rendering,
 FFmpeg, and a required narration track. Optional LLM and TTS adapters improve quality without
 changing the pipeline contract.
+
+The v2 admission and creative gates remain deterministic. An LLM may propose
+angles or wording, but it cannot grant permission, invent evidence, override a
+rejection, claim human review, or mark unavailable analytics as zero.
