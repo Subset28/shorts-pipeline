@@ -1,9 +1,9 @@
 # Shorts Pipeline
 
-Source-backed short-form production for entertainment-first technology stories.
-Signal Forge covers AI/ML, computer science, cybersecurity, and engineering by
-turning strong sources into tension, escalation, visual proof, and payoff—not
-miniature lectures or automated Reddit readings.
+Source-backed production for entertainment-first technology stories. Signal
+Forge can cover any technology by turning strong sources into tension,
+escalation, visual proof, and payoff—not miniature lectures or automated Reddit
+readings.
 
 The governing creative contract is
 [`docs/SHORTS_CREATIVE_SPEC_V2.md`](docs/SHORTS_CREATIVE_SPEC_V2.md). The staged
@@ -16,6 +16,10 @@ The free/local tool and host layout is documented in
 [`docs/PRODUCTION_STACK_V2.md`](docs/PRODUCTION_STACK_V2.md); competitor learning
 and provider-compliant generated media are governed by
 [`docs/COMPETITOR_RESEARCH_SPEC.md`](docs/COMPETITOR_RESEARCH_SPEC.md).
+The broader autonomous-studio direction lives in
+[`docs/CHANNEL_STRATEGY_V3.md`](docs/CHANNEL_STRATEGY_V3.md),
+[`docs/STUDIO_CRAFT_STANDARD_V3.md`](docs/STUDIO_CRAFT_STANDARD_V3.md), and
+[`plans/signal-forge-world-class-studio.md`](plans/signal-forge-world-class-studio.md).
 Exact implementation schemas and autonomous release thresholds are in
 [`docs/V2_DATA_CONTRACTS.md`](docs/V2_DATA_CONTRACTS.md) and
 [`docs/V2_EVAL_RUBRIC.md`](docs/V2_EVAL_RUBRIC.md).

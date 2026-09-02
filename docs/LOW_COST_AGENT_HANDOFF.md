@@ -20,8 +20,10 @@ Do not read the whole repository unless the assigned step requires it.
 ## Product sentence
 
 Build entertainment-first, source-backed Shorts about the wildest true stories
-inside AI/ML, CS, cybersecurity, and engineering. The technical mechanism is
-inside the story; it is not the opening lecture.
+inside any technology. AI/ML, CS, cybersecurity, engineering, robotics,
+hardware, the internet, gaming systems, space, transport, energy, biotech, and
+infrastructure are all eligible. The technical mechanism is inside the story;
+it is not the opening lecture.
 
 ## Hard boundaries
 
