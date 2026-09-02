@@ -53,6 +53,12 @@ The included `Dockerfile` and `docker-compose.yml` provide a restart-on-failure
 runtime for a NAS or other always-on host. Keep `.env` and the mounted `secrets`
 directory local and private.
 
+Pixazo is an optional, disabled-by-default generated-shot provider. Configure one
+authorized key plus a positive `PIXAZO_DAILY_REQUEST_LIMIT`, then inspect only
+local configuration with `python -m shorts_pipeline pixazo-status`. It is a
+bounded shot adapter, not a multi-account rotator; it must never be used to
+evade provider quotas or replace source evidence with generated footage.
+
 From Windows, repeat the Synology deployment with
 `.\scripts\deploy-nas.ps1`. It uses the configured `synology` SSH alias,
 legacy SCP compatibility, preserves an existing remote `.env`, and never copies

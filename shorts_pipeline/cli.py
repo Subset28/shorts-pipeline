@@ -21,6 +21,7 @@ from .history import load_publish_state, load_seen, mark_seen, save_publish_stat
 from .llm import create_package
 from .longform import create_longform_package, render_longform_video
 from .media import build_background_reel, ensure_background_video, select_backgrounds, split_authorized_clip
+from .pixazo import PixazoClient, pixazo_configuration_issues
 from .publish import (
     enforce_metadata_quality_gate,
     fetch_tiktok_status,
@@ -59,6 +60,28 @@ def run_competitor_research(input_path: Path, output_path: Path, generated_at: s
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(packet, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Wrote competitor research packet to {output_path}")
+    return 0
+
+
+def run_pixazo_status() -> int:
+    """Print local Pixazo configuration and usage without contacting Pixazo."""
+    settings = load_settings()
+    issues = pixazo_configuration_issues(
+        enabled=settings.pixazo_enabled,
+        api_key=settings.pixazo_api_key,
+        daily_request_limit=settings.pixazo_daily_request_limit,
+    )
+    client = PixazoClient(
+        settings.pixazo_api_key,
+        settings.pixazo_state_file,
+        enabled=settings.pixazo_enabled and not issues,
+        daily_request_limit=settings.pixazo_daily_request_limit,
+        allowed_models=settings.pixazo_allowed_models,
+        base_url=settings.pixazo_base_url,
+    )
+    print(
+        json.dumps({**client.status(), "requested_enabled": settings.pixazo_enabled, "issues": issues}, sort_keys=True)
+    )
     return 0
 
 
@@ -940,6 +963,7 @@ def main() -> None:
     competitor_parser.add_argument("--input", required=True, help="Authorized public metadata fixture")
     competitor_parser.add_argument("--out", default="data/competitor_research.json")
     competitor_parser.add_argument("--generated-at", required=True, help="ISO timestamp for deterministic scoring")
+    sub.add_parser("pixazo-status", help="Print local Pixazo configuration and usage without a network call")
     args = parser.parse_args()
     if args.command == "split":
         for part in split_authorized_clip(Path(args.input), Path(args.out), args.parts):
@@ -1028,6 +1052,8 @@ def main() -> None:
         return
     if args.command == "competitor-research":
         raise SystemExit(run_competitor_research(Path(args.input), Path(args.out), args.generated_at))
+    if args.command == "pixazo-status":
+        raise SystemExit(run_pixazo_status())
     if args.daemon:
         if args.preflight:
             raise SystemExit("--preflight cannot be combined with --daemon")

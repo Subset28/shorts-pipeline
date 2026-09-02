@@ -2,6 +2,14 @@
 
 ## 2026-09-02
 
+- Pixazo provider adapter is ready on `codex/pixazo-provider-adapter`. It is
+  disabled by default, supports one authorized key with a daily cap and model
+  allowlist, records idempotent submissions without secrets or signed URLs, and
+  exposes a local no-network `pixazo-status` command. It is not a key rotator
+  and does not yet initiate unattended generation. Focused tests: 11 passed;
+  full suite: 227 passed. One authorized smoke submission reached Pixazo and
+  was recorded as an asynchronous job; no media was downloaded or published.
+
 - PR #132 is merged; competitor intelligence is now on `main`.
 - Added the v3 channel strategy, studio craft standard, and post-retention-engine
   PR 9–22 roadmap. It covers broad-tech discovery, proper research/talking

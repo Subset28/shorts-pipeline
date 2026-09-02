@@ -7,6 +7,13 @@ from dotenv import load_dotenv
 from .reddit import RANKED_STORY_SUBREDDITS
 
 
+def _nonnegative_int(value: str, default: int = 0) -> int:
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return default
+
+
 @dataclass(frozen=True)
 class Settings:
     llm_provider: str
@@ -27,6 +34,12 @@ class Settings:
     macos_tts_voice: str
     macos_tts_rate: int
     edge_tts_voice: str
+    pixazo_enabled: bool
+    pixazo_api_key: str
+    pixazo_base_url: str
+    pixazo_daily_request_limit: int
+    pixazo_allowed_models: tuple[str, ...]
+    pixazo_state_file: Path
     captions_enabled: bool
     caption_model: str
     background_video: Path
@@ -66,6 +79,14 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
         macos_tts_voice=os.getenv("MACOS_TTS_VOICE", "Reed (English (US))"),
         macos_tts_rate=min(260, max(130, int(os.getenv("MACOS_TTS_RATE", "205")))),
         edge_tts_voice=os.getenv("EDGE_TTS_VOICE", "en-US-GuyNeural"),
+        pixazo_enabled=os.getenv("PIXAZO_ENABLED", "false").lower() in {"1", "true", "yes"},
+        pixazo_api_key=os.getenv("PIXAZO_API_KEY", ""),
+        pixazo_base_url=os.getenv("PIXAZO_BASE_URL", "https://gateway.pixazo.ai"),
+        pixazo_daily_request_limit=_nonnegative_int(os.getenv("PIXAZO_DAILY_REQUEST_LIMIT", "0")),
+        pixazo_allowed_models=tuple(
+            item.strip() for item in os.getenv("PIXAZO_ALLOWED_MODELS", "ltx").split(",") if item.strip()
+        ),
+        pixazo_state_file=Path(os.getenv("PIXAZO_STATE_FILE", "data/pixazo_usage.json")),
         captions_enabled=os.getenv("CAPTIONS_ENABLED", "true").lower() in {"1", "true", "yes"},
         caption_model=os.getenv("CAPTION_MODEL", "base"),
         background_video=Path(os.getenv("BACKGROUND_VIDEO", "")),
