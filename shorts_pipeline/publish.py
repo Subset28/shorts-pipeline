@@ -11,6 +11,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
 from .models import ScriptPackage
@@ -79,7 +80,7 @@ def _safe_description(package: ScriptPackage, tags: list[str]) -> str:
         for char in description
         if unicodedata.category(char)[0] != "C" or char in {"\n", "\r", "\t"}
     )
-    description = description.translate(str.maketrans("", "", ">*_<"))
+    description = description.translate(str.maketrans("", "", ">*<"))
     paragraphs = [" ".join(part.split()) for part in re.split(r"\n\s*\n", description) if part.strip()]
     title = _safe_title(package.title)
     if not paragraphs or not paragraphs[0].casefold().startswith(title.casefold()):
@@ -210,6 +211,12 @@ def _set_youtube_thumbnail(youtube, video_id: str, thumbnail: Path) -> bool:
             videoId=video_id,
             media_body=MediaFileUpload(str(thumbnail), mimetype="image/jpeg"),
         ).execute()
+    except HttpError as exc:
+        if getattr(exc.resp, "status", None) == 403:
+            print("YouTube custom thumbnails are unavailable for this channel; continuing without one")
+            return True
+        print("YouTube thumbnail upload failed; it will be retried later")
+        return False
     except Exception:
         print("YouTube thumbnail upload failed; it will be retried later")
         return False

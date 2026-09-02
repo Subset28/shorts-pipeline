@@ -53,6 +53,7 @@ CONCRETE_OUTCOME_SIGNALS = re.compile(
     r"discovered|caused|recovered|crashed|alarm)\b",
     re.IGNORECASE,
 )
+STORY_CLOSURE_SIGNALS = re.compile(r"\b(lesson|takeaway|what i learned|main point|in retrospect)\b", re.IGNORECASE)
 NEGATED_STORY_SIGNALS = re.compile(
     r"\b(?:no|not|never|without)\s+(?:an?\s+)?(?:after|before|then|eventually|finally|"
     r"turned out|ended up|restored|fixed|failed|broke|lesson|takeaway|incident|outage)\b",
@@ -80,7 +81,8 @@ PERSONAL_ADVICE_TITLE = re.compile(
     re.IGNORECASE,
 )
 TECHNICAL_MECHANISM = re.compile(
-    r"\b(api|automation|bug|code|database|debug|deployment|firmware|incident|program(?:mer|ming)|"
+    r"\b(ai|api|authentication|automation|bug|cloud|code|database|debug|deployment|driver|"
+    r"firmware|gpu|identity|incident|iot|llm|network|program(?:mer|ming)|"
     r"instrument|latency|malware|model|outage|pipeline|production|server|"
     r"software|system|technical|testing|vulnerability|engine|sensor|avionics|"
     r"telemetry|propulsion|flight|aircraft)\b",
@@ -96,6 +98,10 @@ def _has_story_signal(value: str) -> bool:
 def _has_concrete_outcome(value: str) -> bool:
     """Require an observable result for career and aerospace anecdotes."""
     return bool(CONCRETE_OUTCOME_SIGNALS.search(NEGATED_STORY_SIGNALS.sub("", value)))
+
+
+def _has_story_closure(value: str) -> bool:
+    return _has_concrete_outcome(value) or bool(STORY_CLOSURE_SIGNALS.search(value))
 
 
 def _story_category(community: str) -> str:
@@ -124,6 +130,8 @@ def _story_category(community: str) -> str:
 def _is_niche_relevant(community: str, title: str, body: str) -> bool:
     """Reject generic prompt answers that do not fit the channel promise."""
     text = f"{title} {body}"
+    if not TECHNICAL_MECHANISM.search(text):
+        return False
     if PERSONAL_ADVICE_TITLE.search(title):
         return False
     if community.lower() in GENERIC_COMMUNITIES and not NICHE_SIGNALS.search(text):
@@ -416,6 +424,7 @@ def load_approved_reddit_topics(path: Path) -> list[Topic]:
             and source.summary
             and source.author
             and source.community
+            and _has_story_closure(source.summary)
             and _is_niche_relevant(source.community, source.title, source.summary)
             and source.url.lower().startswith(
                 ("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")

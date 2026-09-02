@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
+from googleapiclient.errors import HttpError
 from PIL import Image
 
 import shorts_pipeline.cli as cli
@@ -68,7 +69,13 @@ from shorts_pipeline.render import (
     render_video,
 )
 from shorts_pipeline.resources import ffmpeg_resource_args
-from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
+from shorts_pipeline.seo import (
+    _clip_narration_words,
+    _reddit_story_narration,
+    eligible_formats,
+    fallback_package,
+    normalize_package,
+)
 from shorts_pipeline.sources import (
     _clean_summary,
     _clean_title,
@@ -204,6 +211,22 @@ def test_render_duration_falls_back_when_audio_probe_fails(tmp_path, monkeypatch
         lambda *args, **kwargs: (_ for _ in ()).throw(OSError("ffprobe unavailable")),
     )
     assert _render_duration("one two three four five six seven eight nine ten", audio) == 10.0
+
+
+def test_reddit_narration_word_cap_keeps_a_complete_sentence():
+    text = " ".join(["First sentence has enough words to establish the incident clearly."] * 30)
+    clipped = _clip_narration_words(text, max_words=115)
+    assert len(clipped.split()) <= 115
+    assert clipped.endswith("clearly.")
+
+
+def test_reddit_story_narration_preserves_the_outcome_within_the_short_budget():
+    narration = _reddit_story_narration(
+        "A production incident",
+        "The service failed after a deploy. We traced the faulty permission. The team restored service and added a review step.",
+    )
+    assert len(narration.split()) <= 115
+    assert "restored service and added a review step" in narration
 
 
 def test_long_form_non_reddit_fallback_keeps_enough_context_for_explainers():
@@ -615,7 +638,7 @@ def test_generic_reddit_prompts_must_match_a_channel_topic():
     assert (
         _is_niche_relevant("AskReddit", "What was your worst server outage?", "The database failed overnight.") is True
     )
-    assert _is_niche_relevant("TalesFromTechSupport", "My strangest ticket", "The printer became sentient.") is True
+    assert _is_niche_relevant("TalesFromTechSupport", "My strangest ticket", "The printer became sentient.") is False
 
 
 def test_reddit_rejects_generic_career_advice_but_keeps_technical_incidents():
@@ -812,6 +835,18 @@ def test_topic_selection_refuses_repeating_seen_reddit_story():
         cli._select_topic([topic], {topic.sources[0].url}, reddit_only=True)
 
 
+def test_reddit_only_selection_prefers_the_strongest_unseen_story():
+    low = Topic("Low", "CS", (Source("Low", "https://www.reddit.com/low", "story"),), 10)
+    high = Topic("High", "Cyber", (Source("High", "https://www.reddit.com/high", "story"),), 100)
+    assert cli._select_topic([low, high], set(), reddit_only=True) == high
+
+
+def test_reddit_only_selection_prioritizes_core_channel_lanes():
+    aerospace = Topic("Aerospace", "Aerospace", (Source("Aerospace", "https://www.reddit.com/air", "story"),), 500)
+    cyber = Topic("Cyber", "Cyber", (Source("Cyber", "https://www.reddit.com/cyber", "story"),), 250)
+    assert cli._select_topic([aerospace, cyber], set(), reddit_only=True) == cyber
+
+
 def test_private_draft_worker_pauses_between_successful_runs():
     assert cli._should_pause_after_success(reddit_only=True, private_drafts=True) is True
     assert cli._should_pause_after_success(reddit_only=True, private_drafts=False) is False
@@ -838,6 +873,19 @@ def test_longform_package_has_argument_structure_and_source_link():
     assert source.url in metadata(package)["description"]
     safe_description = metadata(package)["description"]
     assert safe_description.index("Hook") < safe_description.index("What actually happened")
+
+
+def test_metadata_preserves_underscore_source_urls():
+    source = Source(
+        "A source",
+        "https://www.reddit.com/r/cybersecurity/comments/example/the_hugging_face_incident/",
+        "A source-backed incident.",
+        author="author",
+        community="cybersecurity",
+        reuse_permission=True,
+    )
+    package = fallback_package(Topic(source.title, "Cyber", (source,)))
+    assert source.url in metadata(package)["description"]
 
 
 def test_longform_metadata_keeps_citation_for_long_source_body():
@@ -1036,7 +1084,7 @@ def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
     source = {
         "title": "A production incident",
         "url": "https://www.reddit.com/r/programming/comments/abc/story/",
-        "summary": "A detailed account with useful context " * 12,
+        "summary": "A detailed account with useful context. The team restored service and documented the lesson. " * 8,
         "author": "story_author",
         "community": "programming",
         "reuse_permission": False,
@@ -1050,6 +1098,20 @@ def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
     assert topics[0].sources[0].reuse_permission is True
     assert topics[0].category == "CS"
     assert topics[0].score == 0.0
+
+
+def test_reddit_loader_rejects_open_ended_approved_prompts(tmp_path):
+    source = {
+        "title": "We need access to the router",
+        "url": "https://www.reddit.com/r/sysadmin/comments/abc/story/",
+        "summary": "The vendor asked for router access. How do you handle this situation?",
+        "author": "story_author",
+        "community": "sysadmin",
+        "reuse_permission": True,
+    }
+    path = tmp_path / "reddit.json"
+    path.write_text(json.dumps([{"source": source}]), encoding="utf-8")
+    assert load_approved_reddit_topics(path) == []
 
 
 def test_variant_publish_state_keys_are_isolated_but_legacy_default_survives():
@@ -1827,6 +1889,30 @@ def test_youtube_thumbnail_failure_is_nonfatal(tmp_path, monkeypatch, capsys):
 
     assert not set_youtube_thumbnail("video-1", thumbnail, tmp_path / "client.json", token)
     assert "thumbnail upload failed" in capsys.readouterr().out
+
+
+def test_youtube_thumbnail_permission_limit_does_not_block_the_uploaded_video(tmp_path, monkeypatch, capsys):
+    thumbnail = tmp_path / "thumbnail.jpg"
+    token = tmp_path / "token.json"
+    thumbnail.write_bytes(b"thumbnail")
+    token.write_text("{}", encoding="utf-8")
+
+    class Service:
+        def thumbnails(self):
+            return self
+
+        def set(self, **_kwargs):
+            raise HttpError(SimpleNamespace(status=403, reason="forbidden"), b'{"error":"forbidden"}')
+
+    monkeypatch.setattr(
+        "shorts_pipeline.publish.Credentials.from_authorized_user_file",
+        lambda *_args, **_kwargs: SimpleNamespace(valid=True, expired=False, refresh_token=None),
+    )
+    monkeypatch.setattr("shorts_pipeline.publish.build", lambda *_args, **_kwargs: Service())
+    monkeypatch.setattr("shorts_pipeline.publish.MediaFileUpload", lambda path, **kwargs: (path, kwargs))
+
+    assert set_youtube_thumbnail("video-1", thumbnail, tmp_path / "client.json", token)
+    assert "custom thumbnails are unavailable" in capsys.readouterr().out
 
 
 def test_existing_youtube_upload_can_retry_thumbnail(tmp_path, monkeypatch):
