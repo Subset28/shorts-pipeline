@@ -98,6 +98,12 @@ def _reddit_display_title(source_title: str, summary: str) -> str:
         return "The Isolation Failure Behind the AI Incident"
     if re.search(r"\bdeauthenticated\b.*\btenant\b", text, re.IGNORECASE):
         return "Microsoft Deauthenticated an Entire Tenant"
+    if re.search(r"\bair force one\b|\baero commander\b", text, re.IGNORECASE):
+        return "The 1955 Plane That Served as Air Force One"
+    if re.search(r"\blocal llms?\b.*\bsecurity\b", text, re.IGNORECASE):
+        return "How Security Teams Use Local LLMs"
+    if re.search(r"\binflight scare\b|\bengine alarm\b", text, re.IGNORECASE):
+        return "The Engine Alarm That Went Silent Mid-Flight"
     return title[:85]
 
 

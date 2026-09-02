@@ -238,6 +238,23 @@ def test_reddit_display_title_turns_a_generic_source_headline_into_a_clear_hook(
     assert title == "When Entra Sync Deleted User Accounts"
 
 
+def test_reddit_display_title_adds_clear_hooks_for_engineering_stories():
+    assert (
+        _reddit_display_title(
+            "I got to detail Ike's Bird",
+            "This was an Aero Commander aircraft, the smallest to carry the Air Force One call sign.",
+        )
+        == "The 1955 Plane That Served as Air Force One"
+    )
+    assert (
+        _reddit_display_title(
+            "Anyone running local LLMs for security work?",
+            "Security teams use local LLMs for log triage and malware analysis.",
+        )
+        == "How Security Teams Use Local LLMs"
+    )
+
+
 def test_long_form_non_reddit_fallback_keeps_enough_context_for_explainers():
     source = Source(
         "A breakthrough in model safety",
