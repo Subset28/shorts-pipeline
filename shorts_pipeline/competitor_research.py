@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 import statistics
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Protocol, Sequence
@@ -28,6 +29,54 @@ ABSTRACT_FIELDS = (
 
 class MetadataProvider(Protocol):
     def videos_for_channels(self, channel_ids: Sequence[str]) -> Sequence[Mapping[str, Any]]: ...
+
+
+class YouTubeDataApiProvider:
+    """Read public metadata through an already-authorized YouTube API service."""
+
+    def __init__(self, service: Any, max_videos_per_channel: int = 50) -> None:
+        if max_videos_per_channel < 1 or max_videos_per_channel > 50:
+            raise ValueError("max_videos_per_channel must be between 1 and 50")
+        self._service = service
+        self._max_videos = max_videos_per_channel
+
+    def videos_for_channels(self, channel_ids: Sequence[str]) -> Sequence[Mapping[str, Any]]:
+        result: list[dict[str, Any]] = []
+        channels = self._service.channels().list(part="contentDetails", id=",".join(channel_ids)).execute()
+        for channel in channels.get("items", []):
+            details = channel.get("contentDetails", {})
+            uploads = details.get("relatedPlaylists", {}).get("uploads")
+            if not uploads:
+                continue
+            items = self._service.playlistItems().list(
+                part="contentDetails", playlistId=uploads, maxResults=self._max_videos
+            ).execute()
+            video_ids = [item.get("contentDetails", {}).get("videoId") for item in items.get("items", [])]
+            video_ids = [item for item in video_ids if item]
+            if not video_ids:
+                continue
+            videos = self._service.videos().list(part="snippet,statistics,contentDetails", id=",".join(video_ids)).execute()
+            for video in videos.get("items", []):
+                snippet = video.get("snippet", {})
+                stats = video.get("statistics", {})
+                result.append({
+                    "channel_id": channel.get("id", ""),
+                    "video_id": video.get("id", ""),
+                    "published_at": snippet.get("publishedAt", ""),
+                    "views": stats.get("viewCount", 0),
+                    "likes": stats.get("likeCount", 0),
+                    "comments": stats.get("commentCount", 0),
+                    "duration_seconds": _duration_seconds(video.get("contentDetails", {}).get("duration", "")),
+                })
+        return result
+
+
+def _duration_seconds(value: str) -> int:
+    match = re.fullmatch(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", value or "")
+    if not match:
+        return 0
+    hours, minutes, seconds = (int(item or 0) for item in match.groups())
+    return hours * 3600 + minutes * 60 + seconds
 
 
 def _number(value: Any, *, integer: bool = False) -> int | float:

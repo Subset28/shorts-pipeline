@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import pytest
 
 from shorts_pipeline.competitor_research import (
+    YouTubeDataApiProvider,
     build_research_packet,
     channel_outlier,
     compute_velocity,
@@ -68,3 +69,26 @@ def test_packet_is_deterministic_and_has_no_production_media_paths():
     second = build_research_packet(list(reversed(records)), now)
     assert first == second
     assert all("media_path" not in item for item in first["outliers"])
+
+
+def test_youtube_provider_reads_public_metadata_without_titles_or_media():
+    class Request:
+        def __init__(self, value):
+            self.value = value
+
+        def execute(self):
+            return self.value
+
+    class Service:
+        def channels(self):
+            return type("Channels", (), {"list": lambda self, **kwargs: Request({"items": [{"id": "c1", "contentDetails": {"relatedPlaylists": {"uploads": "p1"}}}]})})()
+
+        def playlistItems(self):
+            return type("Items", (), {"list": lambda self, **kwargs: Request({"items": [{"contentDetails": {"videoId": "v1"}}]})})()
+
+        def videos(self):
+            return type("Videos", (), {"list": lambda self, **kwargs: Request({"items": [{"id": "v1", "snippet": {"publishedAt": "2026-08-31T00:00:00Z", "title": "omit"}, "statistics": {"viewCount": "10"}, "contentDetails": {"duration": "PT1M2S"}}]})})()
+
+    row = YouTubeDataApiProvider(Service()).videos_for_channels(["c1"])[0]
+    assert row["duration_seconds"] == 62
+    assert "title" not in row
