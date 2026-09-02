@@ -79,7 +79,7 @@ def _safe_description(package: ScriptPackage, tags: list[str]) -> str:
         for char in description
         if unicodedata.category(char)[0] != "C" or char in {"\n", "\r", "\t"}
     )
-    description = description.translate(str.maketrans("", "", ">*_<"))
+    description = description.translate(str.maketrans("", "", ">*<"))
     paragraphs = [" ".join(part.split()) for part in re.split(r"\n\s*\n", description) if part.strip()]
     title = _safe_title(package.title)
     if not paragraphs or not paragraphs[0].casefold().startswith(title.casefold()):

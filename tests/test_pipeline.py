@@ -868,6 +868,19 @@ def test_longform_package_has_argument_structure_and_source_link():
     assert safe_description.index("Hook") < safe_description.index("What actually happened")
 
 
+def test_metadata_preserves_underscore_source_urls():
+    source = Source(
+        "A source",
+        "https://www.reddit.com/r/cybersecurity/comments/example/the_hugging_face_incident/",
+        "A source-backed incident.",
+        author="author",
+        community="cybersecurity",
+        reuse_permission=True,
+    )
+    package = fallback_package(Topic(source.title, "Cyber", (source,)))
+    assert source.url in metadata(package)["description"]
+
+
 def test_longform_metadata_keeps_citation_for_long_source_body():
     source = Source(
         "A long production incident",
