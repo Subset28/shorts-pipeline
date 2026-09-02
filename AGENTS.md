@@ -59,7 +59,8 @@ approves it.
   performance or publish unverified/copyright-uncleared material.
 - Implement the v2 system in the dependency order defined by
   `plans/shorts-v2-retention-engine.md`. Smaller models must follow
-  `docs/LOW_COST_AGENT_HANDOFF.md` and complete one PR at a time.
+  `docs/LOW_COST_AGENT_HANDOFF.md`, `docs/V2_DATA_CONTRACTS.md`, and
+  `docs/V2_EVAL_RUBRIC.md`; complete one PR at a time.
 
 ## Change discipline
 

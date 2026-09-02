@@ -50,8 +50,9 @@ it skips uploads but is not a configuration check.
 The unattended worker uses one selected Minecraft/background source by default
 to limit CPU. `BACKGROUND_REEL_ENABLED=true` opts into multi-segment background
 generation and should be enabled only after a host-specific resource check.
-That renderer is preview-only under v2. Public masters ban Minecraft/gameplay,
-utility TTS, and static-card-led compositions.
+That renderer is preview-only under v2. Public non-Reddit masters ban gameplay.
+Public Reddit masters may use polished Minecraft parkour as intentional kinetic
+support, but still ban utility TTS and static-card-led compositions.
 
 Every short and long-form render also creates `thumbnail.jpg` at 1280x720 and
 records it in the manifest. YouTube uploads attempt to set that custom
