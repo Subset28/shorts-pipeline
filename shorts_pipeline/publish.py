@@ -11,6 +11,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
 from .models import ScriptPackage
@@ -210,6 +211,12 @@ def _set_youtube_thumbnail(youtube, video_id: str, thumbnail: Path) -> bool:
             videoId=video_id,
             media_body=MediaFileUpload(str(thumbnail), mimetype="image/jpeg"),
         ).execute()
+    except HttpError as exc:
+        if getattr(exc.resp, "status", None) == 403:
+            print("YouTube custom thumbnails are unavailable for this channel; continuing without one")
+            return True
+        print("YouTube thumbnail upload failed; it will be retried later")
+        return False
     except Exception:
         print("YouTube thumbnail upload failed; it will be retried later")
         return False

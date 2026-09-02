@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
+from googleapiclient.errors import HttpError
 from PIL import Image
 
 import shorts_pipeline.cli as cli
@@ -1888,6 +1889,30 @@ def test_youtube_thumbnail_failure_is_nonfatal(tmp_path, monkeypatch, capsys):
 
     assert not set_youtube_thumbnail("video-1", thumbnail, tmp_path / "client.json", token)
     assert "thumbnail upload failed" in capsys.readouterr().out
+
+
+def test_youtube_thumbnail_permission_limit_does_not_block_the_uploaded_video(tmp_path, monkeypatch, capsys):
+    thumbnail = tmp_path / "thumbnail.jpg"
+    token = tmp_path / "token.json"
+    thumbnail.write_bytes(b"thumbnail")
+    token.write_text("{}", encoding="utf-8")
+
+    class Service:
+        def thumbnails(self):
+            return self
+
+        def set(self, **_kwargs):
+            raise HttpError(SimpleNamespace(status=403, reason="forbidden"), b'{"error":"forbidden"}')
+
+    monkeypatch.setattr(
+        "shorts_pipeline.publish.Credentials.from_authorized_user_file",
+        lambda *_args, **_kwargs: SimpleNamespace(valid=True, expired=False, refresh_token=None),
+    )
+    monkeypatch.setattr("shorts_pipeline.publish.build", lambda *_args, **_kwargs: Service())
+    monkeypatch.setattr("shorts_pipeline.publish.MediaFileUpload", lambda path, **kwargs: (path, kwargs))
+
+    assert set_youtube_thumbnail("video-1", thumbnail, tmp_path / "client.json", token)
+    assert "custom thumbnails are unavailable" in capsys.readouterr().out
 
 
 def test_existing_youtube_upload_can_retry_thumbnail(tmp_path, monkeypatch):
