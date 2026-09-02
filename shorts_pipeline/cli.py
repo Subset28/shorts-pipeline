@@ -474,7 +474,7 @@ def run_longform(
         audio,
         captions,
         thumbnail,
-        background_looped=True,
+        True,
     )
     print(f"Created {video}")
     if not upload_private:
