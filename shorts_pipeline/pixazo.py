@@ -83,6 +83,7 @@ class PixazoClient:
             state.setdefault("completed", {})[request.request_id] = {
                 **result,
                 "output_url": _safe_output_url(str(result["output_url"])),
+                "polling_url": _safe_output_url(str(result["polling_url"])),
             }
             self._save_state(state)
             return result
@@ -107,7 +108,8 @@ class PixazoClient:
             raise ValueError(f"Pixazo operation is not allowed: {request.operation}")
 
     def _post(self, request: PixazoRequest) -> dict[str, Any]:
-        endpoint = f"{self._base_url}/{request.model}/{request.operation}"
+        model_path = "ltx-video/v1" if request.model == "ltx" else f"{request.model}/v1"
+        endpoint = f"{self._base_url}/{model_path}/{request.operation}"
         headers = {
             "Content-Type": "application/json",
             "Ocp-Apim-Subscription-Key": self._api_key,
@@ -124,7 +126,15 @@ class PixazoClient:
     def _result(self, request: PixazoRequest, payload: dict[str, Any]) -> dict[str, Any]:
         nested = payload.get("data") if isinstance(payload.get("data"), dict) else {}
         output_url = str(payload.get("url") or payload.get("output_url") or nested.get("url") or "").strip()
-        job_id = str(payload.get("id") or payload.get("job_id") or nested.get("id") or "").strip()
+        job_id = str(
+            payload.get("id")
+            or payload.get("job_id")
+            or payload.get("request_id")
+            or nested.get("id")
+            or nested.get("request_id")
+            or ""
+        ).strip()
+        polling_url = str(payload.get("polling_url") or nested.get("polling_url") or "").strip()
         if not output_url and not job_id:
             raise RuntimeError("Pixazo response contains no output URL or job ID")
         return {
@@ -134,6 +144,7 @@ class PixazoClient:
             "operation": request.operation,
             "job_id": job_id,
             "output_url": output_url,
+            "polling_url": polling_url,
             "key_fingerprint": self._fingerprint(),
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }

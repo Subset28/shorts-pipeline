@@ -53,6 +53,7 @@ def test_pixazo_submits_once_and_records_secret_safe_provenance(tmp_path, monkey
     assert calls[0][1]["headers"]["Ocp-Apim-Subscription-Key"] == "top-secret-key"
     assert result["provider"] == "pixazo"
     assert result["output_url"] == "https://media.example/clip.mp4"
+    assert calls[0][0] == "https://gateway.pixazo.ai/ltx-video/v1/text-to-video"
     assert "top-secret-key" not in str(result)
     assert "top-secret-key" not in (tmp_path / "usage.json").read_text(encoding="utf-8")
 
@@ -130,6 +131,25 @@ def test_pixazo_strips_signed_output_url_before_persisting(tmp_path, monkeypatch
     state = state_path.read_text(encoding="utf-8")
     assert "signature" not in state
     assert "https://media.example/clip.mp4" in state
+
+
+def test_pixazo_records_async_request_and_polling_url(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        httpx.Client,
+        "post",
+        lambda self, url, **kwargs: httpx.Response(
+            202,
+            json={
+                "request_id": "ltx-video_job-1",
+                "polling_url": "https://gateway.pixazo.ai/v2/requests/status/job-1?token=private",
+            },
+            request=httpx.Request("POST", url),
+        ),
+    )
+    result = PixazoClient("key", tmp_path / "usage.json", enabled=True, daily_request_limit=1).submit(_request())
+    assert result["job_id"] == "ltx-video_job-1"
+    assert "token=private" in result["polling_url"]
+    assert "token=private" not in (tmp_path / "usage.json").read_text(encoding="utf-8")
 
 
 def test_pixazo_settings_are_disabled_by_default_and_keep_the_key_out_of_paths(monkeypatch):

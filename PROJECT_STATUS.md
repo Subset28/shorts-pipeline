@@ -5,8 +5,9 @@ on branch `codex/pixazo-provider-adapter`. It uses one authorized key, an
 operator-set daily request cap, allowed-model list, idempotency key, local
 secret-safe usage state, and a no-network status command. It is explicitly not
 a key/account rotator and is not connected to unattended generation, rendering,
-or upload. Focused tests and the full 226-test suite pass; no provider request,
-media download, render, or upload occurred.
+or upload. Focused tests and the full 227-test suite pass; one authorized smoke
+submission reached Pixazo and was recorded as an asynchronous job; no media was
+downloaded, rendered, or uploaded.
 
 2026-09-02: Expanded the post-v2 roadmap into a world-class autonomous technology
 studio. The channel may cover any technology while retaining one audience
