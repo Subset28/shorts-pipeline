@@ -1,5 +1,14 @@
 # Project status
 
+2026-09-02: Implemented PR 0 competitor intelligence on branch
+`codex/competitor-intelligence`. The fixture-only metadata adapter validates a
+10–20 channel cohort, calculates six-hour-floor velocity, nearest-age channel
+outliers, and engagement, then emits deterministic repeated-pattern evidence
+only when at least three independent channels agree. Sensitive fields are
+rejected, competitor media is excluded from production assets, and a CLI writes
+the Git-safe packet. Focused tests and the full 215-test suite pass; no live API,
+media download, render, or upload occurred. Next: open the PR for review.
+
 2026-09-02: Refined the v2 lane split after operator feedback. Polished Minecraft
 parkour remains allowed for permissioned Reddit stories because it is a familiar,
 casual kinetic convention; gameplay stays out of non-Reddit formats. Shorts are

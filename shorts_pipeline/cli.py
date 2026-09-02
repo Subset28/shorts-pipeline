@@ -13,6 +13,7 @@ from typing import Any
 from .analytics import archive_report, build_report, build_youtube_report, write_report
 from .asset_library import sync_backgrounds
 from .captions import create_captions
+from .competitor_research import build_research_packet, load_metadata_fixture
 from .config import load_settings
 from .content_calendar import build_weekly_plan
 from .editorial import build_research_week
@@ -44,6 +45,21 @@ def _interval_seconds(interval_hours: float) -> float:
     if not math.isfinite(interval_hours) or interval_hours <= 0:
         raise ValueError("interval_hours must be finite and greater than zero")
     return max(interval_hours, 0.25) * 3600
+
+
+def run_competitor_research(input_path: Path, output_path: Path, generated_at: str) -> int:
+    """Build a Git-safe packet from an authorized metadata fixture."""
+    from datetime import datetime
+
+    try:
+        timestamp = datetime.fromisoformat(generated_at.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("generated-at must be an ISO timestamp") from exc
+    packet = build_research_packet(load_metadata_fixture(input_path), timestamp)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(packet, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"Wrote competitor research packet to {output_path}")
+    return 0
 
 
 def _is_reddit_url(source_url: str) -> bool:
@@ -920,6 +936,10 @@ def main() -> None:
     reddit_parser = sub.add_parser("reddit")
     reddit_parser.add_argument("--out", default="data/reddit_candidates.json")
     reddit_parser.add_argument("--count", type=int, default=10)
+    competitor_parser = sub.add_parser("competitor-research")
+    competitor_parser.add_argument("--input", required=True, help="Authorized public metadata fixture")
+    competitor_parser.add_argument("--out", default="data/competitor_research.json")
+    competitor_parser.add_argument("--generated-at", required=True, help="ISO timestamp for deterministic scoring")
     args = parser.parse_args()
     if args.command == "split":
         for part in split_authorized_clip(Path(args.input), Path(args.out), args.parts):
@@ -1006,6 +1026,8 @@ def main() -> None:
         )
         print(f"Wrote {output} ({len(topics)} candidates; none are cleared for publishing)")
         return
+    if args.command == "competitor-research":
+        raise SystemExit(run_competitor_research(Path(args.input), Path(args.out), args.generated_at))
     if args.daemon:
         if args.preflight:
             raise SystemExit("--preflight cannot be combined with --daemon")
