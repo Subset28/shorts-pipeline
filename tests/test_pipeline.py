@@ -71,6 +71,7 @@ from shorts_pipeline.render import (
 from shorts_pipeline.resources import ffmpeg_resource_args
 from shorts_pipeline.seo import (
     _clip_narration_words,
+    _reddit_display_title,
     _reddit_story_narration,
     eligible_formats,
     fallback_package,
@@ -227,6 +228,14 @@ def test_reddit_story_narration_preserves_the_outcome_within_the_short_budget():
     )
     assert len(narration.split()) <= 115
     assert "restored service and added a review step" in narration
+
+
+def test_reddit_display_title_turns_a_generic_source_headline_into_a_clear_hook():
+    title = _reddit_display_title(
+        "I finally have a major story to tell",
+        "Users started saying their accounts did not exist. Accounts were deleted automatically. We restored everything.",
+    )
+    assert title == "When Entra Sync Deleted User Accounts"
 
 
 def test_long_form_non_reddit_fallback_keeps_enough_context_for_explainers():
@@ -1107,6 +1116,20 @@ def test_reddit_loader_rejects_open_ended_approved_prompts(tmp_path):
         "summary": "The vendor asked for router access. How do you handle this situation?",
         "author": "story_author",
         "community": "sysadmin",
+        "reuse_permission": True,
+    }
+    path = tmp_path / "reddit.json"
+    path.write_text(json.dumps([{"source": source}]), encoding="utf-8")
+    assert load_approved_reddit_topics(path) == []
+
+
+def test_reddit_loader_rejects_promotional_self_announcements(tmp_path):
+    source = {
+        "title": "My cyber academy reached 1,000 downloads",
+        "url": "https://www.reddit.com/r/hacking/comments/abc/story/",
+        "summary": "I built a free academy and it reached 1,000 downloads. The lesson is to keep learning.",
+        "author": "story_author",
+        "community": "hacking",
         "reuse_permission": True,
     }
     path = tmp_path / "reddit.json"

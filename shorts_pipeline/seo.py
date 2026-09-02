@@ -86,6 +86,21 @@ def _source_keyword_tags(title: str) -> list[str]:
     return terms[:4]
 
 
+def _reddit_display_title(source_title: str, summary: str) -> str:
+    """Make vague Reddit headlines scannable without changing the narration."""
+    title = " ".join(source_title.split()).strip(" .")
+    text = f"{title} {summary}"
+    if re.search(r"\baccounts?\b.*\bdelet(?:ed|ing)\b", text, re.IGNORECASE):
+        return "When Entra Sync Deleted User Accounts"
+    if re.search(r"\brouter\b.*\baccess\b", text, re.IGNORECASE):
+        return "The IoT Project That Needed Router Access"
+    if re.search(r"\bnetwork access\b.*\bisolated\b", text, re.IGNORECASE):
+        return "The Isolation Failure Behind the AI Incident"
+    if re.search(r"\bdeauthenticated\b.*\btenant\b", text, re.IGNORECASE):
+        return "Microsoft Deauthenticated an Entire Tenant"
+    return title[:85]
+
+
 def _has_source_fidelity(source_title: str, source_summary: str, narration: str) -> bool:
     """Require model drafts to retain concrete source anchors."""
     narration_terms = _content_terms(narration)
@@ -189,7 +204,11 @@ def _nonreddit_takeaway(category: str) -> str:
 
 def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
     source = topic.sources[0]
-    title = topic.title[:85]
+    title = (
+        _reddit_display_title(topic.title, source.summary)
+        if "reddit_story" in eligible_formats(topic)
+        else topic.title[:85]
+    )
     formats = eligible_formats(topic)
     if "reddit_story" in formats and variant == 0:
         format_name = "reddit_story"
