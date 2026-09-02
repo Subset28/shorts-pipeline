@@ -19,9 +19,10 @@ not determine whether a video is entertaining enough to make.
 
 ## 1.1 Public-release quality floor
 
-The existing Minecraft background, macOS system voice, static Pillow cards, and
-generic caption-over-footage treatment are development placeholders. They are
-not acceptable for a public v2 release.
+The existing utility voice, static Pillow cards, and generic
+caption-over-footage treatment are development placeholders. Minecraft is a
+valid public convention only for the permissioned Reddit-story lane; it is not
+the universal Signal Forge visual system.
 
 A public v2 Short requires:
 
@@ -34,9 +35,9 @@ A public v2 Short requires:
 - frame-by-frame typography with measured fit and no template overflow;
 - an automated release-arbiter pass on the final encoded file.
 
-720x1280, macOS TTS, Minecraft, and static cards may be used for low-cost
-development previews only. They must be visibly labeled `PREVIEW` and are
-blocked from public upload.
+720x1280, macOS TTS, and static cards may be used for low-cost development
+previews only. They must be visibly labeled `PREVIEW` and are blocked from
+public upload.
 
 ## 2. Creative order of operations
 
@@ -173,11 +174,18 @@ Minimum visual rhythm:
   animated callout;
 - no decorative stock footage that implies an event it does not show.
 
-Minecraft and generic gameplay are banned from public v2 masters. They may be
-used only in labeled engineering previews while the final visual pipeline is
-being built. Source screenshots, permissioned clips, diagrams, terminal
-recreations, maps, numbers, animated UI fragments, and designed environments
-carry the public story.
+Minecraft parkour is allowed in public `reddit_story` masters because viewers
+recognize that loose, kinetic storytelling convention. It should make the story
+feel casual and fast—not disguise a lecture. Use varied, clean footage; choose
+cuts around story beats; keep captions and the Reddit receipt dominant; and
+avoid inserting explanatory diagrams unless they make the conflict, joke, or
+payoff more satisfying. Generic gameplay remains banned from non-Reddit lanes,
+where source footage and designed visuals carry the story.
+
+Shorts optimize entertainment, personality, tension, and replay. Long-form owns
+the deep teaching, complete mechanism, evidence comparison, and portfolio-level
+credibility. A Short may leave technical depth for its companion video as long
+as its own promised story has a complete payoff.
 
 Public masters use a Remotion composition driven by the structured beat sheet.
 All animation is frame-driven; CSS and time-based browser animations are not
@@ -290,7 +298,9 @@ person to watch drafts.
 - Is no static composition held longer than three seconds?
 - Is the source receipt visible but subordinate to the story?
 - Is this a 1080x1920 final master rather than a labeled preview?
-- Are Minecraft/gameplay and generic filler absent from the public master?
+- If this is Reddit, is Minecraft functioning as polished kinetic support rather
+  than a substitute for story progression? If it is not Reddit, is gameplay
+  absent?
 - Are at least two proof assets and two original motion treatments present?
 
 ### Polish gate

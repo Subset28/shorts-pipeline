@@ -53,7 +53,8 @@ Primary references, checked 2026-09-02:
 
 ## 3. What is removed from public production
 
-- Minecraft or generic gameplay backgrounds.
+- Generic gameplay outside the permissioned Reddit-story lane. Reddit may use
+  polished Minecraft parkour as its intentional kinetic convention.
 - macOS `say`, edge-TTS, or untouched utility narration.
 - static Pillow story cards as the main composition.
 - one looping background behind an entire story.

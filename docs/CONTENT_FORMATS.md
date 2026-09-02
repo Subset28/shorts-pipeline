@@ -39,6 +39,9 @@ surprising technology stories told quickly.
 
 In v2, the Reddit card appears as a short receipt after the cold open. Reading
 the headline, body, and outcome over one background is not an eligible format.
+The Reddit lane may use polished Minecraft parkour because the casual format is
+part of the audience convention. Keep the Short loose, funny, tense, and fast;
+reserve classroom-depth mechanism work for the long-form companion.
 
 The deterministic fallback rotates formats by source URL, but only makes the
 technical-joke lane eligible when the source contains an explicit humor or

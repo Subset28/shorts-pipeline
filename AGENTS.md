@@ -46,6 +46,9 @@ approves it.
 - Treat the Reddit card as a brief receipt, not the main visual. Require a
   beat sheet, source-specific proof, original mechanism visuals, and repeated
   visual-state changes before publication.
+- Minecraft parkour is allowed for the Reddit-story lane as intentional kinetic
+  support. Do not force Shorts into classroom explainers; Shorts earn attention
+  through story and personality, while long-form carries the deep teaching.
 - Reddit records in the configured publishing queue are operator-confirmed for
   reuse; preserve author, subreddit, URL, and permission fields in manifests.
 - Preserve the Reddit reference treatment: real-looking compact white post card,
