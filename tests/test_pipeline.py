@@ -68,7 +68,7 @@ from shorts_pipeline.render import (
     render_video,
 )
 from shorts_pipeline.resources import ffmpeg_resource_args
-from shorts_pipeline.seo import _clip_narration_words, eligible_formats, fallback_package, normalize_package
+from shorts_pipeline.seo import _clip_narration_words, _reddit_story_narration, eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.sources import (
     _clean_summary,
     _clean_title,
@@ -211,6 +211,15 @@ def test_reddit_narration_word_cap_keeps_a_complete_sentence():
     clipped = _clip_narration_words(text, max_words=115)
     assert len(clipped.split()) <= 115
     assert clipped.endswith("clearly.")
+
+
+def test_reddit_story_narration_preserves_the_outcome_within_the_short_budget():
+    narration = _reddit_story_narration(
+        "A production incident",
+        "The service failed after a deploy. We traced the faulty permission. The team restored service and added a review step.",
+    )
+    assert len(narration.split()) <= 115
+    assert "restored service and added a review step" in narration
 
 
 def test_long_form_non_reddit_fallback_keeps_enough_context_for_explainers():
@@ -622,7 +631,7 @@ def test_generic_reddit_prompts_must_match_a_channel_topic():
     assert (
         _is_niche_relevant("AskReddit", "What was your worst server outage?", "The database failed overnight.") is True
     )
-    assert _is_niche_relevant("TalesFromTechSupport", "My strangest ticket", "The printer became sentient.") is True
+    assert _is_niche_relevant("TalesFromTechSupport", "My strangest ticket", "The printer became sentient.") is False
 
 
 def test_reddit_rejects_generic_career_advice_but_keeps_technical_incidents():
@@ -823,6 +832,12 @@ def test_reddit_only_selection_prefers_the_strongest_unseen_story():
     low = Topic("Low", "CS", (Source("Low", "https://www.reddit.com/low", "story"),), 10)
     high = Topic("High", "Cyber", (Source("High", "https://www.reddit.com/high", "story"),), 100)
     assert cli._select_topic([low, high], set(), reddit_only=True) == high
+
+
+def test_reddit_only_selection_prioritizes_core_channel_lanes():
+    aerospace = Topic("Aerospace", "Aerospace", (Source("Aerospace", "https://www.reddit.com/air", "story"),), 500)
+    cyber = Topic("Cyber", "Cyber", (Source("Cyber", "https://www.reddit.com/cyber", "story"),), 250)
+    assert cli._select_topic([aerospace, cyber], set(), reddit_only=True) == cyber
 
 
 def test_private_draft_worker_pauses_between_successful_runs():
@@ -1049,7 +1064,7 @@ def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
     source = {
         "title": "A production incident",
         "url": "https://www.reddit.com/r/programming/comments/abc/story/",
-        "summary": "A detailed account with useful context " * 12,
+        "summary": "A detailed account with useful context. The team restored service and documented the lesson. " * 8,
         "author": "story_author",
         "community": "programming",
         "reuse_permission": False,
@@ -1063,6 +1078,20 @@ def test_reddit_loader_only_returns_explicitly_approved_candidates(tmp_path):
     assert topics[0].sources[0].reuse_permission is True
     assert topics[0].category == "CS"
     assert topics[0].score == 0.0
+
+
+def test_reddit_loader_rejects_open_ended_approved_prompts(tmp_path):
+    source = {
+        "title": "We need access to the router",
+        "url": "https://www.reddit.com/r/sysadmin/comments/abc/story/",
+        "summary": "The vendor asked for router access. How do you handle this situation?",
+        "author": "story_author",
+        "community": "sysadmin",
+        "reuse_permission": True,
+    }
+    path = tmp_path / "reddit.json"
+    path.write_text(json.dumps([{"source": source}]), encoding="utf-8")
+    assert load_approved_reddit_topics(path) == []
 
 
 def test_variant_publish_state_keys_are_isolated_but_legacy_default_survives():

@@ -262,15 +262,7 @@ def fallback_package(topic: Topic, variant: int = 0) -> ScriptPackage:
         # Match the reference format: read the post title first, then the
         # author's body. Attribution, permission, and the disclaimer stay in
         # metadata so the narration keeps a direct story rhythm.
-        sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", summary) if part.strip()]
-        ending = sentences[-1] if sentences else summary
-        body = " ".join(sentences[:-1]).strip()
-        narration = (
-            f"{source.title}. Here's how it unfolded: {body} Then came the outcome: {ending}"
-            if body
-            else f"{source.title}. {ending}"
-        )
-        narration = _clip_narration_words(narration)
+        narration = _reddit_story_narration(source.title, summary)
     elif format_name == "myth_bust":
         narration = f"{headline_sentence} This sounds like a bigger claim than it is. Here's what the source says: {summary} {takeaway}"
     else:
@@ -331,6 +323,17 @@ def _clip_narration_words(text: str, max_words: int = 115) -> str:
     return bounded.rsplit(" ", 1)[0].rstrip(" ,;:-")
 
 
+def _reddit_story_narration(title: str, summary: str, max_words: int = 115) -> str:
+    """Keep the exact post title, key context, and final outcome in one Short."""
+    sentences = [part.strip() for part in re.split(r"(?<=[.!?])\s+", summary) if part.strip()]
+    ending = _clip_narration_words(sentences[-1] if sentences else summary, max_words=40)
+    opening = f"{title}. Here's how it unfolded:"
+    outcome = f"Then came the outcome: {ending}"
+    detail_budget = max(12, max_words - len(opening.split()) - len(outcome.split()))
+    body = _clip_narration_words(" ".join(sentences[:-1]), max_words=detail_budget)
+    return " ".join(part for part in (opening, body, outcome) if part).strip()
+
+
 def _ensure_source_opening(source_title: str, narration: str) -> str:
     """Keep model narration anchored to the same headline shown on screen."""
     title = " ".join(source_title.split()).strip(" .")
@@ -368,7 +371,7 @@ def normalize_package(topic: Topic, data: dict) -> ScriptPackage:
         # Keep model-generated Reddit treatments source-faithful: exact title,
         # then the original body. The fallback adds the narrative transitions.
         body = " ".join(source.summary.split())
-        narration = _clip_narration_words(f"{source.title}. {body}"[:900].rsplit(" ", 1)[0])
+        narration = _reddit_story_narration(source.title, body[:900].rsplit(" ", 1)[0])
     else:
         if not narration.casefold().startswith(source.title.casefold()):
             narration = _clip_narration(f"{source.title}. {narration}")
