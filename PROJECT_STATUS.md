@@ -1,5 +1,59 @@
 # Project status
 
+2026-09-01: Replaced the dead middle of Reddit Shorts with three timed,
+source-backed visual beats after the opening post card: what happened, a
+story-grounded system diagram when the source has a recognized mechanism, and
+an outcome/takeaway or neutrally labeled final detail. Unsupported diagrams are
+omitted. Each scene fades over the moving background. Added native macOS Arial
+paths so the Mac mini uses the intended large type instead of Pillow's tiny
+fallback font. Static preview reviewed; full rendering and upload remain gated
+on supervised verification.
+
+2026-09-01: Aborted the first scene-overlay pilot when three looping 1080x1920
+PNG inputs pushed FFmpeg from roughly 1 GB to 1.9 GB RSS. No upload occurred.
+Replaced the final all-layer compositor with sequential, bounded scene renders
+and a single assembled timeline. A supervised 720x1280 dry-run completed with
+scene renders near 267 MB RSS and no upload. Render output, logs, staging, and
+cache now live under the external N2ME project drive. The quality gate accepts
+the intentional 720x1280 profile and understands looped backgrounds.
+
+2026-09-01: Tightened Reddit channel-fit selection after the live queue audit.
+Personal advice, career, anxiety, recruiter, and other vague prompt titles are
+now rejected at discovery and approved-queue load time; a concrete technical
+incident must beat raw Reddit popularity. The weekly planner also prefers the
+AI/ML, Cyber, CS, and engineering lanes whenever enough eligible topics exist.
+
+2026-09-01: Aborted a supervised pilot after observing the final H.264
+compositor reach roughly 887% CPU despite FFmpeg's global one-thread flags.
+The final render now passes an explicit single-thread x264 profile and uses the
+lower-cost `veryfast` preset; a command-level regression test covers it. No
+upload occurred.
+
+2026-09-01: Prevented silent TTS quality downgrades. If ElevenLabs is
+configured but fails, production now stops instead of switching to edge-TTS;
+the free fallback remains available only when ElevenLabs is not configured.
+This prevents a failed premium voice from becoming an unreviewed upload.
+
+2026-09-01: A one-word ElevenLabs health check confirmed the active free-tier
+account returns `detected_unusual_activity` and refuses synthesis. Premium
+audio is therefore blocked until a working ElevenLabs account is supplied;
+the pipeline will not silently ship edge-TTS audio as a substitute.
+
+2026-09-01: Added an explicit zero-install macOS narration provider for the
+resource-constrained Mac mini. `TTS_PROVIDER=macos` uses a selected local voice
+and bounded FFmpeg conversion; it never activates silently. A direct provider
+smoke test produced a valid 5.76-second MP3 without downloading a model or
+calling a cloud service. Provider-specific preflight checks reject missing
+commands or incomplete configuration, and failed conversion removes partial
+audio instead of letting a corrupt file reach rendering.
+
+2026-09-01: Added a bounded opening-and-pacing experiment for low-retention
+lanes. Reviewed briefs marked `opening_and_pacing` now place the concrete hook
+before the source headline while retaining the complete source-backed narration,
+so the next batch can test the observed 6–9 second drop-off without changing
+all packaging at once. Added a focused regression test and archived the
+2026-09-01 dashboard snapshot in `docs/analytics/2026-09-01-dashboard.md`.
+
 2026-08-31: Applied the one-thread FFmpeg profile to final short composition and preserved the last 1000 characters of FFmpeg diagnostics on render failure. A controlled static-background render failed with exit 234; its error is now actionable without exposing credentials.
 
 2026-08-31: Made multi-segment background generation opt-in. Unattended runs now use one category/provenance-selected moving source by default, while `BACKGROUND_REEL_ENABLED=true` retains the richer reel for explicitly benchmarked hosts; this prevents the observed high-CPU reel path from running by default.

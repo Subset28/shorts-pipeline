@@ -74,6 +74,11 @@ CAREER_ADVICE = re.compile(
     r"is it worth|looking for advice|job advice|what should i do)\b",
     re.IGNORECASE,
 )
+PERSONAL_ADVICE_TITLE = re.compile(
+    r"\b(i hate programming|parallel universe|does it cause anxiety|employers market|"
+    r"recruiter|career advice|new graduates?|what should i do|stay safe people)\b",
+    re.IGNORECASE,
+)
 TECHNICAL_MECHANISM = re.compile(
     r"\b(api|automation|bug|code|database|debug|deployment|firmware|incident|program(?:mer|ming)|"
     r"instrument|latency|malware|model|outage|pipeline|production|server|"
@@ -119,6 +124,8 @@ def _story_category(community: str) -> str:
 def _is_niche_relevant(community: str, title: str, body: str) -> bool:
     """Reject generic prompt answers that do not fit the channel promise."""
     text = f"{title} {body}"
+    if PERSONAL_ADVICE_TITLE.search(title):
+        return False
     if community.lower() in GENERIC_COMMUNITIES and not NICHE_SIGNALS.search(text):
         return False
     if INTERPERSONAL_TITLE.search(title):
@@ -153,6 +160,8 @@ def _reddit_quality_score(topic: Topic) -> float:
     score += min(len(source.title.split()), 12) * 2
     if GENERIC_TITLE.search(source.title):
         score -= 35
+    if PERSONAL_ADVICE_TITLE.search(source.title):
+        score -= 180
     if len(source.summary.split()) < 100:
         score -= 45
     return score
@@ -407,6 +416,7 @@ def load_approved_reddit_topics(path: Path) -> list[Topic]:
             and source.summary
             and source.author
             and source.community
+            and _is_niche_relevant(source.community, source.title, source.summary)
             and source.url.lower().startswith(
                 ("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")
             )

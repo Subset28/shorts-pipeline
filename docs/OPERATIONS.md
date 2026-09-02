@@ -3,8 +3,11 @@
 Start with `python -m shorts_pipeline run --dry-run`. Store OAuth tokens, client
 secrets, and ElevenLabs `keys.json` outside Git.
 
-TTS prefers the local ElevenLabs rotator when configured, then falls back to
-the keyless `edge-tts` command using `EDGE_TTS_VOICE`.
+TTS defaults to `TTS_PROVIDER=auto`: it uses the local ElevenLabs rotator when
+configured and fails closed if that provider is unavailable. Set
+`TTS_PROVIDER=macos` for the zero-install local `say` backend on Apple Silicon,
+using `MACOS_TTS_VOICE` and `MACOS_TTS_RATE`; use `edge` only when that explicit
+quality tradeoff is acceptable.
 
 To collect real professional anecdotes, configure Reddit OAuth credentials and
 run `python -m shorts_pipeline reddit --count 10`. This writes candidates only;

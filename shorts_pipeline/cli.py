@@ -33,7 +33,7 @@ from .reddit import discover_reddit_topics, load_approved_reddit_topics
 from .render import render_thumbnail, render_video
 from .sources import discover_topics
 from .telemetry import record_event
-from .tts import synthesize
+from .tts import synthesize, tts_configuration_issues
 from .youtube_analytics import collect_due, write_weekly_report
 
 YOUTUBE_QUOTA_RETRY_HOURS = 24.0
@@ -166,8 +166,7 @@ def run_preflight(reddit_only: bool = False, private_drafts: bool = False, youtu
         issues.append("youtube_client_secrets_missing")
     if not settings.youtube_token_file.exists():
         issues.append("youtube_token_missing")
-    if not (settings.elevenlabs_rotator_path.exists() or settings.elevenlabs_voice_id or settings.edge_tts_voice):
-        issues.append("tts_configuration_missing")
+    issues.extend(tts_configuration_issues(settings))
     if issues:
         raise RuntimeError(f"Preflight failed: {', '.join(issues)}")
     privacy = "private" if private_drafts else settings.youtube_privacy_status
@@ -268,7 +267,9 @@ def run(
     )
     video = render_video(package, output_dir, audio, captions, background)
     thumbnail = render_thumbnail(package, output_dir / "thumbnail.jpg")
-    manifest = save_manifest(package, video, output_dir, background, background_sources, audio, captions, thumbnail)
+    manifest = save_manifest(
+        package, video, output_dir, background, background_sources, audio, captions, thumbnail, background_looped=True
+    )
     record_event(
         events_path,
         "draft_created",
@@ -991,6 +992,8 @@ def main() -> None:
             max(1, args.count),
         )
         output = Path(args.out)
+        if output.resolve() == settings.reddit_approved_file.resolve():
+            raise ValueError("Reddit discovery output cannot overwrite the approved queue; choose a separate path")
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(
             json.dumps(

@@ -6,7 +6,7 @@ from typing import Any
 
 from .content_calendar import _experiment_targets, _longform_sort_key, _select_short_topics
 from .models import ScriptPackage, Topic
-from .seo import eligible_formats, fallback_package
+from .seo import eligible_formats, fallback_package, front_load_hook
 
 REDDIT_URL_PREFIXES = ("https://www.reddit.com/", "https://old.reddit.com/", "https://redd.it/")
 CHANNEL_CATEGORY_ORDER = ["AI", "AI News", "AI/ML", "ML", "Cyber", "CS", "Aerospace", "Finance"]
@@ -129,9 +129,15 @@ def apply_editorial_brief(package: ScriptPackage, topic: Topic, brief: dict[str,
     if source.url not in description or not isinstance(tags, list):
         raise ValueError("editorial brief metadata is not source-linked")
     clean_tags = [str(tag).strip()[:30] for tag in tags if str(tag).strip()][:12]
-    return replace(
+    shaped = replace(
         package, hook=hook.strip()[:140], title=title.strip()[:100], description=description.strip(), tags=clean_tags
     )
+    if (
+        isinstance(brief.get("analytics_target"), dict)
+        and brief["analytics_target"].get("area") == "opening_and_pacing"
+    ):
+        shaped = front_load_hook(shaped)
+    return shaped
 
 
 def _unique_topics(topics: list[Topic]) -> list[Topic]:
@@ -165,6 +171,9 @@ def build_research_week(
     short_pool = [
         topic for topic in unique if not longform_topic or topic.sources[0].url != longform_topic.sources[0].url
     ]
+    core_pool = [topic for topic in short_pool if topic.category in set(CHANNEL_CATEGORY_ORDER)]
+    if len(core_pool) >= shorts_count:
+        short_pool = core_pool
     short_topics = _select_short_topics(short_pool, shorts_count, CHANNEL_CATEGORY_ORDER)
     targets = _experiment_targets(experiment_brief)
     shorts = [build_editorial_brief(topic, targets.get(topic.category, [None])[0]) for topic in short_topics]

@@ -66,6 +66,17 @@ def test_editorial_brief_changes_package_metadata_after_validation():
     assert shaped.narration == package.narration
 
 
+def test_opening_experiment_front_loads_hook_before_source_headline():
+    topic = _topic()
+    brief = build_editorial_brief(
+        topic,
+        analytics_target={"area": "opening_and_pacing", "metric": "avg_view_percentage"},
+    )
+    package = apply_editorial_brief(fallback_package(topic), topic, brief)
+    assert package.narration.startswith(package.hook + ".")
+    assert topic.sources[0].title in package.narration
+
+
 def test_create_package_uses_reviewed_brief_without_api_key():
     topic = _topic()
     brief = build_editorial_brief(topic)

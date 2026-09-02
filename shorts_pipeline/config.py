@@ -23,6 +23,9 @@ class Settings:
     elevenlabs_rotator_path: Path
     elevenlabs_voice_id: str
     elevenlabs_model_id: str
+    tts_provider: str
+    macos_tts_voice: str
+    macos_tts_rate: int
     edge_tts_voice: str
     captions_enabled: bool
     caption_model: str
@@ -59,6 +62,9 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
         elevenlabs_rotator_path=Path(os.getenv("ELEVENLABS_ROTATOR_PATH", "")),
         elevenlabs_voice_id=os.getenv("ELEVENLABS_VOICE_ID", ""),
         elevenlabs_model_id=os.getenv("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2"),
+        tts_provider=os.getenv("TTS_PROVIDER", "auto").strip().lower(),
+        macos_tts_voice=os.getenv("MACOS_TTS_VOICE", "Reed (English (US))"),
+        macos_tts_rate=min(260, max(130, int(os.getenv("MACOS_TTS_RATE", "205")))),
         edge_tts_voice=os.getenv("EDGE_TTS_VOICE", "en-US-GuyNeural"),
         captions_enabled=os.getenv("CAPTIONS_ENABLED", "true").lower() in {"1", "true", "yes"},
         caption_model=os.getenv("CAPTION_MODEL", "base"),

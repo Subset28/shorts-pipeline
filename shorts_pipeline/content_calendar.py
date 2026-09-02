@@ -15,6 +15,7 @@ _LONGFORM_CATEGORY_PRIORITY = {
     "Aerospace": 4,
     "Finance": 2,
 }
+_CHANNEL_CATEGORIES = {"AI", "AI News", "AI/ML", "ML", "Cyber", "CS", "Aerospace"}
 
 
 def _publish_at(day: date, hour: int) -> str:
@@ -102,6 +103,9 @@ def build_weekly_plan(
     short_pool = [
         topic for topic in unique if not reserved_longform or topic.sources[0].url != reserved_longform.sources[0].url
     ]
+    core_pool = [topic for topic in short_pool if topic.category in _CHANNEL_CATEGORIES]
+    if len(core_pool) >= shorts_count:
+        short_pool = core_pool
     targets = _experiment_targets(experiment_brief)
     selected = _select_short_topics(short_pool, shorts_count, list(targets))
     plan: list[dict[str, Any]] = []

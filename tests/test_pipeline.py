@@ -1,4 +1,5 @@
 import json
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -55,7 +56,17 @@ from shorts_pipeline.reddit import (
     discover_reddit_topics,
     load_approved_reddit_topics,
 )
-from shorts_pipeline.render import _card, _reddit_post_card, _render_duration, render_thumbnail, render_video
+from shorts_pipeline.render import (
+    _card,
+    _font_candidates,
+    _reddit_post_card,
+    _render_duration,
+    _scene_lines,
+    _story_outcome_kicker,
+    _story_system_nodes,
+    render_thumbnail,
+    render_video,
+)
 from shorts_pipeline.resources import ffmpeg_resource_args
 from shorts_pipeline.seo import eligible_formats, fallback_package, normalize_package
 from shorts_pipeline.sources import (
@@ -93,6 +104,50 @@ def test_fallback_package_adds_source_terms_to_search_tags():
     assert "compiler" in {tag.casefold() for tag in package.tags}
     assert "optimization" in {tag.casefold() for tag in package.tags}
     assert len(package.tags) <= 12
+
+
+def test_reddit_quality_penalizes_personal_advice_over_technical_story():
+    from shorts_pipeline.reddit import _reddit_quality_score
+
+    technical = Topic(
+        "A server outage exposed a broken deployment",
+        "CS",
+        (
+            Source(
+                "A server outage exposed a broken deployment",
+                "https://reddit.test/technical",
+                " ".join(
+                    ["The incident was fixed after the deployment system failed and logs exposed the cause."] * 20
+                ),
+                author="a",
+                community="sysadmin",
+                reuse_permission=True,
+            ),
+        ),
+        100,
+    )
+    advice = Topic(
+        "I hate programming now. Warning for new graduates",
+        "CS",
+        (
+            Source(
+                "I hate programming now. Warning for new graduates",
+                "https://reddit.test/advice",
+                " ".join(
+                    [
+                        "The author describes a long personal experience with work and programming, including what happened next and the lesson learned."
+                    ]
+                    * 20
+                ),
+                author="b",
+                community="programming",
+                reuse_permission=True,
+            ),
+        ),
+        1000,
+    )
+    assert _reddit_quality_score(technical) > _reddit_quality_score(advice)
+    assert not _is_niche_relevant(advice.sources[0].community, advice.title, advice.sources[0].summary)
 
 
 def test_fallback_hook_translates_long_research_title_into_clear_claim():
@@ -706,6 +761,8 @@ def test_run_preflight_checks_inputs_without_starting_media(monkeypatch, tmp_pat
     token = tmp_path / "token.json"
     secrets.write_text("{}", encoding="utf-8")
     token.write_text("{}", encoding="utf-8")
+    rotator = tmp_path / "rotator.py"
+    rotator.write_text("", encoding="utf-8")
     settings = SimpleNamespace(
         reddit_approved_file=approved,
         reddit_background_dir=background,
@@ -713,7 +770,8 @@ def test_run_preflight_checks_inputs_without_starting_media(monkeypatch, tmp_pat
         youtube_token_file=token,
         reddit_client_id="configured",
         reddit_client_secret="configured",
-        elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
+        tts_provider="elevenlabs",
+        elevenlabs_rotator_path=rotator,
         elevenlabs_voice_id="configured",
         edge_tts_voice="en-US-GuyNeural",
     )
@@ -731,6 +789,7 @@ def test_run_preflight_reports_missing_inputs(monkeypatch, tmp_path):
         youtube_token_file=tmp_path / "missing-token.json",
         reddit_client_id="",
         reddit_client_secret="",
+        tts_provider="auto",
         elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
         elevenlabs_voice_id="",
         edge_tts_voice="",
@@ -883,6 +942,11 @@ def test_nonreddit_transparent_hook_card_has_high_contrast_opening(tmp_path):
     assert image.getpixel((75, 215))[3] > 0
 
 
+def test_font_candidates_include_native_macos_fonts():
+    assert "/System/Library/Fonts/Supplemental/Arial Bold.ttf" in _font_candidates(bold=True)
+    assert "/System/Library/Fonts/Supplemental/Arial.ttf" in _font_candidates(bold=False)
+
+
 def test_short_render_uses_upload_friendly_mp4_muxing(tmp_path, monkeypatch):
     audio = tmp_path / "narration.mp3"
     audio.write_bytes(b"audio")
@@ -934,6 +998,29 @@ def test_ffmpeg_resource_args_are_bounded_and_configurable(monkeypatch):
     monkeypatch.setenv("FFMPEG_THREADS", "invalid")
     assert ffmpeg_resource_args()[1] == "2"
     assert ffmpeg_resource_args(1)[1] == "1"
+
+
+def test_render_uses_single_threaded_x264_profile(tmp_path, monkeypatch):
+    package = fallback_package(
+        Topic(
+            "A breakthrough",
+            "AI",
+            (
+                Source(
+                    "A breakthrough",
+                    "https://example.test/a",
+                    "A useful finding with enough context to explain the result.",
+                ),
+            ),
+        )
+    )
+    commands = []
+    monkeypatch.setattr("shorts_pipeline.render.shutil.which", lambda _: "/usr/bin/ffmpeg")
+    monkeypatch.setattr("shorts_pipeline.render.subprocess.run", lambda command, **kwargs: commands.append(command))
+    render_video(package, tmp_path)
+    command = commands[0]
+    assert "-x264-params" in command
+    assert command[command.index("-x264-params") + 1] == "threads=1:lookahead_threads=1"
 
 
 def test_settings_can_load_dotenv_from_explicit_runtime_path(monkeypatch):
@@ -1876,6 +1963,153 @@ def test_tts_does_not_run_fallback_after_elevenlabs_success(tmp_path, monkeypatc
     assert len(calls) == 1
 
 
+def test_tts_does_not_silently_downgrade_when_elevenlabs_fails(tmp_path, monkeypatch):
+    output = tmp_path / "narration.mp3"
+    rotator = tmp_path / "rotator.py"
+    rotator.write_text("", encoding="utf-8")
+    settings = SimpleNamespace(
+        elevenlabs_voice_id="voice",
+        elevenlabs_rotator_path=rotator,
+        elevenlabs_model_id="model",
+        edge_tts_voice="en-US-GuyNeural",
+    )
+
+    monkeypatch.setattr(
+        "shorts_pipeline.tts.subprocess.run",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(subprocess.CalledProcessError(1, "rotator")),
+    )
+    assert synthesize("new narration", settings, output) is None
+    assert not output.exists()
+
+
+def test_tts_auto_refuses_incomplete_elevenlabs_configuration(tmp_path, monkeypatch):
+    output = tmp_path / "narration.mp3"
+    settings = SimpleNamespace(
+        tts_provider="auto",
+        elevenlabs_voice_id="voice",
+        elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
+        edge_tts_voice="en-US-GuyNeural",
+    )
+    calls = []
+    monkeypatch.setattr("shorts_pipeline.tts.subprocess.run", lambda *args, **kwargs: calls.append(args))
+
+    assert synthesize("new narration", settings, output) is None
+    assert calls == []
+
+
+def test_macos_tts_provider_uses_local_voice_and_ffmpeg(tmp_path, monkeypatch):
+    output = tmp_path / "narration.mp3"
+    settings = SimpleNamespace(
+        tts_provider="macos",
+        macos_tts_voice="Reed (English (US))",
+        macos_tts_rate=205,
+    )
+    calls = []
+
+    def fake_run(command, **_kwargs):
+        calls.append(command)
+        if command[0] == "say":
+            output.with_suffix(".aiff").write_bytes(b"aiff")
+        else:
+            output.write_bytes(b"mp3")
+
+    monkeypatch.setattr("shorts_pipeline.tts.subprocess.run", fake_run)
+    assert synthesize("new narration", settings, output) == output
+    assert calls[0][:3] == ["say", "-v", "Reed (English (US))"]
+    assert calls[1][0] == "ffmpeg"
+    assert not output.with_suffix(".aiff").exists()
+
+
+def test_macos_tts_removes_partial_output_after_conversion_failure(tmp_path, monkeypatch):
+    output = tmp_path / "narration.mp3"
+    settings = SimpleNamespace(
+        tts_provider="macos",
+        macos_tts_voice="Reed (English (US))",
+        macos_tts_rate=205,
+    )
+
+    def fake_run(command, **_kwargs):
+        if command[0] == "say":
+            output.with_suffix(".aiff").write_bytes(b"aiff")
+            return
+        output.write_bytes(b"partial")
+        raise subprocess.CalledProcessError(1, command)
+
+    monkeypatch.setattr("shorts_pipeline.tts.subprocess.run", fake_run)
+    assert synthesize("new narration", settings, output) is None
+    assert not output.exists()
+
+
+def test_preflight_rejects_unavailable_macos_tts(monkeypatch, tmp_path):
+    approved = tmp_path / "approved.json"
+    approved.write_text("[]", encoding="utf-8")
+    background = tmp_path / "backgrounds"
+    background.mkdir()
+    (background / "chunk.mp4").write_bytes(b"video")
+    secrets = tmp_path / "client.json"
+    token = tmp_path / "token.json"
+    secrets.write_text("{}", encoding="utf-8")
+    token.write_text("{}", encoding="utf-8")
+    settings = SimpleNamespace(
+        reddit_approved_file=approved,
+        reddit_background_dir=background,
+        youtube_client_secrets=secrets,
+        youtube_token_file=token,
+        reddit_client_id="configured",
+        reddit_client_secret="configured",
+        tts_provider="macos",
+        macos_tts_voice="Reed (English (US))",
+        elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
+        elevenlabs_voice_id="",
+        edge_tts_voice="",
+    )
+    monkeypatch.setattr(cli, "load_settings", lambda: settings)
+    monkeypatch.setattr("shorts_pipeline.tts.shutil.which", lambda _command: None)
+
+    with pytest.raises(RuntimeError, match="macos_say_missing"):
+        cli.run_preflight(reddit_only=True)
+
+
+def test_preflight_rejects_unknown_macos_voice(monkeypatch, tmp_path):
+    approved = tmp_path / "approved.json"
+    approved.write_text("[]", encoding="utf-8")
+    background = tmp_path / "backgrounds"
+    background.mkdir()
+    (background / "chunk.mp4").write_bytes(b"video")
+    secrets = tmp_path / "client.json"
+    token = tmp_path / "token.json"
+    secrets.write_text("{}", encoding="utf-8")
+    token.write_text("{}", encoding="utf-8")
+    settings = SimpleNamespace(
+        reddit_approved_file=approved,
+        reddit_background_dir=background,
+        youtube_client_secrets=secrets,
+        youtube_token_file=token,
+        reddit_client_id="configured",
+        reddit_client_secret="configured",
+        tts_provider="macos",
+        macos_tts_voice="Missing Voice",
+        elevenlabs_rotator_path=tmp_path / "missing-rotator.py",
+        elevenlabs_voice_id="",
+        edge_tts_voice="",
+    )
+    monkeypatch.setattr(cli, "load_settings", lambda: settings)
+    monkeypatch.setattr("shorts_pipeline.tts.shutil.which", lambda _command: "/usr/bin/tool")
+    monkeypatch.setattr(
+        "shorts_pipeline.tts.subprocess.run",
+        lambda *_args, **_kwargs: SimpleNamespace(stdout="Reed (English (US)) en_US # Hello\n"),
+    )
+
+    with pytest.raises(RuntimeError, match="macos_voice_unavailable"):
+        cli.run_preflight(reddit_only=True)
+
+
+def test_tts_rejects_unknown_provider(tmp_path):
+    settings = SimpleNamespace(tts_provider="unknown")
+    with pytest.raises(ValueError, match="Unsupported TTS provider"):
+        synthesize("new narration", settings, tmp_path / "narration.mp3")
+
+
 def test_quality_report_records_sync_and_caption_coverage(tmp_path, monkeypatch):
     video = tmp_path / "short.mp4"
     audio = tmp_path / "narration.mp3"
@@ -1908,6 +2142,8 @@ def test_quality_report_flags_background_and_caption_failures(tmp_path, monkeypa
     assert {"audio_video_duration_mismatch", "background_shorter_than_video", "captions_end_too_early"}.issubset(
         report["issues"]
     )
+    looped_report = assess_render(video, audio, captions, background, background_looped=True)
+    assert "background_shorter_than_video" not in looped_report["issues"]
 
 
 def test_quality_report_rejects_detectable_low_quality_video_profile(tmp_path, monkeypatch):
@@ -1922,7 +2158,7 @@ def test_quality_report_rejects_detectable_low_quality_video_profile(tmp_path, m
     )
     report = assess_render(video, audio, None, None)
     assert report["passed"] is False
-    assert {"video_resolution_unexpected", "video_frame_rate_too_low"}.issubset(report["issues"])
+    assert "video_frame_rate_too_low" in report["issues"]
     assert report["video_width"] == 720
     assert report["video_height"] == 1280
     assert report["video_fps"] == 20.0
@@ -2248,3 +2484,49 @@ def test_reddit_card_generates_animated_award_loop(tmp_path):
     with Image.open(card.with_suffix(".gif")) as animated:
         assert animated.size == (1080, 1920)
         assert animated.n_frames == 8
+
+
+def test_reddit_render_adds_timed_category_aware_story_scenes(tmp_path, monkeypatch):
+    package = ScriptPackage(
+        hook="One login failure locked out an entire tenant",
+        narration=(
+            "Microsoft deauthenticated an entire M365 tenant. Administrators lost access to every account. "
+            "The identity layer became the single point of failure. Recovery required Microsoft support. "
+            "The lesson is to test emergency access before the identity provider fails."
+        ),
+        title="The M365 tenant lockout",
+        description="Reddit attribution: u/example in r/sysadmin",
+        sources=["https://www.reddit.com/r/sysadmin/comments/example/"],
+        format_name="reddit_story",
+        category="Cyber",
+        card_text="Microsoft deauthenticated an entire M365 tenant.",
+    )
+    background = tmp_path / "background.mp4"
+    audio = tmp_path / "narration.mp3"
+    background.write_bytes(b"video")
+    audio.write_bytes(b"audio")
+    calls = []
+    monkeypatch.setattr("shorts_pipeline.render.shutil.which", lambda _: "/usr/bin/ffmpeg")
+    monkeypatch.setattr("shorts_pipeline.render._render_duration", lambda *_args: 30.0)
+    monkeypatch.setattr("shorts_pipeline.render.subprocess.run", lambda command, **_kwargs: calls.append(command))
+    monkeypatch.setenv("RENDER_SIZE", "720x1280")
+
+    render_video(package, tmp_path, audio=audio, background=background)
+
+    command = calls[-1]
+    assert _story_system_nodes("Cyber", package.narration) == ("USER", "IDENTITY", "CLOUD")
+    assert _story_system_nodes("Cyber", "A strange but unexplained incident occurred.") is None
+    assert _story_outcome_kicker("The lesson is to test emergency access.") == "TAKEAWAY"
+    assert _story_outcome_kicker("Edit: thanks for reading.") == "FINAL DETAIL"
+    assert _scene_lines("word " * 80)[-1].endswith("…")
+    scene_names = ("story-incident.png", "story-system.png", "story-outcome.png")
+    assert all((tmp_path / name).exists() for name in scene_names)
+    assert len(calls) == 6
+    assert all(name in " ".join(calls[index + 1]) for index, name in enumerate(scene_names))
+    assert "story-timeline.mp4" in " ".join(command)
+    assert "story-scenes.png" not in " ".join(command)
+    scene_filter = calls[1][calls[1].index("-filter_complex") + 1]
+    assert "scale=720:1280:flags=bicubic" in scene_filter
+    assert "[1:v]scale=720:1280[panel]" in scene_filter
+    assert "[bg][panel]overlay=0:0" in scene_filter
+    assert "1:a" in command
