@@ -1148,6 +1148,20 @@ def test_reddit_loader_rejects_promotional_self_announcements(tmp_path):
     assert load_approved_reddit_topics(path) == []
 
 
+def test_reddit_loader_rejects_uncertain_troubleshooting_outcomes(tmp_path):
+    source = {
+        "title": "A graphics driver problem I am still dealing with",
+        "url": "https://www.reddit.com/r/techsupport/comments/abc/story/",
+        "summary": "The system crashed. I am still not sure if I have overcome the issue.",
+        "author": "story_author",
+        "community": "techsupport",
+        "reuse_permission": True,
+    }
+    path = tmp_path / "reddit.json"
+    path.write_text(json.dumps([{"source": source}]), encoding="utf-8")
+    assert load_approved_reddit_topics(path) == []
+
+
 def test_variant_publish_state_keys_are_isolated_but_legacy_default_survives():
     assert cli._publish_state_key("https://example.test/source", 0) == "https://example.test/source"
     assert cli._publish_state_key("https://example.test/source", 1) == "https://example.test/source#variant=1"
