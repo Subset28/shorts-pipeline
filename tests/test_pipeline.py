@@ -68,7 +68,13 @@ from shorts_pipeline.render import (
     render_video,
 )
 from shorts_pipeline.resources import ffmpeg_resource_args
-from shorts_pipeline.seo import _clip_narration_words, _reddit_story_narration, eligible_formats, fallback_package, normalize_package
+from shorts_pipeline.seo import (
+    _clip_narration_words,
+    _reddit_story_narration,
+    eligible_formats,
+    fallback_package,
+    normalize_package,
+)
 from shorts_pipeline.sources import (
     _clean_summary,
     _clean_title,
