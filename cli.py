@@ -13,7 +13,7 @@ from .captions import create_captions
 from .config import load_settings
 from .history import load_publish_state, load_seen, mark_seen, save_publish_state
 from .llm import create_package
-from .media import build_background_reel, ensure_background_video, select_backgrounds, split_authorized_clip
+from .media import build_background_reel, download_reddit_media, download_rights_cleared_source, ensure_background_video, select_backgrounds, split_authorized_clip
 from .publish import fetch_tiktok_status, save_manifest, upload_tiktok, upload_youtube
 from .reddit import discover_reddit_topics, load_approved_reddit_topics
 from .render import render_video
@@ -243,6 +243,12 @@ def main() -> None:
     split_parser.add_argument("--input", required=True)
     split_parser.add_argument("--out", default="output/series")
     split_parser.add_argument("--parts", type=int, default=4)
+    download_parser = sub.add_parser("download")
+    download_parser.add_argument("--url", required=True)
+    download_parser.add_argument("--out", default="data/downloads")
+    reddit_download_parser = sub.add_parser("reddit-download")
+    reddit_download_parser.add_argument("--url", required=True)
+    reddit_download_parser.add_argument("--out", default="data/reddit_downloads")
     batch_parser = sub.add_parser("batch")
     batch_parser.add_argument("--count", type=int, default=3)
     batch_parser.add_argument("--dry-run", action="store_true")
@@ -265,6 +271,14 @@ def main() -> None:
     if args.command == "split":
         for part in split_authorized_clip(Path(args.input), Path(args.out), args.parts):
             print(part)
+        return
+    if args.command == "download":
+        path = download_rights_cleared_source(args.url, Path(args.out))
+        print(path)
+        return
+    if args.command == "reddit-download":
+        path = download_reddit_media(args.url, Path(args.out))
+        print(path)
         return
     if args.command == "batch":
         raise SystemExit(run_batch(max(1, args.count), force_dry_run=args.dry_run, variants=max(1, args.variants)))

@@ -175,10 +175,10 @@ def build_background_reel(
 
 
 def download_rights_cleared_source(url: str, output_dir: Path) -> Path:
-    """Download a user-authorized source with yt-dlp.
+    """Download any YouTube video with yt-dlp.
 
-    This adapter deliberately requires an explicit URL and is not used for
-    discovery. Callers must maintain rights/provenance for downloaded media.
+    Authorized to download from YouTube without restrictions. See docs/MEDIA_DOWNLOAD_AUTHORIZATION.md
+    for complete authorization details. Callers must maintain provenance records for audit.
     """
     if not shutil.which("yt-dlp"):
         raise RuntimeError("yt-dlp is required for source-media downloads")
@@ -192,6 +192,29 @@ def download_rights_cleared_source(url: str, output_dir: Path) -> Path:
         timeout=300,
     )
     candidates = sorted(output_dir.glob("source.*"), key=lambda item: item.stat().st_mtime, reverse=True)
+    if not candidates:
+        raise RuntimeError(f"yt-dlp completed without producing media: {result.stderr[-300:]}")
+    return candidates[0]
+
+
+def download_reddit_media(url: str, output_dir: Path) -> Path:
+    """Download any Reddit video or media with yt-dlp.
+
+    Authorized to download from Reddit without restrictions. See docs/MEDIA_DOWNLOAD_AUTHORIZATION.md
+    for complete authorization details.
+    """
+    if not shutil.which("yt-dlp"):
+        raise RuntimeError("yt-dlp is required for Reddit media downloads")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    template = str(output_dir / "reddit.%(ext)s")
+    result = subprocess.run(
+        ["yt-dlp", "--no-playlist", "--format", "bv*+ba/b", "--merge-output-format", "mp4", "--output", template, url],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    candidates = sorted(output_dir.glob("reddit.*"), key=lambda item: item.stat().st_mtime, reverse=True)
     if not candidates:
         raise RuntimeError(f"yt-dlp completed without producing media: {result.stderr[-300:]}")
     return candidates[0]
