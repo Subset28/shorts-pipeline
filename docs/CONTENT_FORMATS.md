@@ -1,5 +1,14 @@
 # Content formats
 
+This file catalogs legacy format options. New Shorts must first pass the story
+admission and beat requirements in `SHORTS_CREATIVE_SPEC_V2.md`. Format variety
+cannot rescue a weak source.
+
+The primary v2 story lanes are technical catastrophe, impossible build, hidden
+dependency, the obvious fix fails, cyber trap, and human versus automation.
+Choose the emotional engine already present in the source; do not rotate lanes
+for variety alone.
+
 The channel should rotate formats while keeping one recognizable lens: useful,
 surprising technology stories told quickly.
 
@@ -27,6 +36,9 @@ surprising technology stories told quickly.
     author, subreddit, post URL, and explicit reuse permission are recorded.
     The script must add original commentary and frame the post as one person's
     account, not verified industry fact.
+
+In v2, the Reddit card appears as a short receipt after the cold open. Reading
+the headline, body, and outcome over one background is not an eligible format.
 
 The deterministic fallback rotates formats by source URL, but only makes the
 technical-joke lane eligible when the source contains an explicit humor or
