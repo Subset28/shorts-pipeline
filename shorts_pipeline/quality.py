@@ -135,7 +135,12 @@ def assess_render(
     )
     if av_delta is not None and av_delta > 0.25:
         issues.append("audio_video_duration_mismatch")
-    if not background_looped and background_duration is not None and video_duration is not None and background_duration + 0.5 < video_duration:
+    if (
+        not background_looped
+        and background_duration is not None
+        and video_duration is not None
+        and background_duration + 0.5 < video_duration
+    ):
         issues.append("background_shorter_than_video")
     caption_coverage = (
         last_caption / audio_duration if last_caption is not None and audio_duration and audio_duration > 0 else None

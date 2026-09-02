@@ -358,7 +358,9 @@ def _story_scene_copy(package: ScriptPackage) -> tuple[str, str, str]:
 def _story_outcome_kicker(outcome: str) -> str:
     if re.search(r"\b(lesson|takeaway)\b", outcome, re.IGNORECASE):
         return "TAKEAWAY"
-    if re.search(r"\b(outcome|fixed|resolved|recovered|restored|result|ended up|turned out|finally)\b", outcome, re.IGNORECASE):
+    if re.search(
+        r"\b(outcome|fixed|resolved|recovered|restored|result|ended up|turned out|finally)\b", outcome, re.IGNORECASE
+    ):
         return "OUTCOME"
     return "FINAL DETAIL"
 
@@ -402,7 +404,9 @@ def _draw_story_scene(
             left = 48 + (index * 350)
             right = left + 284
             node_fill = (110, 32, 52, 235) if index == 1 else (8, 25, 46, 235)
-            draw.rounded_rectangle((left, node_y, right, node_y + 150), radius=28, fill=node_fill, outline=accent, width=4)
+            draw.rounded_rectangle(
+                (left, node_y, right, node_y + 150), radius=28, fill=node_fill, outline=accent, width=4
+            )
             width = draw.textlength(label, font=_font(27, bold=True))
             draw.text((left + ((284 - width) / 2), node_y + 57), label, fill="white", font=_font(27, bold=True))
             if index < 2:
@@ -488,7 +492,20 @@ def _story_timeline(
     playlist = path.with_suffix(".concat.txt")
     playlist.write_text("".join(f"file '{clip.name}'\n" for clip in clips), encoding="utf-8")
     subprocess.run(
-        ["ffmpeg", "-y", *ffmpeg_resource_args(1), "-f", "concat", "-safe", "0", "-i", str(playlist), "-c", "copy", str(path)],
+        [
+            "ffmpeg",
+            "-y",
+            *ffmpeg_resource_args(1),
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(playlist),
+            "-c",
+            "copy",
+            str(path),
+        ],
         check=True,
         capture_output=True,
         text=True,
