@@ -38,9 +38,11 @@ approves it.
 
 ## Product priorities
 
-- Produce entertainment-first, original, source-backed vertical stories. The
-  governing contract is `docs/SHORTS_CREATIVE_SPEC_V2.md`: tension, promise,
-  escalation, proof, payoff, then technical explanation.
+- Produce entertainment-first, original, source-backed stories about any
+  technology. The governing promise is the wildest true stories hiding inside
+  consequential machines and systems; `docs/CHANNEL_STRATEGY_V3.md` defines the
+  breadth, and `docs/SHORTS_CREATIVE_SPEC_V2.md` defines the structure: tension,
+  promise, escalation, proof, payoff, then technical explanation.
 - Reject a credible source when it cannot become an entertaining Short. A
   source-backed summary is not automatically a publishable video.
 - Treat the Reddit card as a brief receipt, not the main visual. Require a
@@ -61,6 +63,9 @@ approves it.
   `plans/shorts-v2-retention-engine.md`. Smaller models must follow
   `docs/LOW_COST_AGENT_HANDOFF.md`, `docs/V2_DATA_CONTRACTS.md`, and
   `docs/V2_EVAL_RUBRIC.md`; complete one PR at a time.
+- After the v2 private-batch proof, follow
+  `plans/signal-forge-world-class-studio.md` for the broader news, VFX, sound,
+  long-form, analytics, programming, and revenue systems.
 
 ## Change discipline
 

@@ -373,6 +373,13 @@ new dependency edges, and rollback impact. Never silently expand a PR. Split it
 when it changes more than two primary subsystems or cannot be reviewed in one
 diff.
 
+Mutation 2026-09-02: `docs/STUDIO_CRAFT_STANDARD_V3.md` raises the target craft
+bar for talking points, footage, VFX, animation, voice, SFX, and final-cut review.
+The existing PR 1–8 scopes and dependencies do not expand. The larger studio
+capabilities are isolated in `plans/signal-forge-world-class-studio.md` PRs 9–22
+after PR 8 proves the private five-video foundation. Rollback impact: none to the
+v2 implementation sequence; the companion roadmap can be deferred independently.
+
 ## Definition of done
 
 The program is complete only when one autonomous five-video batch passes the v2

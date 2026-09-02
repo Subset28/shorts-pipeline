@@ -4,10 +4,11 @@ Status: governing creative contract for new Shorts work.
 
 ## 1. Product definition
 
-Signal Forge is an entertainment-first technology channel about AI/ML, computer
-science, cybersecurity, and the systems people depend on. A Short is not a
-miniature lecture. It is a compressed story with a technical mechanism inside
-it.
+Signal Forge is an entertainment-first channel about any technology: AI/ML,
+computer science, cybersecurity, software, hardware, robotics, consumer tech,
+the internet, gaming systems, aerospace, transport, energy, biotech,
+infrastructure, and the systems people depend on. A Short is not a miniature
+lecture. It is a compressed story with a technical mechanism inside it.
 
 The viewer contract is:
 
@@ -80,7 +81,7 @@ non-zero score.
 | Specificity | 0–10 | Are there concrete systems, amounts, errors, or constraints? |
 | Human emotion | 0–10 | Is there panic, ambition, embarrassment, conflict, or awe? |
 | Payoff strength | 0–10 | Is the ending more satisfying than the setup? |
-| Channel fit | 0–5 | Is the mechanism genuinely AI/ML, CS, cyber, or engineering? |
+| Channel fit | 0–5 | Is the mechanism genuinely technological and consistent with the channel promise? |
 
 Admission rules:
 

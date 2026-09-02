@@ -1,13 +1,21 @@
 # Project status
 
-2026-09-02: Implemented PR 0 competitor intelligence on branch
-`codex/competitor-intelligence`. The fixture-only metadata adapter validates a
+2026-09-02: Expanded the post-v2 roadmap into a world-class autonomous technology
+studio. The channel may cover any technology while retaining one audience
+promise: wild true stories inside consequential machines and systems. Added a
+two-speed news/evergreen desk, ten internal story lanes, dossier-quality talking
+points, strict footage/VFX/animation/voice/SFX/final-cut standards, Shorts and
+long-form programming, evidence-led analytics, and an aligned revenue ladder.
+The new PR 9–22 roadmap begins only after the existing retention-engine PR 8
+private batch. This was planning only; no media, API, render, or upload ran.
+
+2026-09-02: Merged PR #132, competitor intelligence. The metadata adapter validates a
 10–20 channel cohort, calculates six-hour-floor velocity, nearest-age channel
 outliers, and engagement, then emits deterministic repeated-pattern evidence
 only when at least three independent channels agree. Sensitive fields are
 rejected, competitor media is excluded from production assets, and a CLI writes
-the Git-safe packet. Focused tests and the full 215-test suite pass; no live API,
-media download, render, or upload occurred. Next: open the PR for review.
+the Git-safe packet. The full 216-test suite passed at merge; no live API, media
+download, render, or upload occurred. Next: retention-engine PR 1.
 
 2026-09-02: Refined the v2 lane split after operator feedback. Polished Minecraft
 parkour remains allowed for permissioned Reddit stories because it is a familiar,
