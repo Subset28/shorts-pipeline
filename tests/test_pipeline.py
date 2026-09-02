@@ -681,6 +681,17 @@ def test_reddit_rejects_generic_aerospace_and_prompt_stories():
     assert _is_niche_relevant("sysadmin", "Difficult coworker", "I need advice about communication.") is False
 
 
+def test_reddit_rejects_non_cyber_osint_posts():
+    assert (
+        _is_niche_relevant(
+            "OSINT",
+            "New barrier lake formed",
+            "A data set and modeled shape file document the reported lake.",
+        )
+        is False
+    )
+
+
 def test_reddit_quality_prefers_specific_story_arcs_over_generic_high_scores():
     strong = Source(
         "Our deploy deleted production data",
