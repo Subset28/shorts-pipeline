@@ -19,8 +19,8 @@ Reddit/API source
   -> proof-asset and visual-state plan
   -> sequential bounded renderer + rhythm-aware audio/captions
   -> technical quality gate + creative quality gate
-  -> human review state
-  -> private draft / explicit operator release
+  -> independent autonomous release-arbiter state
+  -> private draft / configured schedule or one-click operator release
   -> 24-hour and seven-day treatment analytics
 ```
 
@@ -46,8 +46,8 @@ FFmpeg, so platform uploads do not depend on sidecar-caption support.
 
 `content_calendar.py` turns the ranked source pool into a category-balanced
 weekly slate with explicit private UTC publish times. Planning is separate from
-rendering and publishing, so the operator can review the source and rights
-fields before media work begins.
+rendering and publishing so automated source, rights, and creative gates can
+finish before media work begins.
 
 When an analytics report contains repeated evidence, the planner consumes its
 experiment brief to prefer the measured reference category and annotate only
@@ -56,8 +56,8 @@ the plan; insufficient evidence leaves the normal rotation unchanged.
 
 `editorial.py` turns each selected topic into a private research brief with a
 source claim, creative treatment, visual and caption direction, metadata,
-long-form bridge, and rights gate. `research-week` writes those briefs for
-review; `plan-week --research` attaches them to the private production plan.
+long-form bridge, and rights gate. `research-week` writes those briefs for the
+independent arbiter; `plan-week --research` attaches them to the private production plan.
 The research layer does not render or publish.
 During short production, the validated brief is passed into package creation
 so reviewed packaging choices survive into the generated hook and metadata;
@@ -76,4 +76,4 @@ changing the pipeline contract.
 
 The v2 admission and creative gates remain deterministic. An LLM may propose
 angles or wording, but it cannot grant permission, invent evidence, override a
-rejection, claim human review, or mark unavailable analytics as zero.
+rejection, approve its own output, or mark unavailable analytics as zero.

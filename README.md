@@ -16,6 +16,9 @@ The free/local tool and host layout is documented in
 [`docs/PRODUCTION_STACK_V2.md`](docs/PRODUCTION_STACK_V2.md); competitor learning
 and provider-compliant generated media are governed by
 [`docs/COMPETITOR_RESEARCH_SPEC.md`](docs/COMPETITOR_RESEARCH_SPEC.md).
+Exact implementation schemas and autonomous release thresholds are in
+[`docs/V2_DATA_CONTRACTS.md`](docs/V2_DATA_CONTRACTS.md) and
+[`docs/V2_EVAL_RUBRIC.md`](docs/V2_EVAL_RUBRIC.md).
 
 The pipeline discovers a topic, writes original cited metadata, renders a 9:16
 MP4 with FFmpeg, adds narration, burns captions, and publishes through official

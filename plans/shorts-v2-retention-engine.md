@@ -4,7 +4,10 @@ Objective: replace explainer-first Reddit videos with an entertainment-first,
 source-backed production system that reliably creates stronger hooks,
 escalation, visual proof, payoffs, and measurable experiments.
 
-Governing spec: `docs/SHORTS_CREATIVE_SPEC_V2.md`.
+Governing contracts: `docs/SHORTS_CREATIVE_SPEC_V2.md`,
+`docs/V2_DATA_CONTRACTS.md`, and `docs/V2_EVAL_RUBRIC.md`. The contracts govern
+whenever this blueprint is less specific; implementation models may not relax
+them.
 
 ## Invariants for every PR
 

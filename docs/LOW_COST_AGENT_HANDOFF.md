@@ -10,8 +10,10 @@ Read, in order:
 1. `AGENTS.md`
 2. `PROJECT_STATUS.md`
 3. `docs/SHORTS_CREATIVE_SPEC_V2.md`
-4. `plans/shorts-v2-retention-engine.md`
-5. the files named in the assigned plan step
+4. `docs/V2_DATA_CONTRACTS.md`
+5. `docs/V2_EVAL_RUBRIC.md`
+6. `plans/shorts-v2-retention-engine.md`
+7. the files named in the assigned plan step
 
 Do not read the whole repository unless the assigned step requires it.
 
